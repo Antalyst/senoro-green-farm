@@ -1,0 +1,30 @@
+{
+  "name": "senoro_green_farm",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "deploy:android": "npx nuxi generate && npx cap sync android && npx cap run android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
+    "@ionic/pwa-elements": "^3.4.0",
+    "@ionic/vue": "^8.8.8",
+    "@nuxt/icon": "^2.2.2",
+    "@nuxtjs/supabase": "^2.0.9",
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "ionicons": "^8.0.13",
+    "nuxt": "^4.4.6",
+    "vue": "^3.5.34",
+    "vue-router": "^5.0.7"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.3.4"
+  }
+}

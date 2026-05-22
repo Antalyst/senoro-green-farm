@@ -1,0 +1,166 @@
+/* ===================================================
+   Senoro Green Farm — Global CSS
+   =================================================== */
+
+/* Ionic Core CSS */
+@import "@ionic/vue/css/core.css";
+@import "@ionic/vue/css/normalize.css";
+@import "@ionic/vue/css/structure.css";
+@import "@ionic/vue/css/typography.css";
+@import "@ionic/vue/css/padding.css";
+@import "@ionic/vue/css/float-elements.css";
+@import "@ionic/vue/css/text-alignment.css";
+@import "@ionic/vue/css/text-transformation.css";
+@import "@ionic/vue/css/flex-utils.css";
+@import "@ionic/vue/css/display.css";
+
+/* Tailwind Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===================================================
+   Ionic CSS Variable Overrides — Brand Theme
+   =================================================== */
+:root {
+  --ion-color-primary: #2F5D3A;
+  --ion-color-primary-rgb: 47, 93, 58;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #284f32;
+  --ion-color-primary-tint: #446d4e;
+
+  --ion-color-secondary: #4E8B57;
+  --ion-color-secondary-rgb: 78, 139, 87;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #457a4c;
+  --ion-color-secondary-tint: #609768;
+
+  --ion-color-warning: #D9C84B;
+  --ion-color-warning-rgb: 217, 200, 75;
+  --ion-color-warning-contrast: #1A3521;
+  --ion-color-warning-contrast-rgb: 26, 53, 33;
+  --ion-color-warning-shade: #bfb041;
+  --ion-color-warning-tint: #ddce5d;
+
+  --ion-color-success: #4E8B57;
+  --ion-color-danger: #e53935;
+  --ion-color-medium: #6b7280;
+  --ion-color-light: #EEF5EE;
+
+  --ion-font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --ion-background-color: #f9fafb;
+  --ion-toolbar-background: #2F5D3A;
+  --ion-toolbar-color: #ffffff;
+  --ion-tab-bar-background: #ffffff;
+  --ion-tab-bar-color: #6b7280;
+  --ion-tab-bar-color-selected: #2F5D3A;
+}
+
+/* ===================================================
+   Global Resets & Base Styles
+   =================================================== */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f9fafb;
+  color: #1f2937;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ionic overrides for better web compatibility */
+ion-content {
+  --background: #f9fafb;
+}
+
+ion-header ion-toolbar {
+  --background: #2F5D3A;
+  --color: #ffffff;
+  --border-color: transparent;
+}
+
+ion-item {
+  --border-color: #e5e7eb;
+  --highlight-color-focused: #4E8B57;
+  --highlight-color-invalid: #e53935;
+}
+
+ion-input {
+  --highlight-color: #4E8B57;
+}
+
+ion-button {
+  --border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+ion-tab-bar {
+  border-top: 1px solid #e5e7eb;
+  height: 60px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+ion-tab-button {
+  --color: #6b7280;
+  --color-selected: #2F5D3A;
+}
+
+/* ===================================================
+   Utility Classes
+   =================================================== */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Farm card style */
+.farm-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 16px rgba(47, 93, 58, 0.08);
+  overflow: hidden;
+}
+
+/* Status badges */
+.badge-pending {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-active {
+  background: #d1fae5;
+  color: #065f46;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-transit {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-delivered {
+  background: #d1fae5;
+  color: #065f46;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}

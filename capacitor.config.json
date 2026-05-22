@@ -1,0 +1,6 @@
+{
+  "appId": "com.example.app",
+  "appName": "senoro_green_farm",
+  "webDir": ".output/public",
+  "bundledWebRuntime": false
+}
