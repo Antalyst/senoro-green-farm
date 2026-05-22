@@ -8,7 +8,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "deploy:android": "npx nuxi generate && npx cap sync android && npx cap run android"
+    "deploy:android": "npx nuxi generate && npx cap sync android && npx cap run android",
+    "generate:assets": "capacitor-assets generate --assetPath assets --iconBackgroundColor #2F5D3A --splashBackgroundColor #2F5D3A"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -25,6 +26,7 @@
     "vue-router": "^5.0.7"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.3.4"
   }
 }

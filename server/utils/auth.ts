@@ -119,7 +119,15 @@ export function verifyToken(token: string): UserPayload {
  * Returns the user payload or throws.
  */
 export function requireAuth(event: Parameters<typeof getCookie>[0]): UserPayload {
-  const token = getCookie(event, 'auth_token')
+  let token = getCookie(event, 'auth_token')
+
+  if (!token) {
+    const authHeader = getHeader(event, 'authorization')
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
+    }
+  }
+
   if (!token) {
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   }

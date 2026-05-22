@@ -12,6 +12,7 @@ const useAuthInitialized = () => useState<boolean>('auth:initialized', () => fal
 
 // LS key for Capacitor native fallback
 const LS_KEY = 'sgf_auth_user'
+const TOKEN_KEY = 'sgf_auth_token'
 
 export function useAuth() {
   const user = useUserState()
@@ -56,7 +57,8 @@ export function useAuth() {
 
     loading.value = true
     try {
-      const data = await $fetch<{ user: AuthUser }>('/api/auth/me')
+      const api = useApiFetch()
+      const data = await api<{ user: AuthUser }>('/api/auth/me')
       user.value = data.user
       persistToLocal(data.user)
     }
@@ -77,12 +79,16 @@ export function useAuth() {
   async function login(email: string, password: string) {
     loading.value = true
     try {
-      const data = await $fetch<{ user: AuthUser }>('/api/auth/login', {
+      const api = useApiFetch()
+      const data = await api<{ success: boolean; token: string; user: AuthUser }>('/api/auth/login', {
         method: 'POST',
         body: { email, password },
       })
       user.value = data.user
       persistToLocal(data.user)
+      if (import.meta.client && data.token) {
+        localStorage.setItem(TOKEN_KEY, data.token)
+      }
       return data.user
     }
     finally {
@@ -96,12 +102,16 @@ export function useAuth() {
   async function register(full_name: string, email: string, password: string, role: string) {
     loading.value = true
     try {
-      const data = await $fetch<{ user: AuthUser }>('/api/auth/register', {
+      const api = useApiFetch()
+      const data = await api<{ success: boolean; token: string; user: AuthUser }>('/api/auth/register', {
         method: 'POST',
         body: { full_name, email, password, role },
       })
       user.value = data.user
       persistToLocal(data.user)
+      if (import.meta.client && data.token) {
+        localStorage.setItem(TOKEN_KEY, data.token)
+      }
       return data.user
     }
     finally {
@@ -114,13 +124,17 @@ export function useAuth() {
    */
   async function logout() {
     try {
-      await $fetch('/api/auth/logout', { method: 'POST' })
+      const api = useApiFetch()
+      await api('/api/auth/logout', { method: 'POST' })
     }
     catch { /* ignore */ }
     finally {
       user.value = null
       initialized.value = false
       persistToLocal(null)
+      if (import.meta.client) {
+        localStorage.removeItem(TOKEN_KEY)
+      }
     }
   }
 

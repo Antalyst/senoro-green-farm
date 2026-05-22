@@ -193,7 +193,8 @@ function formatDate(d: string): string {
 async function loadUsers() {
   loadingUsers.value = true
   try {
-    const data = await $fetch<{ users: any[] }>('/api/admin/users')
+    const api = useApiFetch()
+    const data = await api<{ users: any[] }>('/api/admin/users')
     users.value = data.users
   }
   catch {

@@ -61,6 +61,8 @@ export default defineEventHandler(async (event) => {
   })
 
   return {
+    success: true,
+    token,
     user: payload,
   }
 })
