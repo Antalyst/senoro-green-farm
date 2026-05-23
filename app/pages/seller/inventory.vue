@@ -169,6 +169,21 @@
               </div>
             </div>
             <div class="space-y-1">
+              <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Product image</label>
+              <div class="border border-farm-light p-3 flex items-center gap-3">
+                <div v-if="form.image_url" class="w-14 h-14 border border-farm-light overflow-hidden flex-shrink-0">
+                  <img :src="form.image_url" alt="Preview" class="w-full h-full object-cover">
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  class="text-xs text-farm-dark/60"
+                  @change="onImageSelected"
+                >
+              </div>
+              <p v-if="uploadingImage" class="text-[10px] text-farm-leaf">Uploading image…</p>
+            </div>
+            <div class="space-y-1">
               <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Description</label>
               <textarea
                 v-model="form.description"
@@ -253,6 +268,7 @@ const filteredProducts = computed(() => {
 const showModal = ref(false)
 const isEditing = ref(false)
 const saving = ref(false)
+const uploadingImage = ref(false)
 const editId = ref<string | null>(null)
 
 const form = ref({
@@ -260,7 +276,8 @@ const form = ref({
   description: '',
   price: 0,
   stock: 0,
-  category: 'Vegetables'
+  category: 'Vegetables',
+  image_url: '' as string | null,
 })
 
 // Toast notification state
@@ -287,9 +304,32 @@ function openAddModal() {
     description: '',
     price: 0,
     stock: 0,
-    category: 'Vegetables'
+    category: 'Vegetables',
+    image_url: null,
   }
   showModal.value = true
+}
+
+async function onImageSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  uploadingImage.value = true
+  try {
+    const body = new FormData()
+    body.append('image', file)
+    const result = await api<{ url: string }>('/api/products/upload', { method: 'POST', body })
+    form.value.image_url = result.url
+    triggerToast('Image uploaded.')
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    triggerToast(e.data?.statusMessage || 'Image upload failed', 'error')
+  }
+  finally {
+    uploadingImage.value = false
+    input.value = ''
+  }
 }
 
 function openEditModal(product: any) {
@@ -300,7 +340,8 @@ function openEditModal(product: any) {
     description: product.description || '',
     price: parseFloat(product.price),
     stock: parseInt(product.stock),
-    category: product.category
+    category: product.category,
+    image_url: product.image_url ?? null,
   }
   showModal.value = true
 }

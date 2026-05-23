@@ -34,16 +34,19 @@
         </div>
         <Icon name="heroicons:chevron-right" class="w-4 h-4 text-farm-dark/30 flex-shrink-0" />
       </NuxtLink>
-      <div class="flex items-center justify-between px-5 py-4 hover:bg-farm-light/30 transition-colors">
+      <NuxtLink
+        to="/buyer/profile/addresses"
+        class="flex items-center justify-between px-5 py-4 hover:bg-farm-light/30 transition-colors"
+      >
         <div class="flex items-center gap-3 min-w-0">
-          <Icon name="heroicons:cog-6-tooth" class="w-5 h-5 text-farm-dark/50 stroke-[1.5] flex-shrink-0" />
+          <Icon name="heroicons:map-pin" class="w-5 h-5 text-farm-deep stroke-[1.5] flex-shrink-0" />
           <div class="min-w-0">
-            <p class="text-sm font-medium text-farm-dark">Profile settings</p>
-            <p class="text-xs text-farm-dark/45 truncate">Address and security</p>
+            <p class="text-sm font-medium text-farm-dark">Delivery addresses</p>
+            <p class="text-xs text-farm-dark/45 truncate">Add, edit, and set default</p>
           </div>
         </div>
         <Icon name="heroicons:chevron-right" class="w-4 h-4 text-farm-dark/30 flex-shrink-0" />
-      </div>
+      </NuxtLink>
       <div class="flex items-center justify-between px-5 py-4 hover:bg-farm-light/30 transition-colors">
         <div class="flex items-center gap-3 min-w-0">
           <Icon name="heroicons:question-mark-circle" class="w-5 h-5 text-farm-dark/50 stroke-[1.5] flex-shrink-0" />

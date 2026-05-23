@@ -132,7 +132,8 @@
             :key="product.id"
             :product="product"
             show-savings-hint
-            @add-to-cart="addToCart"
+            @add-to-cart="handleAddToCart"
+            @buy-now="handleBuyNow"
           />
         </div>
       </section>
@@ -220,19 +221,28 @@ function selectCategory(cat: string) {
   router.replace({ query: { ...route.query, category: cat === 'All' ? undefined : cat } })
 }
 
-async function addToCart(product: BuyerProduct, quantity = 1) {
+const { addToCart, buyNow } = useProductActions()
+
+async function handleAddToCart(product: BuyerProduct) {
   if (!product || product.stock === 0) return
   try {
-    await api('/api/cart/add', {
-      method: 'POST',
-      body: { product_id: product.id, quantity },
-    })
+    await addToCart(product.id)
     triggerToast(`Added ${product.name} to cart.`)
-    refreshCartCount?.()
   }
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
     triggerToast(e.data?.statusMessage || 'Failed to add item to cart', 'error')
+  }
+}
+
+async function handleBuyNow(product: BuyerProduct) {
+  if (!product || product.stock === 0) return
+  try {
+    await buyNow(product.id)
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    triggerToast(e.data?.statusMessage || 'Failed to start checkout', 'error')
   }
 }
 

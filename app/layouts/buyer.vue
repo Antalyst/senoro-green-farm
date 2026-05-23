@@ -113,6 +113,8 @@ const isSubPage = computed(() => {
 const headerTitle = computed(() => {
   if (isSubPage.value) {
     if (currentPath.value === '/buyer/orders') return 'Orders'
+    if (currentPath.value.startsWith('/buyer/orders/')) return subPageTitle.value || 'Order tracking'
+    if (currentPath.value === '/buyer/profile/addresses') return 'Addresses'
     if (currentPath.value.startsWith('/buyer/shop/')) return subPageTitle.value || 'Shop'
     return subPageTitle.value || 'Senoro Green Farm'
   }

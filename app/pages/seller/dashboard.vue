@@ -44,8 +44,18 @@
             <p class="text-xs text-farm-dark/45 mt-1">Trailing six-month performance</p>
           </div>
         </div>
-        <FarmChart v-if="revenueChartOptions" :options="revenueChartOptions" :height="300" />
-        <p v-else class="text-sm text-farm-dark/40 py-12 text-center">No revenue data yet.</p>
+        <ClientOnly>
+          <FarmChart
+            v-if="sellerChartOptions"
+            :options="sellerChartOptions"
+            :height="300"
+          />
+          <template #fallback>
+            <div class="h-[300px] flex items-center justify-center border border-farm-light bg-farm-light/20">
+              <span class="text-[11px] text-farm-dark/40 tracking-wide">Loading chart…</span>
+            </div>
+          </template>
+        </ClientOnly>
       </section>
 
       <!-- Quick navigation -->
@@ -179,6 +189,7 @@
 <script setup lang="ts">
 import type { Options } from 'highcharts'
 import PageContainer from '~/components/ui/PageContainer.vue'
+import FarmChart from '~/components/ui/FarmChart.vue'
 
 definePageMeta({ layout: 'seller' })
 
@@ -186,7 +197,7 @@ const { user } = useAuth()
 const router = useRouter()
 const statusFilter = ref('all')
 const api = useApiFetch()
-const { areaChartOptions, aggregateByMonth } = useFarmChartTheme()
+const { sellerDualAxisOptions } = useFarmChartTheme()
 
 interface MetricItem {
   price: number
@@ -198,6 +209,11 @@ interface MetricsPayload {
   totalRevenue: number
   totalOrders: number
   items: MetricItem[]
+  chart?: {
+    categories: string[]
+    revenue: number[]
+    orderCount: number[]
+  }
 }
 
 const { data: metrics, pending: metricsPending } = await useAsyncData(
@@ -214,35 +230,13 @@ const { data: productsData, pending: productsPending } = await useAsyncData(
 
 const recentSales = computed(() => (metrics.value?.items ?? []).slice(0, 8))
 
-const revenueChartOptions = computed<Options | null>(() => {
-  const items = metrics.value?.items ?? []
-  if (!items.length) return null
+const sellerChartOptions = computed<Options>(() => {
+  const chart = metrics.value?.chart
+  const categories = chart?.categories ?? []
+  const revenue = chart?.revenue ?? []
+  const orderCount = chart?.orderCount ?? []
 
-  const { categories, data } = aggregateByMonth(
-    items,
-    row => row.price * row.quantity,
-    6,
-  )
-
-  return areaChartOptions(
-    categories,
-    [{ name: 'Revenue', data, color: '#4E8B57' }],
-    {
-      yAxis: {
-        labels: {
-          formatter() {
-            return `₱${Number(this.value) >= 1000 ? `${(Number(this.value) / 1000).toFixed(0)}k` : this.value}`
-          },
-          style: { color: '#1A3521', fontSize: '10px', opacity: 0.65 },
-        },
-      },
-      tooltip: {
-        pointFormatter() {
-          return `<span style="color:#4E8B57">●</span> Revenue: <b>₱${Number(this.y).toFixed(2)}</b><br/>`
-        },
-      },
-    },
-  )
+  return sellerDualAxisOptions(categories, revenue, orderCount)
 })
 
 const filteredProducts = computed(() => {

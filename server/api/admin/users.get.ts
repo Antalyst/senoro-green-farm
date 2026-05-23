@@ -1,4 +1,5 @@
 import { serverSupabaseClient } from '#supabase/server'
+import { requireAuth } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   // Verify caller is an admin

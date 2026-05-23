@@ -114,13 +114,22 @@
                 <Icon name="heroicons:plus" class="w-4 h-4 stroke-[1.5]" />
               </button>
             </div>
-            <button
-              type="button"
-              class="mt-6 w-full max-w-sm py-3.5 bg-farm-deep text-white text-xs font-medium tracking-[0.14em] uppercase hover:bg-farm-dark transition-colors duration-300"
-              @click="addToCart"
-            >
-              Add to cart — {{ qty }} {{ qty === 1 ? 'unit' : 'units' }}
-            </button>
+            <div class="grid grid-cols-2 gap-3 max-w-sm">
+              <button
+                type="button"
+                class="py-3 border border-farm-deep text-farm-deep text-xs font-medium tracking-[0.14em] uppercase hover:bg-farm-light transition-colors"
+                @click="addToCart"
+              >
+                Add to cart
+              </button>
+              <button
+                type="button"
+                class="py-3 bg-farm-deep text-white text-xs font-medium tracking-[0.14em] uppercase hover:bg-farm-dark transition-colors"
+                @click="buyNowCheckout"
+              >
+                Buy now
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -233,10 +242,17 @@
         </div>
         <button
           type="button"
-          class="flex-1 py-3 bg-farm-deep text-white text-xs font-medium tracking-[0.12em] uppercase"
+          class="flex-1 py-3 border border-farm-deep text-farm-deep text-[10px] font-medium tracking-[0.12em] uppercase"
           @click="addToCart"
         >
           Add to cart
+        </button>
+        <button
+          type="button"
+          class="flex-1 py-3 bg-farm-deep text-white text-[10px] font-medium tracking-[0.12em] uppercase"
+          @click="buyNowCheckout"
+        >
+          Buy now
         </button>
       </div>
     </div>
@@ -274,7 +290,9 @@ interface ReviewItem {
 }
 
 const route = useRoute()
+const router = useRouter()
 const api = useApiFetch()
+const { buyNow } = useProductActions()
 
 const refreshCartCount = inject<(() => void) | undefined>('refreshCartCount')
 const setSubPageTitle = inject<((title: string) => void) | undefined>('setSubPageTitle')
@@ -358,6 +376,18 @@ async function addToCart() {
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
     triggerToast(e.data?.statusMessage || 'Failed to add to cart', 'error')
+  }
+}
+
+async function buyNowCheckout() {
+  const p = product.value
+  if (!p || p.stock === 0) return
+  try {
+    await buyNow(p.id, qty.value)
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    triggerToast(e.data?.statusMessage || 'Failed to start checkout', 'error')
   }
 }
 

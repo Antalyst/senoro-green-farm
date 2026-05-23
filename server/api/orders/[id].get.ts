@@ -3,29 +3,36 @@ import { requireAuth } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
+  const id = getRouterParam(event, 'id')
+
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Order ID required' })
+  }
+
   if (user.role !== 'buyer') {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
 
   const supabase = await serverSupabaseClient(event)
 
-  const { data: orders, error } = await supabase
+  const { data: order, error } = await supabase
     .from('orders')
     .select(`
-      id, total_amount, status, created_at, delivery_rider_id,
+      id, total_amount, status, created_at, delivery_rider_id, buyer_id,
       addresses(id, full_name, phone_number, city, barangay, detailed_address),
       delivery_rider:users!delivery_rider_id(id, full_name, email),
       order_items(
         id, quantity, price,
-        products(id, name, category, image_url)
+        products(id, name, category, image_url, seller_id)
       )
     `)
+    .eq('id', id)
     .eq('buyer_id', user.id)
-    .order('created_at', { ascending: false })
+    .maybeSingle()
 
-  if (error) {
-    throw createError({ statusCode: 500, statusMessage: 'Failed to fetch orders' })
+  if (error || !order) {
+    throw createError({ statusCode: 404, statusMessage: 'Order not found' })
   }
 
-  return { orders: orders ?? [] }
+  return { order }
 })

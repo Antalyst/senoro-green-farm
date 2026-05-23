@@ -183,6 +183,7 @@ definePageMeta({ layout: 'buyer' })
 
 const router = useRouter()
 const api = useApiFetch()
+const { requireAddressOrRedirect } = useShippingAddressGuard()
 
 const refreshCartCount = inject<(() => void) | undefined>('refreshCartCount')
 
@@ -315,6 +316,12 @@ async function deleteItem(item: CartLineItem) {
 
 async function checkout() {
   if (checkedItemIds.value.length === 0) return
+
+  const canProceed = await requireAddressOrRedirect((message) => {
+    triggerToast(message, 'error')
+  })
+  if (!canProceed) return
+
   submittingCheckout.value = true
   try {
     const data = await api<{ success: boolean; total_amount: number }>('/api/cart/checkout', {

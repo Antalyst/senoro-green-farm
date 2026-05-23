@@ -1,6 +1,6 @@
 <template>
   <article
-    class="group flex flex-col bg-white border border-gray-100 hover:border-farm-leaf transition-all duration-300"
+    class="group flex flex-col bg-white border border-farm-light hover:border-farm-deep/40 transition-colors duration-300"
   >
     <NuxtLink :to="`/buyer/product/${product.id}`" class="block">
       <div class="relative aspect-square bg-farm-light overflow-hidden">
@@ -44,24 +44,31 @@
         {{ product.users?.full_name ?? 'Senoro Seller' }}
       </NuxtLink>
 
-      <div class="mt-auto pt-4 flex items-end justify-between gap-2">
-        <div>
-          <p class="text-base font-medium text-farm-leaf tracking-tight">
-            ₱{{ formattedPrice }}
-          </p>
-          <p v-if="showSavingsHint" class="text-[10px] text-farm-dark/40 mt-0.5">
-            Save 12% this week
-          </p>
+      <div class="mt-auto pt-4 space-y-3">
+        <p class="text-base font-medium text-farm-leaf tracking-tight">
+          ₱{{ formattedPrice }}
+        </p>
+        <p v-if="showSavingsHint" class="text-[10px] text-farm-dark/40 -mt-2">
+          Save 12% this week
+        </p>
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            class="py-2 border border-farm-deep text-farm-deep text-[10px] font-medium tracking-[0.1em] uppercase hover:bg-farm-light transition-colors disabled:opacity-30 disabled:pointer-events-none"
+            :disabled="product.stock === 0"
+            @click.stop="$emit('add-to-cart', product)"
+          >
+            Add to cart
+          </button>
+          <button
+            type="button"
+            class="py-2 bg-farm-deep text-white text-[10px] font-medium tracking-[0.1em] uppercase hover:bg-farm-dark transition-colors disabled:opacity-30 disabled:pointer-events-none"
+            :disabled="product.stock === 0"
+            @click.stop="$emit('buy-now', product)"
+          >
+            Buy now
+          </button>
         </div>
-        <button
-          type="button"
-          class="w-9 h-9 border border-farm-deep text-farm-deep flex items-center justify-center hover:bg-farm-deep hover:text-white transition-colors duration-300 disabled:opacity-30 disabled:pointer-events-none"
-          :disabled="product.stock === 0"
-          aria-label="Add to cart"
-          @click.stop="$emit('add-to-cart', product)"
-        >
-          <Icon name="heroicons:plus" class="w-4 h-4 stroke-[2]" />
-        </button>
       </div>
     </div>
   </article>
@@ -85,6 +92,7 @@ const props = defineProps<{
 
 defineEmits<{
   'add-to-cart': [product: BuyerProduct]
+  'buy-now': [product: BuyerProduct]
 }>()
 
 const categoryVisuals: Record<string, string> = {

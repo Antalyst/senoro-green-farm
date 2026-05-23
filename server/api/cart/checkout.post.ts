@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { cart_item_ids } = body ?? {}
+  const { cart_item_ids, address_id } = body ?? {}
 
   if (!cart_item_ids || !Array.isArray(cart_item_ids) || cart_item_ids.length === 0) {
     throw createError({ statusCode: 400, statusMessage: 'cart_item_ids array is required' })
@@ -44,12 +44,47 @@ export default defineEventHandler(async (event) => {
     totalAmount += price * item.quantity
   }
 
+  // Resolve shipping address
+  let resolvedAddressId = address_id as string | undefined
+
+  if (resolvedAddressId) {
+    const { data: addr } = await supabase
+      .from('addresses')
+      .select('id')
+      .eq('id', resolvedAddressId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!addr) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid shipping address' })
+    }
+  }
+  else {
+    const { data: defaultAddr } = await supabase
+      .from('addresses')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_default', true)
+      .maybeSingle()
+
+    resolvedAddressId = defaultAddr?.id
+  }
+
+  if (!resolvedAddressId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Cannot process order without a valid shipping address.',
+    })
+  }
+
   // Insert order
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
     .insert({
       buyer_id: user.id,
-      total_amount: totalAmount
+      total_amount: totalAmount,
+      address_id: resolvedAddressId,
+      status: 'pending',
     })
     .select()
     .single()

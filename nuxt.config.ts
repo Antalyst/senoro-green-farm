@@ -20,6 +20,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     jwtSecret: process.env.NUXT_JWT_SECRET || 'senoro-dev-secret-change-in-prod',
     supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY || '',
+    imgbbApiKey: process.env.IMGBB_API_KEY || '',
     public: {
       supabaseUrl: process.env.SUPABASE_URL || '',
       supabaseKey: process.env.SUPABASE_KEY || '',
