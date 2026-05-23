@@ -1,73 +1,66 @@
 <template>
   <ion-page>
-    <ion-header :translucent="false">
+    <ion-header class="delivery-header">
       <ion-toolbar>
-        <ion-buttons slot="start">
-          <div class="flex items-center gap-2 pl-2">
-            <div class="w-7 h-7 rounded-lg bg-farm-yellow flex items-center justify-center">
-              <Icon name="heroicons:truck-solid" class="w-4 h-4 text-farm-deep" />
+        <div class="max-w-page mx-auto w-full px-4 md:px-8 flex items-center justify-between py-2">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 border border-farm-light flex items-center justify-center">
+              <Icon name="heroicons:truck" class="w-4 h-4 text-farm-deep stroke-[1.5]" />
             </div>
-            <div>
-              <p class="text-white font-bold text-sm leading-tight">Delivery</p>
-              <p class="text-white/60 text-[10px]">senoro green farm</p>
-            </div>
+            <span class="text-sm font-medium text-farm-dark tracking-tight">Delivery</span>
           </div>
-        </ion-buttons>
 
-        <ion-buttons slot="end">
-          <div class="flex items-center gap-2 pr-3">
-            <!-- Online status indicator -->
-            <div class="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-full">
-              <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span class="text-white/80 text-xs font-medium">Online</span>
+          <div class="flex items-center gap-3 relative">
+            <div class="hidden sm:flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-farm-leaf">
+              <span class="w-1.5 h-1.5 rounded-full bg-farm-leaf" />
+              Online
             </div>
             <button
-              class="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition-colors px-3 py-1.5 rounded-full"
+              type="button"
+              class="flex items-center gap-2 py-1 text-farm-dark/70 hover:text-farm-dark"
               @click="showProfileMenu = !showProfileMenu"
             >
-              <div class="w-6 h-6 rounded-full bg-farm-yellow flex items-center justify-center">
-                <span class="text-farm-deep text-xs font-bold">{{ userInitial }}</span>
+              <div class="w-8 h-8 border border-farm-deep flex items-center justify-center text-[10px] font-medium text-farm-deep">
+                {{ userInitial }}
               </div>
-              <span class="text-white text-sm font-medium max-w-[80px] truncate">{{ user?.full_name }}</span>
+              <Icon name="heroicons:chevron-down" class="w-3.5 h-3.5 hidden sm:block" />
             </button>
           </div>
-        </ion-buttons>
+        </div>
       </ion-toolbar>
     </ion-header>
 
-    <!-- Profile dropdown -->
     <Transition name="fade-down">
       <div
         v-if="showProfileMenu"
-        class="absolute right-4 top-16 z-50 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 w-56"
-        style="z-index:9999"
+        class="fixed right-4 md:right-[max(1rem,calc((100vw-1200px)/2+2rem))] top-14 z-[60] bg-white border border-farm-light py-2 w-56 shadow-sm"
       >
-        <div class="px-4 py-3 border-b border-gray-100">
-          <p class="font-semibold text-gray-900 text-sm">{{ user?.full_name }}</p>
-          <p class="text-xs text-gray-500 truncate">{{ user?.email }}</p>
-          <span class="inline-block mt-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold uppercase tracking-wide">
-            delivery rider
-          </span>
+        <div class="px-4 py-3 border-b border-farm-light">
+          <p class="text-sm font-medium text-farm-dark">{{ user?.full_name }}</p>
+          <p class="text-[11px] text-farm-dark/45 truncate">{{ user?.email }}</p>
         </div>
         <button
-          class="flex items-center gap-3 w-full px-4 py-3 hover:bg-red-50 text-red-600 transition-colors text-sm font-medium"
+          type="button"
+          class="w-full px-4 py-3 text-left text-xs font-medium tracking-wide uppercase text-farm-dark/60 hover:bg-farm-light hover:text-red-700 transition-colors"
           @click="handleLogout"
         >
-          <Icon name="heroicons:arrow-right-on-rectangle" class="w-4 h-4" />
-          Sign Out
+          Sign out
         </button>
       </div>
     </Transition>
-    <div v-if="showProfileMenu" class="fixed inset-0 z-40" @click="showProfileMenu = false" />
+    <div v-if="showProfileMenu" class="fixed inset-0 z-50" @click="showProfileMenu = false" />
 
-    <ion-content class="ion-padding-bottom">
-      <slot />
+    <ion-content class="delivery-ion-content">
+      <AppShell>
+        <slot />
+      </AppShell>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonContent } from '@ionic/vue'
+import { IonPage, IonHeader, IonToolbar, IonContent } from '@ionic/vue'
+import AppShell from '~/components/ui/AppShell.vue'
 
 const { user, logout } = useAuth()
 const router = useRouter()
@@ -85,6 +78,16 @@ async function handleLogout() {
 </script>
 
 <style scoped>
+.delivery-header ion-toolbar {
+  --background: #ffffff;
+  --border-color: #EEF5EE;
+  --min-height: 52px;
+}
+
+.delivery-ion-content {
+  --background: #EEF5EE;
+}
+
 .fade-down-enter-active,
 .fade-down-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -92,6 +95,6 @@ async function handleLogout() {
 .fade-down-enter-from,
 .fade-down-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(-6px);
 }
 </style>

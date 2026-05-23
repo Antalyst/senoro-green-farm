@@ -1,162 +1,183 @@
 <template>
-  <div>
-    <!-- Welcome Banner -->
-    <div class="bg-farm-gradient-dark px-5 pt-5 pb-8">
-      <p class="text-white/60 text-xs font-medium uppercase tracking-widest mb-1">Welcome back</p>
-      <h2 class="text-white text-2xl font-extrabold">{{ user?.full_name }}</h2>
-      <p class="text-white/50 text-sm mt-0.5">{{ today }}</p>
-    </div>
+  <div class="space-y-12 py-8 md:py-12">
+      <header class="border-b border-farm-light pb-8">
+        <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45 mb-2">
+          Executive overview
+        </p>
+        <h1 class="text-2xl md:text-3xl font-light text-farm-dark tracking-tight">
+          {{ user?.full_name }}
+        </h1>
+        <p class="text-sm text-farm-dark/45 mt-2">{{ today }}</p>
+      </header>
 
-    <div class="px-4 -mt-4 space-y-5 pb-8">
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-2 gap-3">
+      <!-- System health grid -->
+      <section class="grid grid-cols-2 lg:grid-cols-4 border border-farm-light divide-x divide-y lg:divide-y-0 divide-farm-light">
         <div
-          v-for="stat in stats"
+          v-for="stat in platformStats"
           :key="stat.label"
-          class="farm-card p-4"
+          class="p-6 bg-white"
         >
-          <div class="flex items-start justify-between mb-3">
-            <div :class="`w-9 h-9 rounded-xl flex items-center justify-center ${stat.iconBg}`">
-              <Icon :name="stat.icon" class="w-5 h-5" :class="stat.iconColor" />
-            </div>
-            <span :class="`text-xs font-semibold px-2 py-0.5 rounded-full ${stat.badgeClass}`">
-              {{ stat.change }}
-            </span>
-          </div>
-          <p class="text-2xl font-extrabold text-gray-900">{{ stat.value }}</p>
-          <p class="text-xs text-gray-500 mt-0.5 font-medium">{{ stat.label }}</p>
+          <p class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45 mb-2">
+            {{ stat.label }}
+          </p>
+          <p class="text-2xl md:text-3xl font-light text-farm-dark tabular-nums">
+            {{ stat.value }}
+          </p>
+          <p class="text-[11px] mt-2" :class="stat.hintClass">{{ stat.hint }}</p>
         </div>
-      </div>
+      </section>
 
-      <!-- User Management -->
-      <div class="farm-card overflow-hidden">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h3 class="font-bold text-gray-900 text-sm">All Users</h3>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">{{ users.length }} total</span>
-            <button
-              class="p-1.5 rounded-lg bg-farm-light hover:bg-farm-leaf/20 transition-colors"
-              @click="loadUsers"
-            >
-              <Icon name="heroicons:arrow-path" class="w-4 h-4 text-farm-leaf" :class="{ 'animate-spin': loadingUsers }" />
-            </button>
-          </div>
+      <!-- Growth chart -->
+      <section class="border border-farm-light p-6 md:p-8">
+        <div class="mb-6">
+          <h2 class="text-lg font-light text-farm-dark tracking-tight">
+            Platform growth trends
+          </h2>
+          <p class="text-xs text-farm-dark/45 mt-1">
+            Buyer registrations vs. seller onboarding (6 months)
+          </p>
         </div>
+        <FarmChart v-if="growthChartOptions && users.length" :options="growthChartOptions" :height="300" />
+        <p v-else class="text-sm text-farm-dark/40 py-12 text-center">
+          Load user data to view growth analytics.
+        </p>
+      </section>
 
-        <!-- Filter tabs -->
-        <div class="flex gap-1 px-4 py-2 border-b border-gray-100 bg-gray-50">
+      <!-- User directory -->
+      <section class="border border-farm-light">
+        <div class="px-5 py-4 border-b border-farm-light flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-medium text-farm-dark tracking-tight">User directory</h2>
+            <p class="text-[11px] text-farm-dark/40 mt-0.5">{{ users.length }} accounts on platform</p>
+          </div>
           <button
-            v-for="f in ['all', 'admin', 'seller', 'buyer', 'delivery']"
+            type="button"
+            class="text-[10px] font-medium tracking-[0.12em] uppercase text-farm-deep border-b border-farm-deep pb-0.5 hover:text-farm-dark transition-colors flex items-center gap-1"
+            :disabled="loadingUsers"
+            @click="loadUsers"
+          >
+            <Icon name="heroicons:arrow-path" class="w-3.5 h-3.5" :class="{ 'animate-spin': loadingUsers }" />
+            Refresh
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-1 px-5 py-3 border-b border-farm-light bg-farm-light/20">
+          <button
+            v-for="f in roleFilters"
             :key="f"
-            :class="[
-              'px-3 py-1 rounded-full text-xs font-semibold transition-all capitalize',
-              activeFilter === f
-                ? 'bg-farm-deep text-white'
-                : 'text-gray-500 hover:bg-gray-200',
-            ]"
+            type="button"
+            class="px-3 py-1 text-[10px] font-medium tracking-[0.1em] uppercase transition-colors"
+            :class="activeFilter === f
+              ? 'bg-farm-deep text-white'
+              : 'text-farm-dark/50 hover:text-farm-deep'"
             @click="activeFilter = f"
           >
             {{ f }}
           </button>
         </div>
 
-        <!-- Loading skeleton -->
-        <div v-if="loadingUsers" class="divide-y divide-gray-100">
-          <div v-for="i in 4" :key="i" class="flex items-center gap-3 px-4 py-3">
-            <div class="w-9 h-9 rounded-full bg-gray-200 animate-pulse" />
-            <div class="flex-1 space-y-1.5">
-              <div class="h-3 bg-gray-200 rounded animate-pulse w-32" />
-              <div class="h-2.5 bg-gray-100 rounded animate-pulse w-44" />
+        <div v-if="loadingUsers" class="divide-y divide-farm-light">
+          <div v-for="i in 5" :key="i" class="px-5 py-4 flex gap-4">
+            <div class="w-8 h-8 bg-farm-light animate-pulse" />
+            <div class="flex-1 space-y-2">
+              <div class="h-3 bg-farm-light animate-pulse w-1/3" />
+              <div class="h-2 bg-farm-light animate-pulse w-1/2" />
             </div>
           </div>
         </div>
 
-        <!-- User list -->
-        <div v-else class="divide-y divide-gray-100 max-h-[420px] overflow-y-auto">
-          <div
-            v-for="u in filteredUsers"
-            :key="u.id"
-            class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
-          >
-            <div :class="`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${roleColor(u.role)}`">
-              {{ u.full_name.charAt(0).toUpperCase() }}
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-gray-900 truncate">{{ u.full_name }}</p>
-              <p class="text-xs text-gray-500 truncate">{{ u.email }}</p>
-            </div>
-            <div class="flex flex-col items-end gap-1">
-              <span :class="`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${roleBadge(u.role)}`">
-                {{ u.role }}
-              </span>
-              <span class="text-[10px] text-gray-400">{{ formatDate(u.created_at) }}</span>
-            </div>
-          </div>
+        <div v-else class="max-h-[480px] overflow-y-auto">
+          <table class="w-full text-left">
+            <thead class="sticky top-0 bg-white border-b border-farm-light">
+              <tr class="text-[10px] uppercase tracking-wider text-farm-dark/40">
+                <th class="px-5 py-3 font-medium">Member</th>
+                <th class="px-5 py-3 font-medium">Role</th>
+                <th class="px-5 py-3 font-medium text-right">Joined</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-farm-light">
+              <tr
+                v-for="u in filteredUsers"
+                :key="u.id"
+                class="hover:bg-farm-light transition-colors"
+              >
+                <td class="px-5 py-4">
+                  <p class="text-sm font-medium text-farm-dark">{{ u.full_name }}</p>
+                  <p class="text-[11px] text-farm-dark/45 truncate max-w-[220px]">{{ u.email }}</p>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-[10px] font-medium tracking-[0.12em] uppercase text-farm-deep border border-farm-light px-2 py-1">
+                    {{ u.role }}
+                  </span>
+                </td>
+                <td class="px-5 py-4 text-[11px] text-farm-dark/45 text-right tabular-nums">
+                  {{ formatDate(u.created_at) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-          <div v-if="filteredUsers.length === 0" class="py-12 text-center">
-            <Icon name="heroicons:users" class="w-10 h-10 text-gray-200 mx-auto mb-2" />
-            <p class="text-gray-400 text-sm">No users found</p>
+          <div v-if="filteredUsers.length === 0" class="py-16 text-center text-sm text-farm-dark/40">
+            No users in this segment.
           </div>
         </div>
-      </div>
+      </section>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
+import type { Options } from 'highcharts'
+
 definePageMeta({ layout: 'admin' })
 
 const { user } = useAuth()
 
-const users = ref<any[]>([])
+interface PlatformUser {
+  id: string
+  full_name: string
+  email: string
+  role: string
+  created_at: string
+}
+
+const users = ref<PlatformUser[]>([])
 const loadingUsers = ref(false)
 const activeFilter = ref('all')
+const roleFilters = ['all', 'admin', 'seller', 'buyer', 'delivery']
 
-const today = computed(() => {
-  return new Date().toLocaleDateString('en-PH', {
+const today = computed(() =>
+  new Date().toLocaleDateString('en-PH', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  })
-})
+  }),
+)
 
-const stats = computed(() => {
+const platformStats = computed(() => {
   const total = users.value.length
   const byRole = (r: string) => users.value.filter(u => u.role === r).length
   return [
     {
-      label: 'Total Users',
+      label: 'Active users',
       value: total,
-      icon: 'heroicons:users-solid',
-      iconBg: 'bg-farm-light',
-      iconColor: 'text-farm-deep',
-      badgeClass: 'bg-farm-light text-farm-deep',
-      change: 'All',
+      hint: 'Registered accounts',
+      hintClass: 'text-farm-dark/40',
     },
     {
-      label: 'Active Sellers',
+      label: 'Seller partners',
       value: byRole('seller'),
-      icon: 'heroicons:shopping-bag-solid',
-      iconBg: 'bg-orange-50',
-      iconColor: 'text-orange-500',
-      badgeClass: 'bg-orange-50 text-orange-600',
-      change: 'Seller',
+      hint: 'Store operators',
+      hintClass: 'text-farm-leaf',
     },
     {
-      label: 'Active Buyers',
+      label: 'Buyer community',
       value: byRole('buyer'),
-      icon: 'heroicons:user-group-solid',
-      iconBg: 'bg-blue-50',
-      iconColor: 'text-blue-500',
-      badgeClass: 'bg-blue-50 text-blue-600',
-      change: 'Buyer',
+      hint: 'Marketplace shoppers',
+      hintClass: 'text-farm-leaf',
     },
     {
-      label: 'Delivery Riders',
+      label: 'Logistics fleet',
       value: byRole('delivery'),
-      icon: 'heroicons:truck-solid',
-      iconBg: 'bg-purple-50',
-      iconColor: 'text-purple-500',
-      badgeClass: 'bg-purple-50 text-purple-600',
-      change: 'Rider',
+      hint: 'Delivery personnel',
+      hintClass: 'text-farm-dark/40',
     },
   ]
 })
@@ -166,27 +187,35 @@ const filteredUsers = computed(() => {
   return users.value.filter(u => u.role === activeFilter.value)
 })
 
-function roleColor(role: string): string {
-  const map: Record<string, string> = {
-    admin: 'bg-farm-deep',
-    seller: 'bg-orange-500',
-    buyer: 'bg-blue-500',
-    delivery: 'bg-purple-500',
-  }
-  return map[role] ?? 'bg-gray-400'
-}
+const { lineChartOptions, aggregateByMonth } = useFarmChartTheme()
 
-function roleBadge(role: string): string {
-  const map: Record<string, string> = {
-    admin: 'bg-farm-light text-farm-deep',
-    seller: 'bg-orange-50 text-orange-700',
-    buyer: 'bg-blue-50 text-blue-700',
-    delivery: 'bg-purple-50 text-purple-700',
-  }
-  return map[role] ?? 'bg-gray-100 text-gray-600'
-}
+const growthChartOptions = computed<Options | null>(() => {
+  if (!users.value.length) return null
 
-function formatDate(d: string): string {
+  const buyers = aggregateByMonth(
+    users.value.filter(u => u.role === 'buyer'),
+    () => 1,
+    6,
+  )
+  const sellers = aggregateByMonth(
+    users.value.filter(u => u.role === 'seller'),
+    () => 1,
+    6,
+  )
+
+  return lineChartOptions(
+    buyers.categories,
+    [
+      { name: 'Buyers', data: buyers.data, color: '#2F5D3A' },
+      { name: 'Sellers', data: sellers.data, color: '#4E8B57' },
+    ],
+    {
+      chart: { height: 300 },
+    },
+  )
+})
+
+function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
@@ -194,11 +223,11 @@ async function loadUsers() {
   loadingUsers.value = true
   try {
     const api = useApiFetch()
-    const data = await api<{ users: any[] }>('/api/admin/users')
+    const data = await api<{ users: PlatformUser[] }>('/api/admin/users')
     users.value = data.users
   }
   catch {
-    // silently fail — user sees empty state
+    users.value = []
   }
   finally {
     loadingUsers.value = false

@@ -1,4 +1,5 @@
 import { serverSupabaseClient } from '#supabase/server'
+import bcrypt from 'bcryptjs'
 
 const VALID_ROLES = ['admin', 'seller', 'buyer', 'delivery'] as const
 
@@ -28,12 +29,13 @@ export default defineEventHandler(async (event) => {
   }
 
   // Insert new user
+  const hashedPassword = bcrypt.hashSync(password, 10)
   const { data: newUser, error } = await supabase
     .from('users')
     .insert({
       full_name: full_name.trim(),
       email: email.toLowerCase().trim(),
-      password, // plain text — prototype only
+      password: hashedPassword,
       role,
     })
     .select('id, full_name, email, role')

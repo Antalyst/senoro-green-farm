@@ -1,139 +1,214 @@
 <template>
   <ion-page>
-    <!-- Minimal Shopee-style header with search -->
-    <ion-header :translucent="false">
-      <ion-toolbar>
-        <div class="flex items-center gap-3 px-3 py-1">
-          <!-- Logo mark -->
-          <img src="/logo.png" class="w-8 h-8 rounded-lg object-cover flex-shrink-0" alt="Senoro" />
+    <ion-header class="buyer-header">
+      <ion-toolbar class="buyer-toolbar">
+        <div class="max-w-page mx-auto w-full px-4 md:px-8 flex items-center gap-3 py-2">
+          <button
+            v-if="isSubPage"
+            type="button"
+            @click="router.back()"
+            class="p-2 -ml-1 text-farm-dark/60 hover:text-farm-dark transition-colors flex-shrink-0"
+            aria-label="Go back"
+          >
+            <Icon name="heroicons:arrow-left" class="w-5 h-5 stroke-[1.5]" />
+          </button>
+          <img
+            v-else
+            src="/logo.png"
+            class="w-7 h-7 object-cover flex-shrink-0"
+            alt="Senoro"
+          >
 
-          <!-- Search bar -->
-          <div class="flex-1 flex items-center bg-white/15 rounded-full px-3 py-1.5 gap-2">
-            <Icon name="heroicons:magnifying-glass" class="w-4 h-4 text-white/70 flex-shrink-0" />
+          <div
+            v-if="showSearch"
+            class="flex-1 flex items-center border border-farm-light bg-farm-light/30 px-3 py-2 gap-2 min-w-0"
+          >
+            <Icon name="heroicons:magnifying-glass" class="w-4 h-4 text-farm-dark/35 flex-shrink-0" />
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Search fresh produce..."
-              class="bg-transparent text-white placeholder-white/50 text-sm flex-1 outline-none min-w-0"
-            />
+              placeholder="Search produce…"
+              class="bg-transparent text-sm text-farm-dark placeholder:text-farm-dark/35 flex-1 outline-none min-w-0"
+            >
+          </div>
+          <div v-else class="flex-1 min-w-0">
+            <h1 class="text-sm font-medium text-farm-dark tracking-tight truncate">
+              {{ headerTitle }}
+            </h1>
           </div>
 
-          <!-- Cart icon -->
-          <button class="relative p-1.5 flex-shrink-0">
-            <Icon name="heroicons:shopping-cart" class="w-5 h-5 text-white" />
-            <span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-farm-yellow rounded-full text-farm-deep text-[9px] font-bold flex items-center justify-center">
+          <button
+            v-if="route.path !== '/buyer/cart'"
+            type="button"
+            class="relative p-2 text-farm-dark/60 hover:text-farm-deep transition-colors flex-shrink-0"
+            aria-label="Cart"
+            @click="router.push('/buyer/cart')"
+          >
+            <Icon name="heroicons:shopping-bag" class="w-5 h-5 stroke-[1.5]" />
+            <span
+              v-if="cartCount > 0"
+              class="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 bg-farm-deep text-white text-[9px] font-medium flex items-center justify-center"
+            >
               {{ cartCount }}
             </span>
           </button>
+          <div v-else class="w-9" />
         </div>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
-      <slot />
+    <ion-content class="buyer-ion-content">
+      <AppShell with-tab-bar>
+        <slot />
+      </AppShell>
     </ion-content>
 
-    <!-- Bottom Tab Bar -->
-    <ion-tab-bar slot="bottom">
-      <ion-tab-button
-        v-for="tab in tabs"
-        :key="tab.path"
-        :selected="currentPath.startsWith(tab.path)"
-        @click="router.push(tab.path)"
-      >
-        <Icon
-          :name="currentPath.startsWith(tab.path) ? tab.iconActive : tab.icon"
-          class="w-6 h-6 mb-0.5"
-        />
-        <ion-label>{{ tab.label }}</ion-label>
-      </ion-tab-button>
-    </ion-tab-bar>
-
-    <!-- Profile slide-over -->
-    <Transition name="fade-up">
-      <div
-        v-if="showProfile"
-        class="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl z-50 p-6 pb-safe"
-        style="z-index:9999"
-      >
-        <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
-        <div class="flex items-center gap-4 mb-6">
-          <div class="w-14 h-14 rounded-full bg-farm-gradient flex items-center justify-center">
-            <span class="text-white text-xl font-bold">{{ userInitial }}</span>
-          </div>
-          <div>
-            <p class="font-bold text-gray-900 text-base">{{ user?.full_name }}</p>
-            <p class="text-sm text-gray-500">{{ user?.email }}</p>
-            <span class="inline-block mt-1 px-2 py-0.5 rounded-full bg-farm-light text-farm-deep text-xs font-semibold uppercase">buyer</span>
-          </div>
-        </div>
+    <nav class="buyer-tab-bar">
+      <div class="max-w-page mx-auto w-full flex">
         <button
-          class="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-red-50 text-red-600 font-semibold"
-          @click="handleLogout"
+          v-for="tab in tabs"
+          :key="tab.path"
+          type="button"
+          class="buyer-tab-btn"
+          :class="{ 'buyer-tab-btn--active': currentPath.startsWith(tab.path) }"
+          @click="router.push(tab.path)"
         >
-          <Icon name="heroicons:arrow-right-on-rectangle" class="w-5 h-5" />
-          Sign Out
-        </button>
-        <button class="w-full py-3 mt-2 text-gray-400 text-sm" @click="showProfile = false">
-          Cancel
+          <Icon
+            :name="currentPath.startsWith(tab.path) ? tab.iconActive : tab.icon"
+            class="w-5 h-5 stroke-[1.5]"
+          />
+          <span>{{ tab.label }}</span>
         </button>
       </div>
-    </Transition>
-    <div v-if="showProfile" class="fixed inset-0 bg-black/40 z-40" @click="showProfile = false" />
+    </nav>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import {
-  IonPage, IonHeader, IonToolbar, IonContent,
-  IonTabBar, IonTabButton, IonLabel,
-} from '@ionic/vue'
+import { IonPage, IonHeader, IonToolbar, IonContent } from '@ionic/vue'
+import AppShell from '~/components/ui/AppShell.vue'
 
-const { user, logout } = useAuth()
 const router = useRouter()
 const route = useRoute()
 const searchQuery = ref('')
-const showProfile = ref(false)
-const cartCount = ref(3)
+const cartCount = ref(0)
+const layoutReady = ref(false)
 
-const currentPath = computed(() => route.path)
+const currentPath = computed(() => route.path ?? '')
+
+const subPageTitle = ref('')
+provide('setSubPageTitle', (title: string) => {
+  subPageTitle.value = title
+})
+
+watch(() => route.path, () => {
+  subPageTitle.value = ''
+})
+
+const isSubPage = computed(() => {
+  const primaryPaths = ['/buyer/dashboard', '/buyer/categories', '/buyer/cart', '/buyer/profile']
+  return !primaryPaths.includes(currentPath.value)
+})
+
+const headerTitle = computed(() => {
+  if (isSubPage.value) {
+    if (currentPath.value === '/buyer/orders') return 'Orders'
+    if (currentPath.value.startsWith('/buyer/shop/')) return subPageTitle.value || 'Shop'
+    return subPageTitle.value || 'Senoro Green Farm'
+  }
+  if (currentPath.value === '/buyer/cart') return 'Cart'
+  if (currentPath.value === '/buyer/profile') return 'Profile'
+  return ''
+})
+
+const showSearch = computed(() => {
+  return currentPath.value === '/buyer/dashboard' || currentPath.value === '/buyer/categories'
+})
+
+async function refreshCartCount() {
+  try {
+    const api = useApiFetch()
+    const data = await api<{ cart_items?: unknown[] } | unknown[]>('/api/cart')
+    if (Array.isArray(data)) {
+      cartCount.value = data.length
+    }
+    else {
+      cartCount.value = data?.cart_items?.length ?? 0
+    }
+  }
+  catch {
+    cartCount.value = 0
+  }
+}
+
+provide('refreshCartCount', refreshCartCount)
 
 const tabs = [
   { label: 'Home', path: '/buyer/dashboard', icon: 'heroicons:home', iconActive: 'heroicons:home-solid' },
-  { label: 'Categories', path: '/buyer/categories', icon: 'heroicons:squares-2x2', iconActive: 'heroicons:squares-2x2-solid' },
-  { label: 'Orders', path: '/buyer/orders', icon: 'heroicons:clipboard-document-list', iconActive: 'heroicons:clipboard-document-list-solid' },
-  { label: 'Profile', path: '/buyer/profile', icon: 'heroicons:user', iconActive: 'heroicons:user-solid' },
+  { label: 'Shop', path: '/buyer/categories', icon: 'heroicons:squares-2x2', iconActive: 'heroicons:squares-2x2-solid' },
+  { label: 'Cart', path: '/buyer/cart', icon: 'heroicons:shopping-bag', iconActive: 'heroicons:shopping-bag-solid' },
+  { label: 'Account', path: '/buyer/profile', icon: 'heroicons:user', iconActive: 'heroicons:user-solid' },
 ]
 
-const userInitial = computed(() =>
-  user.value?.full_name?.charAt(0).toUpperCase() ?? 'B',
-)
-
-// Open profile when tapping the profile tab
-watch(currentPath, (p) => {
-  if (p === '/buyer/profile') {
-    showProfile.value = true
-  }
+onMounted(() => {
+  searchQuery.value = (route.query.search as string) || ''
+  layoutReady.value = true
+  refreshCartCount()
 })
 
-async function handleLogout() {
-  showProfile.value = false
-  await logout()
-  router.push('/auth/login')
-}
+watch(searchQuery, (newVal) => {
+  if (!layoutReady.value) return
+  router.replace({ query: { ...route.query, search: newVal || undefined } })
+})
+
+watch(() => route.query.search, (newVal) => {
+  const next = (newVal as string) || ''
+  if (searchQuery.value !== next) searchQuery.value = next
+})
 </script>
 
 <style scoped>
-.fade-up-enter-active,
-.fade-up-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+.buyer-header ion-toolbar {
+  --background: #ffffff;
+  --border-color: #EEF5EE;
+  --min-height: 52px;
 }
-.fade-up-enter-from,
-.fade-up-leave-to {
-  opacity: 0;
-  transform: translateY(100%);
+
+.buyer-ion-content {
+  --background: #EEF5EE;
 }
-.pb-safe {
-  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+
+.buyer-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #fff;
+  border-top: 1px solid #EEF5EE;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.buyer-tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 4px 12px;
+  color: rgba(26, 53, 33, 0.4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.buyer-tab-btn--active {
+  color: #2F5D3A;
 }
 </style>

@@ -1,178 +1,276 @@
 <template>
-  <div>
-    <!-- Seller Banner -->
-    <div class="bg-farm-gradient px-5 pt-5 pb-10">
-      <p class="text-white/60 text-xs font-medium uppercase tracking-widest mb-1">Seller Center</p>
-      <h2 class="text-white text-xl font-extrabold">{{ user?.full_name }}</h2>
+  <PageContainer class="space-y-12 py-8 md:py-12">
+      <header class="border-b border-farm-light pb-8">
+        <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45 mb-2">
+          Seller analytics
+        </p>
+        <h1 class="text-2xl md:text-3xl font-light text-farm-dark tracking-tight">
+          {{ user?.full_name ?? 'Seller workspace' }}
+        </h1>
+      </header>
 
-      <!-- Quick Stats Row -->
-      <div class="flex gap-3 mt-4">
-        <div
-          v-for="s in quickStats"
-          :key="s.label"
-          class="flex-1 bg-white/10 rounded-2xl px-3 py-2.5 text-center"
-        >
-          <p class="text-white font-extrabold text-lg">{{ s.value }}</p>
-          <p class="text-white/60 text-[10px] font-medium leading-tight mt-0.5">{{ s.label }}</p>
+      <!-- Executive metrics matrix -->
+      <section class="grid grid-cols-1 md:grid-cols-3 border border-farm-light divide-y md:divide-y-0 md:divide-x divide-farm-light">
+        <div class="p-6 md:p-8 bg-white">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-farm-dark/45 mb-2">Total revenue</p>
+          <p class="text-3xl font-light text-farm-dark tabular-nums">
+            ₱{{ (metrics?.totalRevenue ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+          </p>
+          <p class="text-[11px] text-farm-leaf mt-2">Lifetime store earnings</p>
         </div>
-      </div>
-    </div>
+        <div class="p-6 md:p-8 bg-white">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-farm-dark/45 mb-2">Orders fulfilled</p>
+          <p class="text-3xl font-light text-farm-dark tabular-nums">
+            {{ metrics?.totalOrders ?? 0 }}
+          </p>
+          <p class="text-[11px] text-farm-dark/40 mt-2">Unique checkout events</p>
+        </div>
+        <div class="p-6 md:p-8 bg-white">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-farm-dark/45 mb-2">Active listings</p>
+          <p class="text-3xl font-light text-farm-dark tabular-nums">
+            {{ productsData?.products?.length ?? 0 }}
+          </p>
+          <p class="text-[11px] text-farm-dark/40 mt-2">Products in catalog</p>
+        </div>
+      </section>
 
-    <div class="px-4 -mt-4 space-y-4 pb-24">
-      <!-- Product List Header -->
-      <div class="farm-card overflow-hidden">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h3 class="font-bold text-gray-900 text-sm">My Products</h3>
-          <div class="flex items-center gap-2">
-            <!-- Filter -->
+      <!-- Revenue chart -->
+      <section class="border border-farm-light p-6 md:p-8">
+        <div class="flex items-end justify-between mb-6">
+          <div>
+            <h2 class="text-lg font-light text-farm-dark tracking-tight">
+              Monthly store revenue
+            </h2>
+            <p class="text-xs text-farm-dark/45 mt-1">Trailing six-month performance</p>
+          </div>
+        </div>
+        <FarmChart v-if="revenueChartOptions" :options="revenueChartOptions" :height="300" />
+        <p v-else class="text-sm text-farm-dark/40 py-12 text-center">No revenue data yet.</p>
+      </section>
+
+      <!-- Quick navigation -->
+      <section class="grid grid-cols-3 gap-px bg-farm-light border border-farm-light">
+        <button
+          v-for="link in quickLinks"
+          :key="link.path"
+          type="button"
+          class="bg-white py-6 px-4 text-center hover:bg-farm-light/40 transition-colors"
+          @click="router.push(link.path)"
+        >
+          <Icon :name="link.icon" class="w-5 h-5 text-farm-deep mx-auto mb-2 stroke-[1.5]" />
+          <span class="text-[10px] font-medium tracking-[0.14em] uppercase text-farm-dark">{{ link.label }}</span>
+        </button>
+      </section>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <!-- Order ledger -->
+        <section class="border border-farm-light">
+          <div class="px-5 py-4 border-b border-farm-light flex items-center justify-between">
+            <h2 class="text-sm font-medium text-farm-dark tracking-tight">Recent sales</h2>
+            <span class="text-[10px] text-farm-dark/40 uppercase tracking-wider">
+              {{ metrics?.items?.length ?? 0 }} line items
+            </span>
+          </div>
+
+          <div v-if="metricsPending" class="p-8 text-center text-xs text-farm-dark/40">Loading…</div>
+          <div v-else-if="!recentSales.length" class="p-8 text-center text-xs text-farm-dark/40">
+            No sales recorded yet.
+          </div>
+          <table v-else class="w-full text-left">
+            <thead>
+              <tr class="border-b border-farm-light text-[10px] uppercase tracking-wider text-farm-dark/40">
+                <th class="px-5 py-3 font-medium">Order</th>
+                <th class="px-5 py-3 font-medium">Date</th>
+                <th class="px-5 py-3 font-medium text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-farm-light">
+              <tr
+                v-for="(item, idx) in recentSales"
+                :key="idx"
+                class="hover:bg-farm-light/50 transition-colors"
+              >
+                <td class="px-5 py-4">
+                  <p class="text-sm text-farm-dark font-medium">{{ item.quantity }} units sold</p>
+                  <span
+                    class="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full border border-farm-light text-farm-leaf"
+                  >
+                    fulfilled
+                  </span>
+                </td>
+                <td class="px-5 py-4 text-xs text-farm-dark/50 tabular-nums">
+                  {{ formatDate(item.created_at) }}
+                </td>
+                <td class="px-5 py-4 text-sm text-farm-leaf font-medium text-right tabular-nums">
+                  ₱{{ (item.price * item.quantity).toFixed(2) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Product inventory table -->
+        <section class="border border-farm-light">
+          <div class="px-5 py-4 border-b border-farm-light flex items-center justify-between gap-3">
+            <h2 class="text-sm font-medium text-farm-dark tracking-tight">Inventory snapshot</h2>
             <select
               v-model="statusFilter"
-              class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 outline-none bg-white"
+              class="text-[10px] uppercase tracking-wider border border-farm-light px-2 py-1 text-farm-dark/60 bg-white outline-none focus:border-farm-deep"
             >
               <option value="all">All</option>
               <option value="active">Active</option>
-              <option value="low">Low Stock</option>
-              <option value="draft">Draft</option>
+              <option value="low">Low stock</option>
+              <option value="outofstock">Out of stock</option>
             </select>
           </div>
-        </div>
 
-        <!-- Products -->
-        <div class="divide-y divide-gray-100">
-          <div
-            v-for="product in filteredProducts"
-            :key="product.id"
-            class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
-          >
-            <!-- Product image -->
-            <div
-              :class="`w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center text-2xl ${product.bg}`"
-            >
-              {{ product.emoji }}
-            </div>
-
-            <!-- Product info -->
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-gray-900 truncate">{{ product.name }}</p>
-              <div class="flex items-center gap-2 mt-0.5">
-                <p class="text-farm-deep font-bold text-sm">₱{{ product.price.toFixed(2) }}</p>
-                <span class="text-gray-400 text-xs">/ {{ product.unit }}</span>
-              </div>
-              <div class="flex items-center gap-2 mt-1">
-                <span :class="`text-[10px] font-bold px-2 py-0.5 rounded-full ${stockBadge(product.stock)}`">
-                  {{ product.stock }} in stock
-                </span>
-                <span :class="`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusBadge(product.status)}`">
-                  {{ product.status }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Action -->
-            <button class="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-              <Icon name="heroicons:ellipsis-vertical" class="w-4 h-4 text-gray-400" />
-            </button>
+          <div v-if="productsPending" class="p-8 text-center text-xs text-farm-dark/40">Loading…</div>
+          <div v-else-if="!filteredProducts.length" class="p-8 text-center text-xs text-farm-dark/40">
+            No products found.
           </div>
-        </div>
+          <table v-else class="w-full text-left">
+            <thead>
+              <tr class="border-b border-farm-light text-[10px] uppercase tracking-wider text-farm-dark/40">
+                <th class="px-5 py-3 font-medium">Product</th>
+                <th class="px-5 py-3 font-medium text-right">Price</th>
+                <th class="px-5 py-3 font-medium text-right">Stock</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-farm-light">
+              <tr
+                v-for="product in filteredProducts.slice(0, 6)"
+                :key="product.id"
+                class="hover:bg-farm-light/50 transition-colors cursor-pointer"
+                @click="router.push('/seller/inventory')"
+              >
+                <td class="px-5 py-4">
+                  <p class="text-sm text-farm-dark font-medium truncate max-w-[160px]">{{ product.name }}</p>
+                  <p class="text-[10px] text-farm-dark/40 mt-0.5">{{ product.category }}</p>
+                </td>
+                <td class="px-5 py-4 text-sm text-farm-leaf text-right tabular-nums">
+                  ₱{{ parseFloat(product.price).toFixed(2) }}
+                </td>
+                <td class="px-5 py-4 text-right">
+                  <span
+                    class="text-[10px] px-2 py-0.5 rounded-full border"
+                    :class="stockChipClass(product.stock)"
+                  >
+                    {{ product.stock }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
       </div>
 
-      <!-- Recent Orders Card -->
-      <div class="farm-card overflow-hidden">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h3 class="font-bold text-gray-900 text-sm">Recent Orders</h3>
-          <span class="text-xs font-semibold text-farm-leaf bg-farm-light px-2 py-0.5 rounded-full">{{ pendingOrders }} Pending</span>
-        </div>
-        <div class="divide-y divide-gray-100">
-          <div
-            v-for="order in recentOrders"
-            :key="order.id"
-            class="flex items-center justify-between px-4 py-3"
-          >
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <Icon name="heroicons:shopping-bag" class="w-4 h-4 text-gray-500" />
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-gray-900">{{ order.buyer }}</p>
-                <p class="text-xs text-gray-500">{{ order.items }} · {{ order.date }}</p>
-              </div>
-            </div>
-            <div class="text-right">
-              <p class="text-sm font-bold text-gray-900">₱{{ order.total.toFixed(2) }}</p>
-              <span :class="`text-[10px] font-bold px-2 py-0.5 rounded-full ${orderStatusBadge(order.status)}`">
-                {{ order.status }}
-              </span>
-            </div>
-          </div>
-        </div>
+      <div class="flex justify-end pt-4">
+        <button
+          type="button"
+          class="px-6 py-3 bg-farm-deep text-white text-[10px] font-medium tracking-[0.14em] uppercase hover:bg-farm-dark transition-colors"
+          @click="router.push('/seller/inventory')"
+        >
+          Manage inventory
+        </button>
       </div>
-    </div>
-
-    <!-- FAB: Add Product -->
-    <div class="fixed bottom-6 right-5 z-30">
-      <button
-        class="flex items-center gap-2 bg-farm-deep text-white font-bold px-5 py-3.5 rounded-2xl shadow-farm-glow hover:bg-farm-leaf transition-colors active:scale-95"
-      >
-        <Icon name="heroicons:plus" class="w-5 h-5" />
-        <span class="text-sm">Add Product</span>
-      </button>
-    </div>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
+import type { Options } from 'highcharts'
+import PageContainer from '~/components/ui/PageContainer.vue'
+
 definePageMeta({ layout: 'seller' })
 
 const { user } = useAuth()
+const router = useRouter()
 const statusFilter = ref('all')
+const api = useApiFetch()
+const { areaChartOptions, aggregateByMonth } = useFarmChartTheme()
 
-const quickStats = [
-  { label: 'Products Listed', value: '12' },
-  { label: 'Pending Orders', value: '3' },
-  { label: 'Revenue Today', value: '₱1.4k' },
-]
+interface MetricItem {
+  price: number
+  quantity: number
+  created_at: string
+}
 
-const products = ref([
-  { id: 1, name: 'Pechay (Bok Choy)', price: 25, unit: 'bundle', stock: 80, status: 'active', emoji: '🥬', bg: 'bg-green-50' },
-  { id: 2, name: 'Kangkong', price: 15, unit: 'bundle', stock: 5, status: 'active', emoji: '🌿', bg: 'bg-emerald-50' },
-  { id: 3, name: 'Ampalaya (Bitter Gourd)', price: 60, unit: 'kg', stock: 30, status: 'active', emoji: '🥒', bg: 'bg-lime-50' },
-  { id: 4, name: 'Kamatis (Tomato)', price: 45, unit: 'kg', stock: 0, status: 'draft', emoji: '🍅', bg: 'bg-red-50' },
-  { id: 5, name: 'Sigarilyas', price: 35, unit: 'kg', stock: 12, status: 'active', emoji: '🫛', bg: 'bg-yellow-50' },
-])
+interface MetricsPayload {
+  totalRevenue: number
+  totalOrders: number
+  items: MetricItem[]
+}
 
-const filteredProducts = computed(() => {
-  if (statusFilter.value === 'all') return products.value
-  if (statusFilter.value === 'low') return products.value.filter(p => p.stock > 0 && p.stock < 10)
-  return products.value.filter(p => p.status === statusFilter.value)
-})
-
-const pendingOrders = computed(() =>
-  recentOrders.value.filter(o => o.status === 'Pending').length,
+const { data: metrics, pending: metricsPending } = await useAsyncData(
+  'seller:metrics',
+  () => api<MetricsPayload>('/api/seller/metrics'),
+  { server: false },
 )
 
-const recentOrders = ref([
-  { id: 1, buyer: 'Maria Santos', items: '3 items', total: 215, date: 'Today, 9:30 AM', status: 'Pending' },
-  { id: 2, buyer: 'Jose Reyes', items: '1 item', total: 60, date: 'Today, 8:15 AM', status: 'Processing' },
-  { id: 3, buyer: 'Ana Cruz', items: '5 items', total: 370, date: 'Yesterday', status: 'Delivered' },
-])
+const { data: productsData, pending: productsPending } = await useAsyncData(
+  'seller:products',
+  () => api<{ products: { id: string; name: string; price: string; stock: number; category: string }[] }>('/api/seller/products'),
+  { server: false },
+)
 
-function stockBadge(stock: number): string {
-  if (stock === 0) return 'bg-red-50 text-red-600'
-  if (stock < 10) return 'bg-yellow-50 text-yellow-700'
-  return 'bg-farm-light text-farm-deep'
+const recentSales = computed(() => (metrics.value?.items ?? []).slice(0, 8))
+
+const revenueChartOptions = computed<Options | null>(() => {
+  const items = metrics.value?.items ?? []
+  if (!items.length) return null
+
+  const { categories, data } = aggregateByMonth(
+    items,
+    row => row.price * row.quantity,
+    6,
+  )
+
+  return areaChartOptions(
+    categories,
+    [{ name: 'Revenue', data, color: '#4E8B57' }],
+    {
+      yAxis: {
+        labels: {
+          formatter() {
+            return `₱${Number(this.value) >= 1000 ? `${(Number(this.value) / 1000).toFixed(0)}k` : this.value}`
+          },
+          style: { color: '#1A3521', fontSize: '10px', opacity: 0.65 },
+        },
+      },
+      tooltip: {
+        pointFormatter() {
+          return `<span style="color:#4E8B57">●</span> Revenue: <b>₱${Number(this.y).toFixed(2)}</b><br/>`
+        },
+      },
+    },
+  )
+})
+
+const filteredProducts = computed(() => {
+  const list = productsData.value?.products ?? []
+  if (statusFilter.value === 'all') return list
+  if (statusFilter.value === 'low') return list.filter(p => p.stock > 0 && p.stock < 10)
+  if (statusFilter.value === 'outofstock') return list.filter(p => p.stock === 0)
+  if (statusFilter.value === 'active') return list.filter(p => p.stock > 0)
+  return list
+})
+
+const quickLinks = [
+  { label: 'Inventory', path: '/seller/inventory', icon: 'heroicons:archive-box' },
+  { label: 'Reviews', path: '/seller/reviews', icon: 'heroicons:star' },
+  { label: 'Profile', path: '/seller/profile', icon: 'heroicons:user' },
+]
+
+function stockChipClass(stock: number) {
+  if (stock === 0) return 'border-red-200 text-red-600'
+  if (stock < 10) return 'border-farm-yellow/50 text-farm-dark'
+  return 'border-farm-light text-farm-leaf'
 }
 
-function statusBadge(status: string): string {
-  return status === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
-}
-
-function orderStatusBadge(status: string): string {
-  const map: Record<string, string> = {
-    Pending: 'bg-yellow-50 text-yellow-700',
-    Processing: 'bg-blue-50 text-blue-700',
-    Delivered: 'bg-green-50 text-green-700',
-  }
-  return map[status] ?? 'bg-gray-100 text-gray-600'
+function formatDate(dateStr: string) {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
 }
 
 useHead({ title: 'Seller Dashboard — Senoro Green Farm' })

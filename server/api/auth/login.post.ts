@@ -1,4 +1,5 @@
 import { serverSupabaseClient } from '#supabase/server'
+import bcrypt from 'bcryptjs'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -21,8 +22,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Invalid email or password' })
   }
 
-  // Plain-text password comparison (prototype only)
-  if (user.password !== password) {
+  // Verify hashed password
+  if (!bcrypt.compareSync(password, user.password)) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid email or password' })
   }
 

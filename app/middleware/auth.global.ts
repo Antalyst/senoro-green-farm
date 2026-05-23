@@ -2,11 +2,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // Skip middleware on server (ssr: false, but guard is defensive)
   if (import.meta.server) return
 
-  const { user, isLoggedIn, fetchUser, initialized, dashboardRoute } = useAuth()
+  const auth = useAuth()
 
   // Hydrate user state on first navigation
-  if (!initialized.value) {
-    await fetchUser()
+  if (!auth.initialized?.value) {
+    await auth.fetchUser()
   }
 
   const path = to.path
@@ -15,18 +15,18 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // Allow public routes always
   if (PUBLIC_ROUTES.includes(path)) {
     // If already logged in, bounce to their dashboard
-    if (isLoggedIn.value && user.value) {
-      return navigateTo(dashboardRoute(user.value.role))
+    if (auth.isLoggedIn?.value && auth.user?.value) {
+      return navigateTo(auth.dashboardRoute(auth.user.value.role))
     }
     return
   }
 
   // Not authenticated — redirect to login
-  if (!isLoggedIn.value) {
+  if (!auth.isLoggedIn?.value) {
     return navigateTo('/auth/login')
   }
 
-  const userRole = user.value?.role ?? ''
+  const userRole = auth.user?.value?.role ?? ''
 
   // Role → allowed path prefix map
   const ROLE_PREFIXES: Record<string, string> = {
@@ -44,11 +44,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (isProtectedRoute && allowedPrefix && !path.startsWith(allowedPrefix)) {
     // Wrong role — redirect to their own dashboard
-    return navigateTo(dashboardRoute(userRole))
+    return navigateTo(auth.dashboardRoute(userRole))
   }
 
   // Root path — redirect to their dashboard
   if (path === '/') {
-    return navigateTo(dashboardRoute(userRole))
+    return navigateTo(auth.dashboardRoute(userRole))
   }
 })

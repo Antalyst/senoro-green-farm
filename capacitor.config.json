@@ -2,5 +2,14 @@
   "appId": "com.example.app",
   "appName": "senoro_green_farm",
   "webDir": ".output/public",
-  "bundledWebRuntime": false
+    "server": {
+    "url": "https://senoro-green-farm.vercel.app",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "backgroundColor": "#45BEFF"
+    }
+  }
 }
