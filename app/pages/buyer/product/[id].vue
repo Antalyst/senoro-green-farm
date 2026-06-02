@@ -8,7 +8,7 @@
     <div v-else-if="!product" class="py-32 text-center border border-farm-light">
       <p class="text-sm font-medium text-farm-dark">Product not found</p>
       <NuxtLink
-        to="/buyer/dashboard"
+        to="/"
         class="inline-block mt-4 text-xs font-medium tracking-[0.12em] uppercase text-farm-deep border-b border-farm-deep"
       >
         Return to shop

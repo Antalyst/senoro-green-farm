@@ -19,7 +19,7 @@
       <p class="text-sm font-medium text-farm-dark">No orders yet</p>
       <p class="text-xs text-farm-dark/45 mt-1">Start shopping from local farmers.</p>
       <NuxtLink
-        to="/buyer/dashboard"
+        to="/"
         class="inline-block mt-4 px-5 py-2.5 bg-farm-deep text-white text-xs font-medium tracking-wide uppercase"
       >
         Shop now

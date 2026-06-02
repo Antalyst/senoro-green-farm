@@ -143,7 +143,7 @@ export function useAuth() {
     const roleMap: Record<string, string> = {
       admin: '/admin/dashboard',
       seller: '/seller/dashboard',
-      buyer: '/buyer/dashboard',
+      buyer: '/',
       delivery: '/delivery/dashboard',
     }
     return roleMap[r ?? ''] ?? '/auth/login'

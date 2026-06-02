@@ -18,7 +18,7 @@
         <p class="text-sm font-medium text-farm-dark">Your cart is empty</p>
         <p class="text-xs text-farm-dark/45 mt-2">Discover fresh produce from local farms.</p>
         <NuxtLink
-          to="/buyer/dashboard"
+          to="/"
           class="inline-block mt-6 px-6 py-2.5 border border-farm-deep text-farm-deep text-[10px] font-medium tracking-[0.14em] uppercase hover:bg-farm-deep hover:text-white transition-colors"
         >
           Browse shop

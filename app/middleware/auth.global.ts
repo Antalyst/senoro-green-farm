@@ -10,7 +10,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   const path = to.path
-  const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/', '/buyer/dashboard', '/buyer/categories']
+  const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/', '/buyer/categories']
   const PUBLIC_PREFIXES = ['/buyer/product/', '/buyer/shop/']
 
   // Allow public routes always

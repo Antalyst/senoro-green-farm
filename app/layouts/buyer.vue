@@ -106,7 +106,7 @@ watch(() => route.path, () => {
 })
 
 const isSubPage = computed(() => {
-  const primaryPaths = ['/buyer/dashboard', '/buyer/categories', '/buyer/cart', '/buyer/profile']
+  const primaryPaths = ['/', '/buyer/categories', '/buyer/cart', '/buyer/profile']
   return !primaryPaths.includes(currentPath.value)
 })
 
@@ -124,7 +124,7 @@ const headerTitle = computed(() => {
 })
 
 const showSearch = computed(() => {
-  return currentPath.value === '/buyer/dashboard' || currentPath.value === '/buyer/categories'
+  return currentPath.value === '/' || currentPath.value === '/buyer/categories'
 })
 
 async function refreshCartCount() {
@@ -146,7 +146,7 @@ async function refreshCartCount() {
 provide('refreshCartCount', refreshCartCount)
 
 const tabs = [
-  { label: 'Home', path: '/buyer/dashboard', icon: 'heroicons:home', iconActive: 'heroicons:home-solid' },
+  { label: 'Home', path: '/', icon: 'heroicons:home', iconActive: 'heroicons:home-solid' },
   { label: 'Shop', path: '/buyer/categories', icon: 'heroicons:squares-2x2', iconActive: 'heroicons:squares-2x2-solid' },
   { label: 'Cart', path: '/buyer/cart', icon: 'heroicons:shopping-bag', iconActive: 'heroicons:shopping-bag-solid' },
   { label: 'Account', path: '/buyer/profile', icon: 'heroicons:user', iconActive: 'heroicons:user-solid' },
