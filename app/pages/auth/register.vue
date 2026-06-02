@@ -2,9 +2,9 @@
   <div class="min-h-screen grid grid-cols-1 lg:grid-cols-2">
     <aside class="hidden lg:flex flex-col justify-between bg-farm-deep text-white p-12 xl:p-16">
       <div>
-        <NuxtLink to="/auth/login" class="inline-flex items-center gap-2 text-white/50 hover:text-white text-xs mb-12 transition-colors">
+        <NuxtLink to="/" class="inline-flex items-center gap-2 text-white/50 hover:text-white text-xs mb-12 transition-colors">
           <Icon name="heroicons:arrow-left" class="w-4 h-4" />
-          Back to sign in
+          Back to home
         </NuxtLink>
         <p class="text-[10px] font-medium tracking-[0.28em] uppercase text-white/50 mb-6">
           Join the network
@@ -24,7 +24,7 @@
     <main class="flex flex-col justify-center px-6 py-12 md:px-12 lg:px-16 xl:px-20 bg-white overflow-y-auto">
       <div class="w-full max-w-md mx-auto">
         <div class="lg:hidden mb-8 flex items-center gap-3">
-          <NuxtLink to="/auth/login" class="p-2 border border-farm-light text-farm-dark/50">
+          <NuxtLink to="/" class="p-2 border border-farm-light text-farm-dark/50 hover:text-farm-dark" title="Back to home">
             <Icon name="heroicons:arrow-left" class="w-4 h-4" />
           </NuxtLink>
           <p class="text-sm font-medium text-farm-dark">Create account</p>

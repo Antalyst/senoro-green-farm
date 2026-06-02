@@ -29,9 +29,13 @@
     <!-- Form sheet -->
     <main class="flex flex-col justify-center px-6 py-12 md:px-12 lg:px-16 xl:px-20 bg-white">
       <div class="w-full max-w-md mx-auto">
-        <div class="lg:hidden mb-10">
-          <img src="/logo.png" alt="Senoro" class="w-10 h-10 mb-4">
-          <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45">Senoro Green Farm</p>
+        <div class="lg:hidden mb-10 flex items-center gap-3">
+          <NuxtLink to="/" class="p-2 border border-farm-light text-farm-dark/50 hover:text-farm-dark" title="Back to home">
+            <Icon name="heroicons:arrow-left" class="w-4 h-4" />
+          </NuxtLink>
+          <div>
+            <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45">Senoro Green Farm</p>
+          </div>
         </div>
 
         <header class="mb-10">
