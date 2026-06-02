@@ -10,12 +10,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   const path = to.path
-  const PUBLIC_ROUTES = ['/auth/login', '/auth/register']
+  const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/', '/buyer/dashboard', '/buyer/categories']
+  const PUBLIC_PREFIXES = ['/buyer/product/', '/buyer/shop/']
 
   // Allow public routes always
-  if (PUBLIC_ROUTES.includes(path)) {
+  if (PUBLIC_ROUTES.includes(path) || PUBLIC_PREFIXES.some(prefix => path.startsWith(prefix))) {
     // If already logged in, bounce to their dashboard
-    if (auth.isLoggedIn?.value && auth.user?.value) {
+    if (path.startsWith('/auth/') && auth.isLoggedIn?.value && auth.user?.value) {
       return navigateTo(auth.dashboardRoute(auth.user.value.role))
     }
     return

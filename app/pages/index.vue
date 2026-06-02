@@ -13,7 +13,7 @@ onMounted(() => {
     router.replace(dashboardRoute(user.value.role))
   }
   else {
-    router.replace('/auth/login')
+    router.replace('/buyer/dashboard')
   }
 })
 </script>

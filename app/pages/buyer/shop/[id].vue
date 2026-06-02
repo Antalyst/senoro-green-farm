@@ -1,45 +1,57 @@
 <template>
-  <PageContainer class="space-y-12 py-8 md:py-12">
-    <header class="border-b border-farm-light pb-8">
-      <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45 mb-2">
-        Farm shop
-      </p>
-      <h1 class="text-2xl md:text-3xl font-light text-farm-dark tracking-tight">
-        {{ data?.seller?.full_name ?? 'Loading store…' }}
-      </h1>
-      <p class="text-sm text-farm-dark/50 mt-2">
-        {{ data?.seller?.location ?? 'Bago City' }} · {{ data?.products?.length ?? 0 }} listings
-      </p>
-      <div class="flex items-center gap-3 mt-3 text-sm text-farm-dark">
-        <span class="flex items-center gap-1">
-          <Icon name="heroicons:star-solid" class="w-4 h-4 text-farm-yellow" />
-          <span class="font-medium">{{ data?.seller?.average_rating?.toFixed(1) ?? '—' }}</span>
-        </span>
-        <span class="text-farm-dark/30">|</span>
-        <span class="text-xs text-farm-dark/45">{{ data?.seller?.review_count ?? 0 }} reviews</span>
+  <PageContainer class="space-y-8 py-5 md:py-8">
+    <header class="relative overflow-hidden border border-farm-light bg-farm-dark text-white">
+      <img
+        :src="storeHeroImage"
+        :alt="data?.seller?.full_name ?? 'Farm store'"
+        class="absolute inset-0 h-full w-full object-cover opacity-45"
+      >
+      <div class="absolute inset-0 bg-gradient-to-r from-farm-dark via-farm-dark/85 to-farm-dark/30" />
+      <div class="relative p-5 md:p-8">
+        <p class="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/65">
+          Farm shop
+        </p>
+        <h1 class="text-3xl font-semibold tracking-tight md:text-5xl">
+          {{ data?.seller?.full_name ?? 'Loading store...' }}
+        </h1>
+        <p class="mt-3 max-w-xl text-sm leading-6 text-white/75">
+          {{ data?.seller?.location ?? 'Bago City' }} seller with {{ data?.products?.length ?? 0 }} fresh listings ready for your basket.
+        </p>
+        <div class="mt-6 flex flex-wrap items-center gap-3 text-sm">
+          <span class="inline-flex items-center gap-1 bg-white px-3 py-2 text-farm-dark">
+            <Icon name="heroicons:star-solid" class="h-4 w-4 text-farm-yellow" />
+            <span class="font-semibold">{{ data?.seller?.average_rating?.toFixed(1) ?? '0.0' }}</span>
+          </span>
+          <span class="border border-white/30 bg-white/10 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white">
+            {{ data?.seller?.review_count ?? 0 }} reviews
+          </span>
+          <span class="border border-white/30 bg-white/10 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white">
+            {{ categories.length }} categories
+          </span>
+        </div>
       </div>
     </header>
 
-    <section class="flex flex-col md:flex-row gap-3 border border-farm-light p-4">
-      <div class="flex-1 flex items-center border border-farm-light bg-farm-light/30 px-3 py-2 gap-2">
-        <Icon name="heroicons:magnifying-glass" class="w-4 h-4 text-farm-dark/35" />
+    <section class="flex flex-col gap-3 border border-farm-light bg-white p-4 md:flex-row">
+      <div class="flex flex-1 items-center gap-2 border border-farm-light bg-farm-light/30 px-3 py-2">
+        <Icon name="heroicons:magnifying-glass" class="h-4 w-4 text-farm-dark/35" />
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search this shop…"
-          class="bg-transparent text-sm text-farm-dark flex-1 outline-none placeholder:text-farm-dark/35"
+          placeholder="Search this shop..."
+          class="min-w-0 flex-1 bg-transparent text-sm text-farm-dark outline-none placeholder:text-farm-dark/35"
         >
       </div>
       <select
         v-model="categoryFilter"
-        class="text-xs border border-farm-light px-3 py-2 text-farm-dark/70 bg-white uppercase tracking-wide"
+        class="border border-farm-light bg-white px-3 py-2 text-xs uppercase tracking-wide text-farm-dark/70"
       >
         <option value="All">All categories</option>
         <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
       </select>
       <select
         v-model="sortBy"
-        class="text-xs border border-farm-light px-3 py-2 text-farm-dark/70 bg-white uppercase tracking-wide"
+        class="border border-farm-light bg-white px-3 py-2 text-xs uppercase tracking-wide text-farm-dark/70"
       >
         <option value="default">Sort: Default</option>
         <option value="price-asc">Price: Low to high</option>
@@ -48,11 +60,11 @@
     </section>
 
     <section class="border border-farm-light">
-      <div v-if="pending" class="p-12 text-center text-xs text-farm-dark/40">Loading shop…</div>
+      <div v-if="pending" class="p-12 text-center text-xs text-farm-dark/40">Loading shop...</div>
       <div v-else-if="!filteredProducts.length" class="p-12 text-center">
         <p class="text-sm font-medium text-farm-dark">No products match your filters</p>
       </div>
-      <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-px bg-farm-light">
+      <div v-else class="grid grid-cols-2 gap-px bg-farm-light md:grid-cols-3 lg:grid-cols-4">
         <BuyerProductCard
           v-for="product in filteredProducts"
           :key="product.id"
@@ -103,6 +115,11 @@ const { data, pending } = await useAsyncData(
   { server: false },
 )
 
+const storeHeroImage = computed(() => {
+  const firstProductImage = data.value?.products?.find(product => product.image_url)?.image_url
+  return firstProductImage || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1400&q=80'
+})
+
 watchEffect(() => {
   if (data.value?.seller?.full_name) setSubPageTitle?.(data.value.seller.full_name)
 })
@@ -139,8 +156,8 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
 
 async function handleAddToCart(product: BuyerProduct) {
   try {
-    await addToCart(product.id)
-    triggerToast(`Added ${product.name} to cart.`)
+    const added = await addToCart(product.id)
+    if (added) triggerToast(`Added ${product.name} to cart.`)
   }
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
@@ -158,5 +175,5 @@ async function handleBuyNow(product: BuyerProduct) {
   }
 }
 
-useHead({ title: 'Shop — Senoro Green Farm' })
+useHead({ title: 'Shop - Senoro Green Farm' })
 </script>
