@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
       body: new URLSearchParams({
         key: apiKey,
         image: base64,
-        name: filePart.filename ?? `product-${Date.now()}`,
+        name: filename,
       }),
     })
 

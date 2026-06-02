@@ -119,7 +119,7 @@ function isActive(path: string) {
 async function handleLogout() {
   showProfileMenu.value = false
   await logout()
-  router.push('/auth/login')
+  router.push('/')
 }
 </script>
 

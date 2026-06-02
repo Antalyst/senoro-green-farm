@@ -1,7 +1,14 @@
 <template>
   <div class="min-h-screen grid grid-cols-1 lg:grid-cols-2">
     <!-- Editorial left panel -->
+     
     <aside class="hidden lg:flex flex-col justify-between bg-farm-deep text-white p-12 xl:p-16">
+      <div>
+        <button @click="router.push('/')">
+          <Icon name="heroicons:arrow-left" class="w-4 h-4" />
+          Back to home
+        </button>
+     </div>
       <div>
         <img src="/logo.png" alt="Senoro" class="w-12 h-12 object-cover mb-10 opacity-95">
         <p class="text-[10px] font-medium tracking-[0.28em] uppercase text-white/50 mb-6">
