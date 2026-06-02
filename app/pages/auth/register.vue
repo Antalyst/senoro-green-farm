@@ -135,7 +135,7 @@ const loading = ref(false)
 const showPassword = ref(false)
 
 const roles = [
-  { label: 'Admin', value: 'admin' },
+
   { label: 'Seller', value: 'seller' },
   { label: 'Buyer', value: 'buyer' },
   { label: 'Delivery', value: 'delivery' },
