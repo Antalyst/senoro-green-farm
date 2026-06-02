@@ -27,6 +27,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/auth/login')
   }
 
+  if (path === '/' && auth.isLoggedIn?.value && auth.user?.value) {
+    return navigateTo(auth.dashboardRoute(auth.user.value.role))
+  }
+
   const userRole = auth.user?.value?.role ?? ''
 
   // Role → allowed path prefix map

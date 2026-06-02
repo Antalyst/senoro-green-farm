@@ -316,9 +316,22 @@ async function onImageSelected(event: Event) {
   if (!file) return
   uploadingImage.value = true
   try {
-    const body = new FormData()
-    body.append('image', file)
-    const result = await api<{ url: string }>('/api/products/upload', { method: 'POST', body })
+    // Read file as base64 for cross-platform stability (Capacitor FormData issue fix)
+    const reader = new FileReader()
+    const base64Promise = new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = error => reject(error)
+    })
+    reader.readAsDataURL(file)
+    const base64Data = await base64Promise
+
+    const result = await api<{ url: string }>('/api/products/upload', { 
+      method: 'POST', 
+      body: { 
+        image: base64Data,
+        filename: file.name
+      }
+    })
     form.value.image_url = result.url
     triggerToast('Image uploaded.')
   }
