@@ -1,22 +1,22 @@
 <template>
   <ion-page>
-    <ion-header class="admin-header">
-      <ion-toolbar>
+    <ion-header class="admin-header sticky top-0 z-50 bg-farm-dark backdrop-blur-md shadow-sm">
+      <ion-toolbar class="bg-transparent text-white">
         <div class="max-w-page mx-auto w-full px-4 md:px-8 flex items-center justify-between py-2">
           <div class="flex items-center gap-2">
-            <div class="w-7 h-7 border border-farm-light flex items-center justify-center">
-              <Icon name="heroicons:shield-check" class="w-4 h-4 text-farm-deep stroke-[1.5]" />
+            <div class="w-7 h-7 flex items-center justify-center">
+              <img src="/logo2.png" alt="Senoro Admin" class="w-7 h-7 object-contain flex-shrink-0">
             </div>
-            <span class="text-sm font-medium text-farm-dark tracking-tight">Administration</span>
+            <span class="text-sm font-medium text-white tracking-tight">Administration</span>
           </div>
 
           <div class="relative">
             <button
               type="button"
-              class="flex items-center gap-2 py-1.5 text-farm-dark/70 hover:text-farm-dark transition-colors"
+              class="flex items-center gap-2 py-1.5 text-white/70 hover:text-white transition-colors"
               @click="showProfileMenu = !showProfileMenu"
             >
-              <div class="w-7 h-7 border border-farm-deep flex items-center justify-center text-[10px] font-medium text-farm-deep">
+              <div class="w-7 h-7 border border-white/20 flex items-center justify-center text-[10px] font-medium text-white">
                 {{ userInitial }}
               </div>
               <span class="text-xs font-medium max-w-[120px] truncate hidden sm:inline">{{ user?.full_name }}</span>
@@ -47,7 +47,7 @@
     </Transition>
     <div v-if="showProfileMenu" class="fixed inset-0 z-50" @click="showProfileMenu = false" />
 
-    <ion-content class="admin-ion-content">
+    <ion-content class="admin-ion-content bg-white">
       <AppShell>
         <slot />
       </AppShell>
@@ -76,13 +76,12 @@ async function handleLogout() {
 
 <style scoped>
 .admin-header ion-toolbar {
-  --background: #ffffff;
-  --border-color: #EEF5EE;
+  --background: transparent;
   --min-height: 52px;
 }
 
 .admin-ion-content {
-  --background: #EEF5EE;
+  --background: #ffffff;
 }
 
 .fade-down-enter-active,

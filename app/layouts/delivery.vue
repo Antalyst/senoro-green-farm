@@ -1,13 +1,11 @@
 <template>
   <ion-page>
-    <ion-header class="delivery-header">
-      <ion-toolbar>
+    <ion-header class="delivery-header sticky top-0 z-50 bg-farm-dark backdrop-blur-md shadow-sm">
+      <ion-toolbar class="bg-transparent text-white">
         <div class="max-w-page mx-auto w-full px-4 md:px-8 flex items-center justify-between py-2">
           <div class="flex items-center gap-2">
-            <div class="w-7 h-7 border border-farm-light flex items-center justify-center">
-              <Icon name="heroicons:truck" class="w-4 h-4 text-farm-deep stroke-[1.5]" />
-            </div>
-            <span class="text-sm font-medium text-farm-dark tracking-tight">Delivery</span>
+            <img src="/logo2.png" alt="Senoro Delivery" class="w-7 h-7 object-contain flex-shrink-0">
+            <span class="text-sm font-medium text-white tracking-tight hidden sm:inline">Delivery</span>
           </div>
 
           <div class="flex items-center gap-3 relative">
@@ -17,10 +15,10 @@
             </div>
             <button
               type="button"
-              class="flex items-center gap-2 py-1 text-farm-dark/70 hover:text-farm-dark"
+              class="flex items-center gap-2 py-1 text-white/70 hover:text-white"
               @click="showProfileMenu = !showProfileMenu"
             >
-              <div class="w-8 h-8 border border-farm-deep flex items-center justify-center text-[10px] font-medium text-farm-deep">
+              <div class="w-8 h-8 border border-white/20 flex items-center justify-center text-[10px] font-medium text-white">
                 {{ userInitial }}
               </div>
               <Icon name="heroicons:chevron-down" class="w-3.5 h-3.5 hidden sm:block" />
@@ -50,7 +48,7 @@
     </Transition>
     <div v-if="showProfileMenu" class="fixed inset-0 z-50" @click="showProfileMenu = false" />
 
-    <ion-content class="delivery-ion-content">
+    <ion-content class="delivery-ion-content bg-white">
       <AppShell>
         <slot />
       </AppShell>
@@ -79,13 +77,12 @@ async function handleLogout() {
 
 <style scoped>
 .delivery-header ion-toolbar {
-  --background: #ffffff;
-  --border-color: #EEF5EE;
+  --background: transparent;
   --min-height: 52px;
 }
 
 .delivery-ion-content {
-  --background: #EEF5EE;
+  --background: #ffffff;
 }
 
 .fade-down-enter-active,

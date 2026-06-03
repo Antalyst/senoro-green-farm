@@ -1,26 +1,26 @@
 <template>
   <ion-page>
-    <ion-header class="seller-header">
-      <ion-toolbar>
+    <ion-header class="seller-header sticky top-0 z-50 bg-farm-dark backdrop-blur-md shadow-sm">
+      <ion-toolbar class="bg-transparent text-white">
         <div class="max-w-page mx-auto w-full px-4 md:px-8">
           <div class="flex items-center justify-between gap-4 py-2">
             <div class="flex items-center gap-3 min-w-0">
-              <img src="/logo.png" alt="Senoro" class="w-7 h-7 object-cover flex-shrink-0">
-              <span class="text-sm font-medium text-farm-dark tracking-tight hidden sm:inline">
+              <img src="/logo2.png" alt="Senoro" class="w-7 h-7 object-contain flex-shrink-0">
+              <span class="text-sm font-medium text-white tracking-tight hidden sm:inline">
                 Seller center
               </span>
             </div>
 
-            <!-- Desktop top navigation -->
-            <nav class="hidden md:flex items-center gap-1 flex-1 justify-center">
+            <!-- Desktop & Mobile top navigation -->
+            <nav class="flex items-center gap-1 flex-1 justify-start md:justify-center overflow-x-auto no-scrollbar mask-edges px-2">
               <NuxtLink
                 v-for="tab in tabs"
                 :key="tab.path"
                 :to="tab.path"
-                class="px-4 py-2 text-[11px] font-medium tracking-[0.1em] uppercase transition-colors"
+                class="px-2 py-1.5 text-xs font-bold tracking-[0.15em] uppercase transition-colors"
                 :class="isActive(tab.path)
-                  ? 'text-farm-deep border-b-2 border-farm-deep'
-                  : 'text-farm-dark/45 hover:text-farm-deep'"
+                  ? 'text-market-orange border-b-2 border-market-orange'
+                  : 'text-white hover:text-market-orange'"
               >
                 {{ tab.label }}
               </NuxtLink>
@@ -29,10 +29,10 @@
             <div class="flex items-center gap-2 relative">
               <button
                 type="button"
-                class="flex items-center gap-2 py-1 text-farm-dark/70 hover:text-farm-dark"
+                class="flex items-center gap-2 py-1 text-white/80 hover:text-white"
                 @click="showProfileMenu = !showProfileMenu"
               >
-                <div class="w-8 h-8 border border-farm-deep flex items-center justify-center text-[10px] font-medium text-farm-deep">
+                <div class="w-8 h-8 border border-market-orange flex items-center justify-center text-[10px] font-medium text-market-orange">
                   {{ userInitial }}
                 </div>
                 <Icon name="heroicons:chevron-down" class="w-3.5 h-3.5 hidden sm:block" />
@@ -63,14 +63,14 @@
     </Transition>
     <div v-if="showProfileMenu" class="fixed inset-0 z-50" @click="showProfileMenu = false" />
 
-    <ion-content class="seller-ion-content">
+    <ion-content class="seller-ion-content bg-white">
       <AppShell with-tab-bar>
         <slot />
       </AppShell>
     </ion-content>
 
     <!-- Bottom navigation (mobile + consistent app pattern) -->
-    <nav class="seller-tab-bar">
+    <nav class="seller-tab-bar md:hidden">
       <div class="max-w-page mx-auto w-full flex">
         <button
           v-for="tab in tabs"
@@ -80,11 +80,14 @@
           :class="{ 'seller-tab-btn--active': isActive(tab.path) }"
           @click="router.push(tab.path)"
         >
-          <Icon
-            :name="isActive(tab.path) ? tab.iconActive : tab.icon"
-            class="w-5 h-5 stroke-[1.5]"
-          />
-          <span>{{ tab.label }}</span>
+          <div class="relative">
+            <Icon
+              :name="isActive(tab.path) ? tab.iconActive : tab.icon"
+              class="w-5 h-5 stroke-[1.5]"
+            />
+            <span v-if="isActive(tab.path)" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-market-orange"></span>
+          </div>
+          <span class="mt-1">{{ tab.label }}</span>
         </button>
       </div>
     </nav>
@@ -125,13 +128,12 @@ async function handleLogout() {
 
 <style scoped>
 .seller-header ion-toolbar {
-  --background: #ffffff;
-  --border-color: #EEF5EE;
+  --background: transparent;
   --min-height: 52px;
 }
 
 .seller-ion-content {
-  --background: #EEF5EE;
+  --background: #ffffff;
 }
 
 .seller-tab-bar {
@@ -140,8 +142,7 @@ async function handleLogout() {
   left: 0;
   right: 0;
   z-index: 50;
-  background: #fff;
-  border-top: 1px solid #EEF5EE;
+  background: #1A3521;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -151,9 +152,9 @@ async function handleLogout() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 10px 4px 12px;
-  color: rgba(26, 53, 33, 0.4);
+  gap: 2px;
+  padding: 10px 4px 14px;
+  color: rgba(255, 255, 255, 0.4);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -165,7 +166,15 @@ async function handleLogout() {
 }
 
 .seller-tab-btn--active {
-  color: #2F5D3A;
+  color: #E67E22;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .fade-down-enter-active,

@@ -35,7 +35,12 @@
         class="text-xs border border-farm-light px-3 py-2 text-farm-dark/70 outline-none bg-white font-medium tracking-wide uppercase"
       >
         <option value="All">All categories</option>
-        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+        <optgroup label="🔥 Street Food & Eats">
+          <option v-for="cat in streetFoodCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
+        </optgroup>
+        <optgroup label="🌿 Fresh Farm Hub">
+          <option v-for="cat in farmCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
+        </optgroup>
       </select>
     </section>
 
@@ -64,8 +69,13 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-start justify-between gap-2">
               <h3 class="text-sm font-medium text-farm-dark truncate">{{ product.name }}</h3>
-              <span class="text-[10px] font-medium tracking-wider uppercase text-farm-leaf flex-shrink-0">
-                {{ product.category }}
+              <span
+                class="text-[10px] font-bold tracking-wider uppercase flex-shrink-0 px-1.5 py-0.5 border"
+                :class="isStreetFood(product.category)
+                  ? 'text-market-orange border-market-orange/30 bg-market-orange/5'
+                  : 'text-farm-leaf border-farm-leaf/30 bg-farm-leaf/5'"
+              >
+                {{ getCategoryInfo(product.category).label }}
               </span>
             </div>
             <p class="text-xs text-farm-dark/45 line-clamp-1 mt-0.5">
@@ -142,7 +152,12 @@
                 required
                 class="w-full border border-farm-light px-3 py-2.5 text-sm outline-none focus:border-farm-deep bg-white"
               >
-                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                <optgroup label="🔥 Street Food & Eats">
+                  <option v-for="cat in streetFoodCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
+                </optgroup>
+                <optgroup label="🌿 Fresh Farm Hub">
+                  <option v-for="cat in farmCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
+                </optgroup>
               </select>
             </div>
             <div class="grid grid-cols-2 gap-3">
@@ -233,7 +248,27 @@ definePageMeta({ layout: 'seller' })
 const router = useRouter()
 const api = useApiFetch()
 
-const categories = ['Vegetables', 'Fruits', 'Organic', 'Herbs', 'Dairy', 'Grains']
+const productCategories = [
+  // Street Food & Eats Sector
+  { value: 'street_food_fried_grilled', label: 'Street Food - Fried & Grilled' },
+  { value: 'street_food_steamed_dimsum', label: 'Street Food - Steamed & Dimsum' },
+  { value: 'street_food_snacks_kakanin', label: 'Street Food - Local Snacks & Kakanin' },
+  { value: 'street_food_beverages_desserts', label: 'Street Food - Beverages & Desserts' },
+  // Fresh Farm Hub Sector
+  { value: 'farm_vegetables', label: 'Farm - Vegetables' },
+  { value: 'farm_fruits', label: 'Farm - Fruits' },
+  { value: 'farm_herbs_spices', label: 'Farm - Herbs & Spices' },
+  { value: 'farm_rice_grains', label: 'Farm - Rice & Grains' },
+  { value: 'farm_poultry_dairy', label: 'Farm - Poultry & Dairy' },
+]
+
+const streetFoodCategories = productCategories.filter(c => c.value.startsWith('street_food_'))
+const farmCategories = productCategories.filter(c => c.value.startsWith('farm_'))
+
+function isStreetFood(category: string) {
+  return (category || '').startsWith('street_food_')
+}
+
 const searchQuery = ref('')
 const categoryFilter = ref('All')
 
@@ -241,15 +276,25 @@ const categoryFilter = ref('All')
 const { data: productsData, pending, refresh } = await useAsyncData('seller:inventory', () => api('/api/seller/products'), { server: false })
 
 const getCategoryInfo = (category: string) => {
-  const map: Record<string, { emoji: string; bg: string }> = {
-    Vegetables: { emoji: '🥬', bg: 'bg-green-50' },
-    Fruits: { emoji: '🍎', bg: 'bg-red-50' },
-    Organic: { emoji: '🌱', bg: 'bg-emerald-50' },
-    Herbs: { emoji: '🌿', bg: 'bg-teal-50' },
-    Dairy: { emoji: '🥛', bg: 'bg-blue-50' },
-    Grains: { emoji: '🌾', bg: 'bg-yellow-50' },
+  const map: Record<string, { emoji: string; label: string }> = {
+    street_food_fried_grilled: { emoji: '🍗', label: 'Fried & Grilled' },
+    street_food_steamed_dimsum: { emoji: '🥟', label: 'Steamed & Dimsum' },
+    street_food_snacks_kakanin: { emoji: '🍢', label: 'Snacks & Kakanin' },
+    street_food_beverages_desserts: { emoji: '🥤', label: 'Beverages & Desserts' },
+    farm_vegetables: { emoji: '🥬', label: 'Vegetables' },
+    farm_fruits: { emoji: '🍎', label: 'Fruits' },
+    farm_herbs_spices: { emoji: '🌿', label: 'Herbs & Spices' },
+    farm_rice_grains: { emoji: '🌾', label: 'Rice & Grains' },
+    farm_poultry_dairy: { emoji: '🥛', label: 'Poultry & Dairy' },
+    // Legacy fallbacks
+    Vegetables: { emoji: '🥬', label: 'Vegetables' },
+    Fruits: { emoji: '🍎', label: 'Fruits' },
+    Organic: { emoji: '🌱', label: 'Organic' },
+    Herbs: { emoji: '🌿', label: 'Herbs' },
+    Dairy: { emoji: '🥛', label: 'Dairy' },
+    Grains: { emoji: '🌾', label: 'Grains' },
   }
-  return map[category] ?? { emoji: '🌱', bg: 'bg-green-50' }
+  return map[category] ?? { emoji: '🌱', label: category }
 }
 
 const filteredProducts = computed(() => {
@@ -304,7 +349,7 @@ function openAddModal() {
     description: '',
     price: 0,
     stock: 0,
-    category: 'Vegetables',
+    category: 'farm_vegetables',
     image_url: null,
   }
   showModal.value = true

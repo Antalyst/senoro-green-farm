@@ -41,11 +41,12 @@
                 class="w-4 h-4 border-farm-light text-farm-deep focus:ring-farm-leaf rounded-none accent-farm-deep"
                 @change="toggleSellerSelection(String(sellerId))"
               >
-              <span class="text-sm font-medium text-farm-dark truncate">{{ group.sellerName }}</span>
+              <Icon name="heroicons:building-storefront" class="w-5 h-5 text-farm-dark/50 flex-shrink-0" />
+              <span class="text-base md:text-lg font-bold text-farm-dark truncate">{{ group.sellerName }}</span>
             </label>
             <NuxtLink
               :to="`/buyer/shop/${sellerId}`"
-              class="text-[10px] font-medium tracking-[0.12em] uppercase text-farm-leaf hover:text-farm-deep flex-shrink-0"
+              class="text-[10px] font-bold tracking-[0.12em] uppercase text-farm-leaf hover:text-farm-deep flex-shrink-0 border border-farm-leaf px-2 py-1"
             >
               Visit shop
             </NuxtLink>
@@ -69,22 +70,30 @@
 
                   <NuxtLink
                     :to="`/buyer/product/${item.products.id}`"
-                    class="w-20 h-20 flex-shrink-0 bg-farm-light border border-farm-light overflow-hidden"
+                    class="w-20 h-20 md:w-24 md:h-24 flex-shrink-0 bg-farm-light border border-farm-light overflow-hidden flex items-center justify-center"
                   >
-                    <div class="w-full h-full flex items-center justify-center text-2xl text-farm-dark/20">
+                    <img v-if="item.products.image_url" :src="item.products.image_url" class="w-full h-full object-cover">
+                    <div v-else class="text-3xl text-farm-dark/20">
                       {{ getCategoryEmoji(item.products.category) }}
                     </div>
                   </NuxtLink>
 
                   <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:justify-between gap-4">
-                    <div class="min-w-0">
+                    <div class="min-w-0 flex flex-col items-start">
                       <NuxtLink :to="`/buyer/product/${item.products.id}`">
-                        <h3 class="text-sm font-medium text-farm-dark hover:text-farm-deep transition-colors truncate">
+                        <h3 class="text-base md:text-lg font-bold text-farm-dark hover:text-farm-deep transition-colors truncate">
                           {{ item.products.name }}
                         </h3>
                       </NuxtLink>
-                      <p class="text-[11px] text-farm-dark/45 mt-1">{{ item.products.category }}</p>
-                      <p class="mt-2 text-sm font-medium text-farm-leaf">
+                      <div class="mt-1 flex items-center gap-2">
+                        <span 
+                          class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 border"
+                          :class="isStreetFood(item.products.category) ? 'text-market-orange border-market-orange/30 bg-market-orange/5' : 'text-farm-leaf border-farm-leaf/30 bg-farm-leaf/5'"
+                        >
+                          {{ isStreetFood(item.products.category) ? 'Street Food & Eats' : 'Fresh Farm Produce' }}
+                        </span>
+                      </div>
+                      <p class="mt-auto pt-2 text-base md:text-lg font-black text-farm-dark">
                         ₱{{ formatPrice(item.products.price) }}
                       </p>
                     </div>
@@ -132,38 +141,40 @@
     <!-- Checkout sheet -->
     <div
       v-if="cartItems.length > 0"
-      class="fixed bottom-14 left-0 right-0 z-40 bg-white border-t border-farm-light"
+      class="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 bg-white border-t border-farm-light shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
     >
-      <div class="max-w-page mx-auto w-full px-4 md:px-8 py-4 md:py-5">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="max-w-page mx-auto w-full">
+        <!-- Address banner removed, moved to checkout.vue -->
+
+        <div class="px-4 md:px-8 py-4 md:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <label class="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               :checked="isAllChecked"
-              class="w-4 h-4 accent-farm-deep rounded-none"
+              class="w-5 h-5 accent-farm-deep rounded-none border-2"
               @click.stop="toggleSelectAll"
             >
-            <span class="text-[11px] font-medium tracking-[0.12em] uppercase text-farm-dark/50">Select all</span>
+            <span class="text-[11px] font-bold tracking-[0.12em] uppercase text-farm-dark">Select all</span>
           </label>
 
-          <div class="flex items-center justify-between sm:justify-end gap-6">
+          <div class="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
             <div class="text-right">
-              <p class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Total</p>
-              <p class="text-xl font-medium text-farm-leaf tabular-nums">
+              <p class="text-[10px] font-bold tracking-[0.16em] uppercase text-farm-dark/60">Total Payment</p>
+              <p class="text-2xl md:text-3xl font-black text-market-orange tabular-nums">
                 ₱{{ totalCheckoutPrice.toFixed(2) }}
               </p>
             </div>
             <button
               type="button"
               :disabled="submittingCheckout || checkedItemIds.length === 0"
-              class="px-8 py-3.5 bg-farm-deep text-white text-xs font-medium tracking-[0.14em] uppercase hover:bg-farm-dark transition-colors disabled:opacity-40 min-w-[140px]"
+              class="px-8 py-4 bg-market-orange text-white text-xs md:text-sm font-black tracking-[0.14em] uppercase hover:bg-[#D35400] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:hover:scale-100 min-w-[160px] flex-shrink-0 shadow-lg shadow-market-orange/20"
               @click="checkout"
             >
               <span v-if="submittingCheckout" class="flex items-center justify-center gap-2">
                 <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
                 Processing
               </span>
-              <span v-else>Checkout ({{ checkedItemIds.length }})</span>
+              <span v-else>Check Out ({{ checkedItemIds.length }})</span>
             </button>
           </div>
         </div>
@@ -200,6 +211,7 @@ interface CartProduct {
   id: string
   name: string
   price: string | number
+  image_url?: string
   category?: string
   stock?: number
   users?: { id?: string; full_name?: string }
@@ -238,6 +250,10 @@ const categoryEmojis: Record<string, string> = {
 
 function getCategoryEmoji(category?: string) {
   return categoryEmojis[category ?? ''] ?? '🌱'
+}
+
+function isStreetFood(category?: string) {
+  return (category || '').startsWith('street_food_')
 }
 
 function formatPrice(price: string | number) {
@@ -322,25 +338,10 @@ async function checkout() {
   })
   if (!canProceed) return
 
-  submittingCheckout.value = true
-  try {
-    const data = await api<{ success: boolean; total_amount: number }>('/api/cart/checkout', {
-      method: 'POST',
-      body: { cart_item_ids: checkedItemIds.value },
-    })
-    triggerToast(`Order placed — ₱${data.total_amount.toFixed(2)}`)
-    checkedItemIds.value = []
-    refresh()
-    refreshCartCount?.()
-    setTimeout(() => router.push('/buyer/orders'), 1500)
-  }
-  catch (err: unknown) {
-    const e = err as { data?: { statusMessage?: string } }
-    triggerToast(e.data?.statusMessage || 'Checkout failed', 'error')
-  }
-  finally {
-    submittingCheckout.value = false
-  }
+  navigateTo({
+    path: '/buyer/checkout',
+    query: { items: checkedItemIds.value.join(',') }
+  })
 }
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'error' })

@@ -6,7 +6,7 @@
     >
       {{ label }}
     </label>
-    <div class="flex items-center gap-2 border-b border-gray-200 focus-within:border-farm-deep transition-colors min-h-[44px]">
+    <div class="flex items-center gap-2 border-b-2 border-gray-100 focus-within:border-market-orange transition-all duration-300 min-h-[44px]">
       <slot name="icon" />
       <input
         :id="inputId"

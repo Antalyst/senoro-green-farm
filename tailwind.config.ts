@@ -12,6 +12,7 @@ export default {
       colors: {
         'farm-deep': '#2F5D3A',
         'farm-leaf': '#4E8B57',
+        'market-orange': '#E67E22',
         'farm-yellow': '#D9C84B',
         'farm-light': '#EEF5EE',
         'farm-dark': '#1A3521',
