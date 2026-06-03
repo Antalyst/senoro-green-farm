@@ -19,7 +19,7 @@
         <img src="/logo2.png" alt="Senoro" class="h-60 w-60 object-contain mb-8 opacity-100 drop-shadow-xl animate-fade-in">
         <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight drop-shadow-md">
           Sizzle & Harvest.<br>
-          Where local street food cravings meet fresh farm abundance. Step into Bago City's ultimate culinary crossroads.
+          Where local street food cravings meet fresh farm abundance. Step into Bacolod City's ultimate culinary crossroads.
         </h1>
         <p class="text-base text-gray-100 mt-5 font-medium leading-relaxed max-w-sm drop-shadow-md">
           Connecting you directly to the finest neighborhood kitchens and organic fields, all in one premium digital hub.
