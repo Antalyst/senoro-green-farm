@@ -1,6 +1,6 @@
 {
   "appId": "com.example.app",
-  "appName": "senoro_green_farm",
+  "appName": "Negros Farmers Weekend Market",
   "webDir": ".output/public",
     "server": {
     "url": "https://nfwm.vercel.app",
