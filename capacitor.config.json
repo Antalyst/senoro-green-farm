@@ -3,7 +3,7 @@
   "appName": "Negros Farmers Weekend Market",
   "webDir": ".output/public",
     "server": {
-    "url": "https://nfwm.vercel.app",
+    "url": "https://senoro-green-farm.vercel.app",
     "cleartext": true
   },
   "plugins": {
