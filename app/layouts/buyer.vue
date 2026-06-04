@@ -18,7 +18,7 @@
               class="w-8 h-8 object-contain"
               alt="Senoro"
             >
-            <span class="hidden lg:block text-lg font-black text-market-orange tracking-tight">Senoro</span>
+            <span class="hidden lg:block text-lg font-black text-market-orange tracking-tight">Negros Farmers Weekend Market</span>
           </NuxtLink>
 
           <div
