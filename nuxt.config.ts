@@ -24,7 +24,7 @@ export default defineNuxtConfig({
     public: {
       supabaseUrl: process.env.SUPABASE_URL || '',
       supabaseKey: process.env.SUPABASE_KEY || '',
-      apiBaseUrl: process.env.API_BASE_URL || 'https://senoro-green-farm.vercel.app',
+      apiBaseUrl: process.env.API_BASE_URL || 'https://nfwm.vercel.app',
     },
   },
 

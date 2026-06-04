@@ -9,12 +9,13 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "deploy:android": "npx nuxi generate && npx cap sync android && npx cap run android",
-    "generate:assets": "capacitor-assets generate --assetPath assets --iconBackgroundColor #2F5D3A --splashBackgroundColor #2F5D3A"
+    "generate:assets": "capacitor-assets generate --assetPath assets --iconBackgroundColor #2F5D3A --splashBackgroundColor #2F5D3A",
+    "deploy:ios": "nuxi generate && @capacitor/assets generate && cap sync ios && cap run ios"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
     "@capacitor/core": "^8.3.4",
-    "@capacitor/ios": "^8.3.4",
+    "@capacitor/ios": "^8.4.0",
     "@ionic/pwa-elements": "^3.4.0",
     "@ionic/vue": "^8.8.8",
     "@nuxt/icon": "^2.2.2",
