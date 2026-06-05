@@ -26,7 +26,7 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search products…"
+          placeholder="Search products..."
           class="bg-transparent text-sm text-farm-dark placeholder:text-farm-dark/35 flex-1 outline-none min-w-0"
         >
       </div>
@@ -35,22 +35,17 @@
         class="text-xs border border-farm-light px-3 py-2 text-farm-dark/70 outline-none bg-white font-medium tracking-wide uppercase"
       >
         <option value="All">All categories</option>
-        <optgroup label="🔥 Street Food & Eats">
-          <option v-for="cat in streetFoodCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
-        </optgroup>
-        <optgroup label="🌿 Fresh Farm Hub">
-          <option v-for="cat in farmCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
-        </optgroup>
+        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
       </select>
     </section>
 
     <section class="border border-farm-light">
       <div v-if="pending" class="p-12 text-center text-xs text-farm-dark/40">
         <Icon name="heroicons:arrow-path" class="w-6 h-6 text-farm-leaf animate-spin mx-auto mb-2" />
-        Loading inventory…
+        Loading inventory...
       </div>
 
-      <div v-else-if="!filteredProducts?.length" class="p-12 text-center">
+      <div v-else-if="!filteredProducts.length" class="p-12 text-center">
         <p class="text-sm font-medium text-farm-dark">No products yet</p>
         <p class="text-xs text-farm-dark/45 mt-1">Add your first listing to start selling.</p>
       </div>
@@ -61,21 +56,14 @@
           :key="product.id"
           class="p-5 flex gap-4 hover:bg-farm-light/20 transition-colors"
         >
-          <div
-            class="w-14 h-14 border border-farm-light flex-shrink-0 flex items-center justify-center text-2xl bg-farm-light/40"
-          >
-            {{ getCategoryInfo(product.category).emoji }}
+          <div class="w-14 h-14 border border-farm-light flex-shrink-0 flex items-center justify-center bg-farm-light/40">
+            <Icon name="heroicons:tag" class="w-6 h-6 text-farm-leaf stroke-[1.5]" />
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-start justify-between gap-2">
               <h3 class="text-sm font-medium text-farm-dark truncate">{{ product.name }}</h3>
-              <span
-                class="text-[10px] font-bold tracking-wider uppercase flex-shrink-0 px-1.5 py-0.5 border"
-                :class="isStreetFood(product.category)
-                  ? 'text-market-orange border-market-orange/30 bg-market-orange/5'
-                  : 'text-farm-leaf border-farm-leaf/30 bg-farm-leaf/5'"
-              >
-                {{ getCategoryInfo(product.category).label }}
+              <span class="text-[10px] font-bold tracking-wider uppercase flex-shrink-0 px-1.5 py-0.5 border text-farm-leaf border-farm-leaf/30 bg-farm-leaf/5">
+                {{ product.category || 'Uncategorized' }}
               </span>
             </div>
             <p class="text-xs text-farm-dark/45 line-clamp-1 mt-0.5">
@@ -84,7 +72,9 @@
             <div class="flex items-center gap-6 mt-3 text-sm">
               <div>
                 <span class="text-[10px] uppercase tracking-wider text-farm-dark/40">Price</span>
-                <p class="text-farm-deep font-medium tabular-nums">₱{{ parseFloat(product.price).toFixed(2) }}</p>
+                <p class="text-farm-deep font-medium tabular-nums">
+                  PHP {{ formatPrice(product.price) }} <span class="text-xs text-farm-dark/50 lowercase">/ {{ product.unit_type || 'pc' }}</span>
+                </p>
               </div>
               <div>
                 <span class="text-[10px] uppercase tracking-wider text-farm-dark/40">Stock</span>
@@ -146,31 +136,41 @@
               >
             </div>
             <div class="space-y-1">
-              <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Category</label>
+              <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Shop category</label>
               <select
-                v-model="form.category"
+                v-model="form.category_id"
                 required
                 class="w-full border border-farm-light px-3 py-2.5 text-sm outline-none focus:border-farm-deep bg-white"
               >
-                <optgroup label="🔥 Street Food & Eats">
-                  <option v-for="cat in streetFoodCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
-                </optgroup>
-                <optgroup label="🌿 Fresh Farm Hub">
-                  <option v-for="cat in farmCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
-                </optgroup>
+                <option disabled value="">Select a shop category</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
               </select>
+              <p v-if="!categories.length" class="text-[10px] text-red-600">
+                Add a shop category on the Seller Dashboard before publishing products.
+              </p>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div class="space-y-1">
-                <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Price (₱)</label>
-                <input
-                  v-model.number="form.price"
-                  type="number"
-                  step="0.01"
-                  required
-                  min="0.01"
-                  class="w-full border border-farm-light px-3 py-2.5 text-sm outline-none focus:border-farm-deep"
-                >
+                <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Price (PHP)</label>
+                <div class="flex items-center">
+                  <input
+                    v-model.number="form.price"
+                    type="number"
+                    step="0.01"
+                    required
+                    min="0.01"
+                    class="w-full border border-farm-light border-r-0 px-3 py-2.5 text-sm outline-none focus:border-farm-deep"
+                  >
+                  <select
+                    v-model="form.unit_type"
+                    class="border border-farm-light px-2 py-2.5 text-sm outline-none focus:border-farm-deep bg-farm-light/20 text-farm-dark/70"
+                  >
+                    <option value="pc">/ pc</option>
+                    <option value="kg">/ kg</option>
+                    <option value="bundle">/ bundle</option>
+                    <option value="serving">/ serving</option>
+                  </select>
+                </div>
               </div>
               <div class="space-y-1">
                 <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Stock</label>
@@ -196,20 +196,20 @@
                   @change="onImageSelected"
                 >
               </div>
-              <p v-if="uploadingImage" class="text-[10px] text-farm-leaf">Uploading image…</p>
+              <p v-if="uploadingImage" class="text-[10px] text-farm-leaf">Uploading image...</p>
             </div>
             <div class="space-y-1">
               <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Description</label>
               <textarea
                 v-model="form.description"
                 rows="3"
-                placeholder="Quality, size, origin…"
+                placeholder="Quality, size, origin..."
                 class="w-full border border-farm-light px-3 py-2.5 text-sm outline-none focus:border-farm-deep resize-none"
               />
             </div>
             <button
               type="submit"
-              :disabled="saving"
+              :disabled="saving || !categories.length"
               class="w-full bg-farm-deep text-white py-3 text-xs font-medium tracking-[0.12em] uppercase hover:bg-farm-leaf transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <Icon v-if="saving" name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
@@ -245,71 +245,57 @@ import PageContainer from '~/components/ui/PageContainer.vue'
 
 definePageMeta({ layout: 'seller' })
 
-const router = useRouter()
-const api = useApiFetch()
-
-const productCategories = [
-  // Street Food & Eats Sector
-  { value: 'street_food_fried_grilled', label: 'Street Food - Fried & Grilled' },
-  { value: 'street_food_steamed_dimsum', label: 'Street Food - Steamed & Dimsum' },
-  { value: 'street_food_snacks_kakanin', label: 'Street Food - Local Snacks & Kakanin' },
-  { value: 'street_food_beverages_desserts', label: 'Street Food - Beverages & Desserts' },
-  // Fresh Farm Hub Sector
-  { value: 'farm_vegetables', label: 'Farm - Vegetables' },
-  { value: 'farm_fruits', label: 'Farm - Fruits' },
-  { value: 'farm_herbs_spices', label: 'Farm - Herbs & Spices' },
-  { value: 'farm_rice_grains', label: 'Farm - Rice & Grains' },
-  { value: 'farm_poultry_dairy', label: 'Farm - Poultry & Dairy' },
-]
-
-const streetFoodCategories = productCategories.filter(c => c.value.startsWith('street_food_'))
-const farmCategories = productCategories.filter(c => c.value.startsWith('farm_'))
-
-function isStreetFood(category: string) {
-  return (category || '').startsWith('street_food_')
+interface SellerCategory {
+  id: string
+  name: string
 }
+
+interface SellerProduct {
+  id: string
+  name: string
+  description?: string | null
+  price: string | number
+  stock: number
+  category: string
+  category_id?: string | null
+  image_url?: string | null
+  unit_type?: string
+}
+
+const api = useApiFetch()
 
 const searchQuery = ref('')
 const categoryFilter = ref('All')
 
-// Fetch Products
-const { data: productsData, pending, refresh } = await useAsyncData('seller:inventory', () => api('/api/seller/products'), { server: false })
+const { data: productsData, pending, refresh } = await useAsyncData(
+  'seller:inventory',
+  () => api<{ products: SellerProduct[] }>('/api/seller/products'),
+  { server: false },
+)
 
-const getCategoryInfo = (category: string) => {
-  const map: Record<string, { emoji: string; label: string }> = {
-    street_food_fried_grilled: { emoji: '🍗', label: 'Fried & Grilled' },
-    street_food_steamed_dimsum: { emoji: '🥟', label: 'Steamed & Dimsum' },
-    street_food_snacks_kakanin: { emoji: '🍢', label: 'Snacks & Kakanin' },
-    street_food_beverages_desserts: { emoji: '🥤', label: 'Beverages & Desserts' },
-    farm_vegetables: { emoji: '🥬', label: 'Vegetables' },
-    farm_fruits: { emoji: '🍎', label: 'Fruits' },
-    farm_herbs_spices: { emoji: '🌿', label: 'Herbs & Spices' },
-    farm_rice_grains: { emoji: '🌾', label: 'Rice & Grains' },
-    farm_poultry_dairy: { emoji: '🥛', label: 'Poultry & Dairy' },
-    // Legacy fallbacks
-    Vegetables: { emoji: '🥬', label: 'Vegetables' },
-    Fruits: { emoji: '🍎', label: 'Fruits' },
-    Organic: { emoji: '🌱', label: 'Organic' },
-    Herbs: { emoji: '🌿', label: 'Herbs' },
-    Dairy: { emoji: '🥛', label: 'Dairy' },
-    Grains: { emoji: '🌾', label: 'Grains' },
-  }
-  return map[category] ?? { emoji: '🌱', label: category }
-}
+const { data: categoriesData, refresh: refreshCategories } = await useAsyncData(
+  'seller:inventory-categories',
+  () => api<{ categories: SellerCategory[] }>('/api/seller/categories'),
+  { server: false },
+)
+
+const categories = computed(() => categoriesData.value?.categories ?? [])
 
 const filteredProducts = computed(() => {
   let list = productsData.value?.products ?? []
+
   if (categoryFilter.value !== 'All') {
-    list = list.filter((p: any) => p.category === categoryFilter.value)
+    list = list.filter(product => product.category_id === categoryFilter.value)
   }
+
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase().trim()
-    list = list.filter((p: any) => p.name.toLowerCase().includes(q))
+    list = list.filter(product => product.name.toLowerCase().includes(q))
   }
+
   return list
 })
 
-// Modal states
 const showModal = ref(false)
 const isEditing = ref(false)
 const saving = ref(false)
@@ -321,16 +307,20 @@ const form = ref({
   description: '',
   price: 0,
   stock: 0,
-  category: 'Vegetables',
+  category_id: '',
   image_url: '' as string | null,
+  unit_type: 'pc',
 })
 
-// Toast notification state
 const toast = ref({
   show: false,
   message: '',
-  type: 'success'
+  type: 'success' as 'success' | 'error',
 })
+
+function formatPrice(price: string | number) {
+  return parseFloat(String(price ?? 0)).toFixed(2)
+}
 
 function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   toast.value.message = message
@@ -341,7 +331,8 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   }, 4000)
 }
 
-function openAddModal() {
+async function openAddModal() {
+  await refreshCategories()
   isEditing.value = false
   editId.value = null
   form.value = {
@@ -349,8 +340,9 @@ function openAddModal() {
     description: '',
     price: 0,
     stock: 0,
-    category: 'farm_vegetables',
+    category_id: categories.value[0]?.id ?? '',
     image_url: null,
+    unit_type: 'pc',
   }
   showModal.value = true
 }
@@ -359,9 +351,9 @@ async function onImageSelected(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+
   uploadingImage.value = true
   try {
-    // Read file as base64 for cross-platform stability (Capacitor FormData issue fix)
     const reader = new FileReader()
     const base64Promise = new Promise<string>((resolve, reject) => {
       reader.onload = () => resolve(reader.result as string)
@@ -370,12 +362,12 @@ async function onImageSelected(event: Event) {
     reader.readAsDataURL(file)
     const base64Data = await base64Promise
 
-    const result = await api<{ url: string }>('/api/products/upload', { 
-      method: 'POST', 
-      body: { 
+    const result = await api<{ url: string }>('/api/products/upload', {
+      method: 'POST',
+      body: {
         image: base64Data,
-        filename: file.name
-      }
+        filename: file.name,
+      },
     })
     form.value.image_url = result.url
     triggerToast('Image uploaded.')
@@ -390,16 +382,17 @@ async function onImageSelected(event: Event) {
   }
 }
 
-function openEditModal(product: any) {
+function openEditModal(product: SellerProduct) {
   isEditing.value = true
   editId.value = product.id
   form.value = {
     name: product.name,
     description: product.description || '',
-    price: parseFloat(product.price),
-    stock: parseInt(product.stock),
-    category: product.category,
+    price: parseFloat(String(product.price)),
+    stock: parseInt(String(product.stock)),
+    category_id: product.category_id ?? '',
     image_url: product.image_url ?? null,
+    unit_type: product.unit_type ?? 'pc',
   }
   showModal.value = true
 }
@@ -410,41 +403,45 @@ async function saveProduct() {
     if (isEditing.value && editId.value) {
       await api(`/api/products/update/${editId.value}`, {
         method: 'PUT',
-        body: form.value
+        body: form.value,
       })
-      triggerToast('Harvest item updated successfully!')
-    } else {
+      triggerToast('Product updated successfully.')
+    }
+    else {
       await api('/api/products/create', {
         method: 'POST',
-        body: form.value
+        body: form.value,
       })
-      triggerToast('Harvest item listed successfully!')
+      triggerToast('Product listed successfully.')
     }
     showModal.value = false
-    refresh()
-  } catch (err: any) {
-    triggerToast(err.data?.statusMessage || 'Failed to save product', 'error')
-  } finally {
+    await refresh()
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    triggerToast(e.data?.statusMessage || 'Failed to save product', 'error')
+  }
+  finally {
     saving.value = false
   }
 }
 
-async function confirmDelete(product: any) {
+async function confirmDelete(product: SellerProduct) {
   const confirmed = confirm(`Are you sure you want to delete "${product.name}"?`)
   if (!confirmed) return
 
   try {
-    await api(`/api/products/delete/${product.id}`, {
-      method: 'DELETE'
-    })
-    triggerToast('Harvest item deleted.')
-    refresh()
-  } catch (err: any) {
-    triggerToast(err.data?.statusMessage || 'Failed to delete product', 'error')
+    await api(`/api/products/delete/${product.id}`, { method: 'DELETE' })
+    triggerToast('Product deleted.')
+    await refresh()
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    triggerToast(e.data?.statusMessage || 'Failed to delete product', 'error')
   }
 }
 
-useHead({ title: 'Manage Inventory — Senoro Green Farm' })
+useHead({ title: 'Manage Inventory - Senoro Green Farm' })
 </script>
 
 <style scoped>

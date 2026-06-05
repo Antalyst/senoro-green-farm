@@ -1,5 +1,6 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { requireAuth } from '../../utils/auth'
+import { normalizeProductCategories } from '../../utils/productResponse'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const { data: products, error } = await supabase
     .from('products')
-    .select('id, name, description, price, stock, category, image_url, created_at')
+    .select('id, name, description, price, stock, category, category_id, image_url, created_at, categories!category_id(id, name)')
     .eq('seller_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -19,5 +20,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Failed to fetch products' })
   }
 
-  return { products }
+  return { products: normalizeProductCategories(products) }
 })

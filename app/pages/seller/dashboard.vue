@@ -34,6 +34,67 @@
         </div>
       </section>
 
+      <section class="border border-farm-light bg-white">
+        <div class="px-5 py-4 border-b border-farm-light flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-farm-dark/45 mb-2">Store taxonomy</p>
+            <h2 class="text-lg font-light text-farm-dark tracking-tight">Shop categories</h2>
+            <p class="text-xs text-farm-dark/45 mt-1">Create custom categories that appear in your storefront.</p>
+          </div>
+          <form class="flex w-full gap-2 md:w-auto" @submit.prevent="createCategory">
+            <input
+              v-model="newCategoryName"
+              type="text"
+              maxlength="120"
+              placeholder="e.g. Sizzling Meals"
+              class="min-w-0 flex-1 md:w-64 border border-farm-light px-3 py-2 text-sm outline-none focus:border-farm-deep"
+            >
+            <button
+              type="submit"
+              :disabled="savingCategory || !newCategoryName.trim()"
+              class="px-4 py-2 bg-farm-deep text-white text-[10px] font-medium tracking-[0.14em] uppercase hover:bg-farm-dark transition-colors disabled:opacity-50"
+            >
+              Add
+            </button>
+          </form>
+        </div>
+
+        <div v-if="categoriesPending" class="p-8 text-center text-xs text-farm-dark/40">Loading categories...</div>
+        <div v-else-if="!categories.length" class="p-8 text-center text-xs text-farm-dark/40">
+          No shop categories yet. Add one before publishing products.
+        </div>
+        <div v-else class="divide-y divide-farm-light">
+          <form
+            v-for="category in categories"
+            :key="category.id"
+            class="flex items-center gap-3 px-5 py-4"
+            @submit.prevent="updateCategory(category)"
+          >
+            <Icon name="heroicons:tag" class="w-4 h-4 text-farm-leaf flex-shrink-0" />
+            <input
+              v-model="category.name"
+              type="text"
+              maxlength="120"
+              class="min-w-0 flex-1 border border-transparent bg-farm-light/30 px-3 py-2 text-sm text-farm-dark outline-none focus:border-farm-deep focus:bg-white"
+            >
+            <button
+              type="submit"
+              class="px-3 py-2 border border-farm-light text-[10px] font-medium tracking-[0.12em] uppercase text-farm-deep hover:border-farm-deep"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              class="p-2 border border-farm-light text-farm-dark/45 hover:border-red-200 hover:text-red-600"
+              title="Delete category"
+              @click="deleteCategory(category)"
+            >
+              <Icon name="heroicons:trash" class="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+      </section>
+
       <!-- Revenue chart -->
       <section class="border border-farm-light p-6 md:p-8">
         <div class="flex items-end justify-between mb-6">
@@ -216,6 +277,11 @@ interface MetricsPayload {
   }
 }
 
+interface SellerCategory {
+  id: string
+  name: string
+}
+
 const { data: metrics, pending: metricsPending } = await useAsyncData(
   'seller:metrics',
   () => api<MetricsPayload>('/api/seller/metrics'),
@@ -227,6 +293,20 @@ const { data: productsData, pending: productsPending } = await useAsyncData(
   () => api<{ products: { id: string; name: string; price: string; stock: number; category: string }[] }>('/api/seller/products'),
   { server: false },
 )
+
+const {
+  data: categoriesData,
+  pending: categoriesPending,
+  refresh: refreshCategories,
+} = await useAsyncData(
+  'seller:dashboard-categories',
+  () => api<{ categories: SellerCategory[] }>('/api/seller/categories'),
+  { server: false },
+)
+
+const newCategoryName = ref('')
+const savingCategory = ref(false)
+const categories = computed(() => categoriesData.value?.categories ?? [])
 
 const recentSales = computed(() => (metrics.value?.items ?? []).slice(0, 8))
 
@@ -265,6 +345,45 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
   })
+}
+
+async function createCategory() {
+  const name = newCategoryName.value.trim()
+  if (!name) return
+
+  savingCategory.value = true
+  try {
+    await api('/api/seller/categories', {
+      method: 'POST',
+      body: { name },
+    })
+    newCategoryName.value = ''
+    await refreshCategories()
+  }
+  finally {
+    savingCategory.value = false
+  }
+}
+
+async function updateCategory(category: SellerCategory) {
+  const name = category.name.trim()
+  if (!name) return
+
+  await api(`/api/seller/categories/${category.id}`, {
+    method: 'PUT',
+    body: { name },
+  })
+  await refreshCategories()
+}
+
+async function deleteCategory(category: SellerCategory) {
+  const confirmed = confirm(`Delete "${category.name}"? Products in this category will become uncategorized.`)
+  if (!confirmed) return
+
+  await api(`/api/seller/categories/${category.id}`, {
+    method: 'DELETE',
+  })
+  await refreshCategories()
 }
 
 useHead({ title: 'Seller Dashboard — Senoro Green Farm' })

@@ -1,80 +1,139 @@
 <template>
-  <PageContainer class="space-y-8 py-5 md:py-8">
-    <header class="relative overflow-hidden border border-farm-light bg-farm-dark text-white">
-      <img
-        :src="storeHeroImage"
-        :alt="data?.seller?.full_name ?? 'Farm store'"
-        class="absolute inset-0 h-full w-full object-cover opacity-45"
-      >
-      <div class="absolute inset-0 bg-gradient-to-r from-farm-dark via-farm-dark/85 to-farm-dark/30" />
-      <div class="relative p-5 md:p-8">
-        <p class="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/65">
-          Farm shop
-        </p>
-        <h1 class="text-3xl font-semibold tracking-tight md:text-5xl">
-          {{ data?.seller?.full_name ?? 'Loading store...' }}
-        </h1>
-        <p class="mt-3 max-w-xl text-sm leading-6 text-white/75">
-          {{ data?.seller?.location ?? 'Bago City' }} seller with {{ data?.products?.length ?? 0 }} fresh listings ready for your basket.
-        </p>
-        <div class="mt-6 flex flex-wrap items-center gap-3 text-sm">
-          <span class="inline-flex items-center gap-1 bg-white px-3 py-2 text-farm-dark">
-            <Icon name="heroicons:star-solid" class="h-4 w-4 text-farm-yellow" />
-            <span class="font-semibold">{{ data?.seller?.average_rating?.toFixed(1) ?? '0.0' }}</span>
-          </span>
-          <span class="border border-white/30 bg-white/10 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white">
-            {{ data?.seller?.review_count ?? 0 }} reviews
-          </span>
-          <span class="border border-white/30 bg-white/10 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white">
-            {{ categories.length }} categories
-          </span>
+  <div class="min-h-screen bg-gray-50 pb-16">
+    <div v-if="data?.seller">
+      <!-- HEADER BANNER -->
+      <div class="relative h-48 sm:h-64 md:h-80 w-full bg-gradient-to-r from-gray-900 to-gray-800 overflow-hidden">
+        <img 
+          v-if="data.seller.shop_banner_url || storeHeroImage" 
+          :src="data.seller.shop_banner_url || storeHeroImage" 
+          :alt="shopDisplayName" 
+          class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
+        />
+        <div class="absolute bottom-0 left-0 w-full p-4 sm:p-6 lg:p-8 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex items-end">
+          <div class="flex items-center gap-4 sm:gap-6 w-full max-w-7xl mx-auto">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full border-4 border-white overflow-hidden bg-white flex-shrink-0 shadow-xl">
+              <img 
+                v-if="data.seller.shop_avatar_url" 
+                :src="data.seller.shop_avatar_url" 
+                :alt="shopDisplayName" 
+                class="w-full h-full object-cover"
+              />
+              <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+                <img 
+                    v-if="data.seller.shop_banner_url || storeHeroImage" 
+                    :src="data.seller.shop_banner_url || storeHeroImage" 
+                    :alt="shopDisplayName" 
+                    class=" w-full h-full object-cover "
+                  />
+              </div>
+            </div>
+            <div class="text-white pb-1 sm:pb-3">
+              <h1 class="text-xl sm:text-3xl md:text-4xl font-bold drop-shadow-lg">
+                {{ shopDisplayName }}
+              </h1>
+              <p class="text-xs sm:text-sm text-white/80 mt-1">{{ data.seller.location || 'Negros Weekend Market' }} seller</p>
+            </div>
+          </div>
         </div>
       </div>
-    </header>
 
-    <section class="flex flex-col gap-3 border border-farm-light bg-white p-4 md:flex-row">
-      <div class="flex flex-1 items-center gap-2 border border-farm-light bg-farm-light/30 px-3 py-2">
-        <Icon name="heroicons:magnifying-glass" class="h-4 w-4 text-farm-dark/35" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search this shop..."
-          class="min-w-0 flex-1 bg-transparent text-sm text-farm-dark outline-none placeholder:text-farm-dark/35"
-        >
-      </div>
-      <select
-        v-model="categoryFilter"
-        class="border border-farm-light bg-white px-3 py-2 text-xs uppercase tracking-wide text-farm-dark/70"
-      >
-        <option value="All">All categories</option>
-        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-      </select>
-      <select
-        v-model="sortBy"
-        class="border border-farm-light bg-white px-3 py-2 text-xs uppercase tracking-wide text-farm-dark/70"
-      >
-        <option value="default">Sort: Default</option>
-        <option value="price-asc">Price: Low to high</option>
-        <option value="price-desc">Price: High to low</option>
-      </select>
-    </section>
+      <!-- LAYOUT SPLIT -->
+      <div class="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 mt-0 md:mt-8">
+        <div class="md:grid md:grid-cols-[250px_1fr] md:gap-8">
+          
+          <!-- NAVIGATION -->
+          <div class="bg-white md:bg-transparent shadow-sm md:shadow-none border-b border-gray-200 md:border-none sticky top-0 z-20 md:static">
+            <!-- Mobile Horizontal Swipe Navigation -->
+            <div class="md:hidden overflow-x-auto whitespace-nowrap scrollbar-none flex px-4 py-3 gap-2">
+              <button 
+                v-for="category in navCategories"
+                :key="category.id"
+                @click="activeCategory = category.id"
+                :class="[
+                  'px-5 py-2 rounded-full text-sm font-semibold transition-all border whitespace-nowrap',
+                  activeCategory === category.id 
+                    ? 'bg-farm-deep text-white border-farm-deep shadow-md' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                ]"
+              >
+                {{ category.name }}
+              </button>
+            </div>
+            
+            <!-- Desktop Sticky Sidebar -->
+            <div class="hidden md:block sticky top-24">
+              <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 px-3">Categories</h2>
+                <ul class="space-y-1">
+                  <li v-for="category in navCategories" :key="category.id">
+                    <button 
+                      @click="activeCategory = category.id"
+                      :class="[
+                        'w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex justify-between items-center',
+                        activeCategory === category.id 
+                          ? 'bg-farm-deep/10 text-farm-deep font-bold' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      ]"
+                    >
+                      <span>{{ category.name }}</span>
+                      <span class="text-xs opacity-70">{{ category.count }}</span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
 
-    <section class="border border-farm-light">
-      <div v-if="pending" class="p-12 text-center text-xs text-farm-dark/40">Loading shop...</div>
-      <div v-else-if="!filteredProducts.length" class="p-12 text-center">
-        <p class="text-sm font-medium text-farm-dark">No products match your filters</p>
+          <!-- PRODUCT CARDS GRID -->
+          <div class="p-4 sm:p-0 min-w-0">
+            <div v-if="pending" class="py-12 text-center text-sm text-farm-dark/50">Loading shop...</div>
+            <div v-else-if="!visibleProducts.length" class="py-12 text-center bg-white rounded-xl border border-gray-100 shadow-sm">
+              <p class="text-sm font-medium text-farm-dark">No products match your filters</p>
+            </div>
+            
+            <div v-else-if="activeCategory === 'All'" class="space-y-8">
+              <section v-for="section in groupedProducts" :key="section.category" class="space-y-4">
+                <div class="flex items-end justify-between border-b border-gray-200 pb-3">
+                  <h2 class="text-xl font-bold text-gray-900">{{ section.category }}</h2>
+                  <span class="text-xs font-bold text-gray-500">{{ section.products.length }} items</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 md:gap-5">
+                  <BuyerProductCard
+                    v-for="product in section.products"
+                    :key="product.id"
+                    :product="product"
+                    class="transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg h-full"
+                    @add-to-cart="handleAddToCart"
+                    @buy-now="handleBuyNow"
+                  />
+                </div>
+              </section>
+            </div>
+
+            <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 md:gap-5">
+              <BuyerProductCard
+                v-for="product in visibleProducts"
+                :key="product.id"
+                :product="product"
+                class="transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg h-full"
+                @add-to-cart="handleAddToCart"
+                @buy-now="handleBuyNow"
+              />
+            </div>
+          </div>
+        </div>
       </div>
-      <div v-else class="grid grid-cols-2 gap-px bg-farm-light md:grid-cols-3 lg:grid-cols-4">
-        <BuyerProductCard
-          v-for="product in filteredProducts"
-          :key="product.id"
-          :product="product"
-          class="bg-white"
-          @add-to-cart="handleAddToCart"
-          @buy-now="handleBuyNow"
-        />
+    </div>
+    
+    <div v-else-if="!pending" class="flex flex-col items-center justify-center min-h-[60vh] px-4">
+      <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center max-w-md w-full">
+        <h2 class="text-2xl font-bold text-gray-900 mb-3">Shop Unavailable</h2>
+        <p class="text-gray-500 mb-8">The seller you're looking for doesn't exist or their store is currently hidden.</p>
+        <NuxtLink to="/buyer" class="bg-farm-deep text-white px-6 py-3 rounded-xl font-bold hover:bg-farm-leaf transition-colors block w-full">
+          Return to Marketplace
+        </NuxtLink>
       </div>
-    </section>
+    </div>
 
     <BuyerToast
       :show="toast.show"
@@ -82,7 +141,7 @@
       :type="toast.type"
       @close="toast.show = false"
     />
-  </PageContainer>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -100,19 +159,38 @@ const setSubPageTitle = inject<(title: string) => void>('setSubPageTitle')
 interface ShopSeller {
   id: string
   full_name: string
+  shop_name?: string | null
+  shop_avatar_url?: string | null
+  shop_banner_url?: string | null
+  created_at?: string
   location?: string
   average_rating?: number
   review_count?: number
 }
 
+interface ShopCategory {
+  id: string
+  name: string
+}
+
+interface ShopPayload {
+  seller: ShopSeller
+  categories: ShopCategory[]
+  products: BuyerProduct[]
+}
+
 const searchQuery = ref('')
-const categoryFilter = ref('All')
+const activeCategory = ref('All')
 const sortBy = ref<'default' | 'price-asc' | 'price-desc'>('default')
 
 const { data, pending } = await useAsyncData(
   () => `buyer:shop-${route.params.id}`,
-  () => api<{ seller: ShopSeller; products: BuyerProduct[] }>(`/api/seller/profile/${route.params.id}`),
+  () => api<ShopPayload>(`/api/seller/profile/${route.params.id}`),
   { server: false },
+)
+
+const shopDisplayName = computed(() =>
+  data.value?.seller?.shop_name || data.value?.seller?.full_name || 'Loading store...',
 )
 
 const storeHeroImage = computed(() => {
@@ -120,31 +198,80 @@ const storeHeroImage = computed(() => {
   return firstProductImage || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1400&q=80'
 })
 
-watchEffect(() => {
-  if (data.value?.seller?.full_name) setSubPageTitle?.(data.value.seller.full_name)
+const joinedDate = computed(() => {
+  const created = data.value?.seller?.created_at
+  if (!created) return 'New'
+  return new Date(created).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 })
 
-const categories = computed(() => {
-  const set = new Set((data.value?.products ?? []).map(p => p.category))
-  return Array.from(set).sort()
-})
+const navCategories = computed(() => {
+  const products = data.value?.products ?? []
+  const customCategories = data.value?.categories ?? []
+  const counts = new Map<string, number>()
 
-const filteredProducts = computed(() => {
-  let list = [...(data.value?.products ?? [])]
-  if (categoryFilter.value !== 'All') {
-    list = list.filter(p => p.category === categoryFilter.value)
+  products.forEach((product) => {
+    const key = product.category_id ?? 'uncategorized'
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  })
+
+  const mapped = customCategories.map(category => ({
+    id: category.id,
+    name: category.name,
+    count: counts.get(category.id) ?? 0,
+  }))
+
+  const uncategorizedCount = products.filter(product => !product.category_id).length
+  if (uncategorizedCount > 0) {
+    mapped.push({ id: 'uncategorized', name: 'Uncategorized', count: uncategorizedCount })
   }
+
+  return [
+    { id: 'All', name: 'All', count: products.length },
+    ...mapped,
+  ]
+})
+
+watchEffect(() => {
+  if (shopDisplayName.value) setSubPageTitle?.(shopDisplayName.value)
+})
+
+const visibleProducts = computed(() => {
+  let list = [...(data.value?.products ?? [])]
+
+  if (activeCategory.value !== 'All') {
+    list = activeCategory.value === 'uncategorized'
+      ? list.filter(product => !product.category_id)
+      : list.filter(product => product.category_id === activeCategory.value)
+  }
+
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase().trim()
-    list = list.filter(p => p.name.toLowerCase().includes(q))
+    list = list.filter(product =>
+      [product.name, product.category].some(value => String(value ?? '').toLowerCase().includes(q)),
+    )
   }
+
   if (sortBy.value === 'price-asc') {
     list.sort((a, b) => parseFloat(String(a.price)) - parseFloat(String(b.price)))
   }
   else if (sortBy.value === 'price-desc') {
     list.sort((a, b) => parseFloat(String(b.price)) - parseFloat(String(a.price)))
   }
+
   return list
+})
+
+const groupedProducts = computed(() => {
+  const groups = new Map<string, BuyerProduct[]>()
+
+  visibleProducts.value.forEach((product) => {
+    const label = product.category || 'Uncategorized'
+    const products = groups.get(label) ?? []
+    products.push(product)
+    groups.set(label, products)
+  })
+
+  return Array.from(groups.entries()).map(([category, products]) => ({ category, products }))
 })
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'error' })

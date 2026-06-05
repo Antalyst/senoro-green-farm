@@ -20,6 +20,34 @@
       </div>
     </section>
 
+    <section class="border-2 border-farm-dark p-6 md:p-8 bg-white shadow-sm">
+      <div class="mb-5">
+        <p class="text-[10px] font-bold tracking-[0.2em] uppercase text-farm-dark/60 mb-2">Shop settings</p>
+        <h2 class="text-xl font-black text-farm-dark tracking-tight">Storefront name</h2>
+        <p class="text-sm font-medium text-farm-dark/55 mt-1">This is the public shop name buyers see on your storefront.</p>
+      </div>
+      <form class="flex flex-col gap-3 sm:flex-row" @submit.prevent="saveShopName">
+        <input
+          v-model="shopName"
+          type="text"
+          required
+          maxlength="160"
+          placeholder="e.g. Negros Weekend Grill"
+          class="min-w-0 flex-1 border-2 border-farm-dark px-4 py-3 text-sm font-bold text-farm-dark outline-none focus:border-market-orange"
+        >
+        <button
+          type="submit"
+          :disabled="savingShopName || !shopName.trim()"
+          class="border-2 border-farm-dark bg-farm-dark px-6 py-3 text-xs font-black uppercase tracking-[0.15em] text-white hover:bg-market-orange transition-colors disabled:opacity-50"
+        >
+          {{ savingShopName ? 'Saving...' : 'Save shop' }}
+        </button>
+      </form>
+      <p v-if="profileMessage" class="mt-3 text-xs font-bold" :class="profileMessageType === 'success' ? 'text-farm-leaf' : 'text-red-600'">
+        {{ profileMessage }}
+      </p>
+    </section>
+
     <section class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-farm-dark border-2 border-farm-dark shadow-sm">
       <div class="bg-white p-6 md:p-8">
         <p class="text-[10px] font-bold tracking-[0.18em] uppercase text-farm-dark/60 mb-2">Revenue</p>
@@ -91,8 +119,43 @@ const router = useRouter()
 const api = useApiFetch()
 
 const { data: metrics } = await useAsyncData('seller:profile-metrics', () => api('/api/seller/metrics'), { server: false })
+const { data: sellerProfile, refresh: refreshSellerProfile } = await useAsyncData(
+  'seller:profile-settings',
+  () => api<{ seller: { shop_name?: string | null } }>('/api/seller/profile'),
+  { server: false },
+)
 
 const loggingOut = ref(false)
+const savingShopName = ref(false)
+const shopName = ref('')
+const profileMessage = ref('')
+const profileMessageType = ref<'success' | 'error'>('success')
+
+watchEffect(() => {
+  shopName.value = sellerProfile.value?.seller?.shop_name ?? user.value?.full_name ?? ''
+})
+
+async function saveShopName() {
+  savingShopName.value = true
+  profileMessage.value = ''
+  try {
+    await api('/api/seller/profile', {
+      method: 'PUT',
+      body: { shop_name: shopName.value },
+    })
+    await refreshSellerProfile()
+    profileMessageType.value = 'success'
+    profileMessage.value = 'Shop name updated.'
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    profileMessageType.value = 'error'
+    profileMessage.value = e.data?.statusMessage || 'Failed to update shop name.'
+  }
+  finally {
+    savingShopName.value = false
+  }
+}
 
 async function handleLogout() {
   loggingOut.value = true

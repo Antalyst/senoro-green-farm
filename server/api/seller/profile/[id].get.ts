@@ -1,4 +1,5 @@
 import { serverSupabaseClient } from '#supabase/server'
+import { normalizeProductCategories } from '../../../utils/productResponse'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const { data: seller, error: sellerError } = await supabase
     .from('users')
-    .select('id, full_name, email, created_at')
+    .select('id, full_name, shop_name, email, created_at, shop_avatar_url, shop_banner_url')
     .eq('id', id)
     .eq('role', 'seller')
     .single()
@@ -21,9 +22,15 @@ export default defineEventHandler(async (event) => {
 
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, description, price, stock, category, image_url')
+    .select('id, name, description, price, stock, category, category_id, image_url, categories!category_id(id, name)')
     .eq('seller_id', id)
     .order('created_at', { ascending: false })
+
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, name, created_at')
+    .eq('seller_id', id)
+    .order('name', { ascending: true })
 
   const productIds = (products ?? []).map(p => p.id)
   let averageRating = 0
@@ -48,6 +55,7 @@ export default defineEventHandler(async (event) => {
       average_rating: Math.round(averageRating * 10) / 10,
       review_count: reviewCount,
     },
-    products: products ?? [],
+    categories: categories ?? [],
+    products: normalizeProductCategories(products),
   }
 })

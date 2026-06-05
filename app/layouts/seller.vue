@@ -113,6 +113,7 @@ const tabs = [
   { label: 'Stock', path: '/seller/inventory', icon: 'heroicons:archive-box', iconActive: 'heroicons:archive-box-solid' },
   { label: 'Reviews', path: '/seller/reviews', icon: 'heroicons:chat-bubble-left-right', iconActive: 'heroicons:chat-bubble-left-right-solid' },
   { label: 'Profile', path: '/seller/profile', icon: 'heroicons:user', iconActive: 'heroicons:user-solid' },
+  { label: 'Settings', path: '/seller/settings', icon: 'heroicons:cog-6-tooth', iconActive: 'heroicons:cog-6-tooth-solid' },
 ]
 
 function isActive(path: string) {

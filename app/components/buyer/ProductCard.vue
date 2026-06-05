@@ -35,7 +35,7 @@
         @click.stop
       >
         <Icon name="heroicons:building-storefront" class="h-3.5 w-3.5 flex-shrink-0" />
-        <span class="truncate">{{ product.users?.full_name ?? 'Senoro Seller' }}</span>
+        <span class="truncate">{{ product.users?.shop_name ?? product.users?.full_name ?? 'Senoro Seller' }}</span>
       </NuxtLink>
 
       <div class="mt-auto pt-4 space-y-3">
@@ -75,8 +75,9 @@ export interface BuyerProduct {
   price: string | number
   stock: number
   category: string
+  category_id?: string | null
   image_url?: string | null
-  users?: { id?: string; full_name?: string }
+  users?: { id?: string; full_name?: string; shop_name?: string | null }
 }
 
 const props = defineProps<{

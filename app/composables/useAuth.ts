@@ -3,6 +3,9 @@ export interface AuthUser {
   full_name: string
   email: string
   role: string
+  shop_name?: string
+  shop_avatar_url?: string
+  shop_banner_url?: string
 }
 
 // Global reactive user state — shared across all components

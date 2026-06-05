@@ -16,15 +16,27 @@
 
       <!-- Center Layer: Perfectly Balanced Brand Canvas Content -->
       <div class="my-auto relative z-10 flex flex-col items-center max-w-md">
-        <!-- Pointed to your updated application logo -->
-        <img src="/logo2.png" alt="Negros Farmers Weekend Market" class="h-60 w-60 object-contain mb-8 opacity-100 drop-shadow-xl animate-fade-in">
-        <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight drop-shadow-md">
-          Sizzle & Harvest.<br>
-          Where local street food cravings meet fresh farm abundance. Step into Negros' ultimate culinary crossroads.
+        <img src="/logo2.png" alt="Negros Farmers Weekend Market" class="h-52 w-52 object-contain mb-6 opacity-100 drop-shadow-xl animate-fade-in">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight drop-shadow-md text-center">
+          From the Farm,<br>To Your Table.
         </h1>
-        <p class="text-base text-gray-100 mt-5 font-medium leading-relaxed max-w-sm drop-shadow-md">
-          Connecting you directly to thriving street food stalls and organic fields, all in one unified digital marketplace.
+        <p class="text-base text-white/80 mt-4 font-medium leading-relaxed text-center drop-shadow-md">
+          Negros' one-stop digital market — connecting you directly to fresh harvests, street food stalls, and local farmers every weekend.
         </p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <span class="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm border border-white/25 text-white text-xs font-bold px-4 py-2 rounded-full">
+            <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+            100+ Local Sellers
+          </span>
+          <span class="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm border border-white/25 text-white text-xs font-bold px-4 py-2 rounded-full">
+            <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
+            Fresh Every Weekend
+          </span>
+          <span class="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm border border-white/25 text-white text-xs font-bold px-4 py-2 rounded-full">
+            <span class="w-2 h-2 rounded-full bg-orange-400 inline-block"></span>
+            Farm-to-Door Delivery
+          </span>
+        </div>
       </div>
 
       <!-- Bottom Layer: Footer Meta Summary -->
