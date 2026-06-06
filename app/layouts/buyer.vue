@@ -188,7 +188,6 @@ provide('refreshCartCount', refreshCartCount)
 
 const tabs = [
   { label: 'Home', path: '/', icon: 'heroicons:home', iconActive: 'heroicons:home-solid' },
-  { label: 'Shop', path: '/buyer/categories', icon: 'heroicons:squares-2x2', iconActive: 'heroicons:squares-2x2-solid' },
   { label: 'Orders', path: '/buyer/orders', icon: 'heroicons:clipboard-document-list', iconActive: 'heroicons:clipboard-document-list-solid' },
   { label: 'Cart', path: '/buyer/cart', icon: 'heroicons:shopping-bag', iconActive: 'heroicons:shopping-cart-solid' },
   { label: 'Profile', path: '/buyer/profile', icon: 'heroicons:user', iconActive: 'heroicons:user-solid' },
