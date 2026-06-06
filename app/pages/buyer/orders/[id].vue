@@ -36,20 +36,31 @@
 
     <div
       v-if="showRiderCard"
-      class="border border-gray-100 p-4 bg-white flex items-center justify-between"
+      class="border border-gray-100 p-4 bg-white flex items-center justify-between gap-4"
     >
       <div>
         <p class="text-xs text-gray-400 uppercase tracking-wider">Your courier rider</p>
         <h4 class="font-bold text-farm-dark">{{ order.delivery_rider?.full_name || 'Assigned courier' }}</h4>
         <p class="text-sm text-gray-500">Status: {{ riderStatusText }}</p>
       </div>
-      <a
-        v-if="riderContactHref"
-        :href="riderContactHref"
-        class="text-farm-deep font-semibold text-sm border-b border-farm-deep"
-      >
-        {{ riderContactLabel }}
-      </a>
+      <div class="flex flex-col items-end gap-2">
+        <button
+          v-if="showChatLink"
+          type="button"
+          class="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.1em] text-white bg-farm-dark px-3 py-2 hover:bg-farm-deep transition-colors"
+          @click="openRiderChat"
+        >
+          <Icon name="heroicons:chat-bubble-left-right" class="w-4 h-4" />
+          Message rider
+        </button>
+        <a
+          v-if="riderContactHref"
+          :href="riderContactHref"
+          class="text-farm-deep font-semibold text-sm border-b border-farm-deep"
+        >
+          {{ riderContactLabel }}
+        </a>
+      </div>
     </div>
 
     <section class="border border-farm-light divide-y divide-farm-light bg-white">
@@ -104,6 +115,7 @@ interface BuyerOrderDetail {
   status: string
   total_amount: number | string
   created_at: string
+  delivery_rider_id?: string | null
   delivery_rider?: { full_name?: string; email?: string } | null
   addresses?: {
     full_name: string
@@ -123,6 +135,15 @@ interface BuyerOrderDetail {
 const route = useRoute()
 const api = useApiFetch()
 const setSubPageTitle = inject<(t: string) => void>('setSubPageTitle', () => {})
+const triggerChatModal = inject<(orderId: string, receiverId?: string | null, label?: string) => Promise<void>>('triggerChatModal')
+
+function openRiderChat() {
+  if (!order.value) return
+  const label = order.value.delivery_rider?.full_name
+    ? `Chat with ${order.value.delivery_rider.full_name}`
+    : 'Chat with your rider'
+  triggerChatModal?.(order.value.id, order.value.delivery_rider_id ?? null, label)
+}
 
 const orderId = computed(() => {
   const param = route.params.id
@@ -138,6 +159,11 @@ const { steps, statusLabel } = useOrderTimeline(computed(() => order.value?.stat
 
 const showRiderCard = computed(() =>
   ['out_for_delivery', 'delivered'].includes(order.value?.status ?? ''),
+)
+
+const showChatLink = computed(() =>
+  ['ready_for_pickup', 'out_for_delivery'].includes(order.value?.status ?? '')
+  && !!order.value?.delivery_rider_id,
 )
 
 const riderStatusText = computed(() =>

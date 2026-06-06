@@ -106,10 +106,21 @@ export function useAuth() {
     loading.value = true
     try {
       const api = useApiFetch()
-      const data = await api<{ success: boolean; token: string; user: AuthUser }>('/api/auth/register', {
+      const data = await api<{
+        success: boolean
+        token?: string
+        pendingApproval?: boolean
+        message?: string
+        user: AuthUser
+      }>('/api/auth/register', {
         method: 'POST',
         body: { full_name, email, password, role },
       })
+
+      if (data.pendingApproval) {
+        return { ...data.user, pendingApproval: true as const, message: data.message }
+      }
+
       user.value = data.user
       persistToLocal(data.user)
       if (import.meta.client && data.token) {

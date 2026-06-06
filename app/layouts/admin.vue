@@ -3,11 +3,29 @@
     <ion-header class="admin-header sticky top-0 z-50 bg-farm-dark backdrop-blur-md shadow-sm">
       <ion-toolbar class="bg-transparent text-white">
         <div class="max-w-page mx-auto w-full px-4 md:px-8 flex items-center justify-between py-2">
-          <div class="flex items-center gap-2">
-            <div class="w-7 h-7 flex items-center justify-center">
-              <img src="/logo2.png" alt="Senoro Admin" class="w-7 h-7 object-contain flex-shrink-0">
+          <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 flex items-center justify-center">
+                <img src="/logo2.png" alt="Senoro Admin" class="w-7 h-7 object-contain flex-shrink-0">
+              </div>
+              <span class="text-sm font-medium text-white tracking-tight hidden sm:inline">Administration</span>
             </div>
-            <span class="text-sm font-medium text-white tracking-tight">Administration</span>
+            <nav class="hidden md:flex items-center gap-4">
+              <NuxtLink
+                to="/admin/dashboard"
+                class="text-[10px] font-bold tracking-[0.14em] uppercase transition-colors"
+                :class="route.path === '/admin/dashboard' ? 'text-market-orange' : 'text-white/60 hover:text-white'"
+              >
+                Dashboard
+              </NuxtLink>
+              <NuxtLink
+                to="/admin/approvals"
+                class="text-[10px] font-bold tracking-[0.14em] uppercase transition-colors"
+                :class="route.path === '/admin/approvals' ? 'text-market-orange' : 'text-white/60 hover:text-white'"
+              >
+                Approvals
+              </NuxtLink>
+            </nav>
           </div>
 
           <div class="relative">
@@ -61,6 +79,7 @@ import AppShell from '~/components/ui/AppShell.vue'
 
 const { user, logout } = useAuth()
 const router = useRouter()
+const route = useRoute()
 const showProfileMenu = ref(false)
 
 const userInitial = computed(() =>

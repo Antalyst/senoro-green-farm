@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const { data: sellerItems, error: itemsError } = await supabase
     .from('order_items')
-    .select('id, order_id, quantity, price, product_id, products(id, name, category, image_url)')
+    .select('id, order_id, quantity, price, product_id, is_confirmed, products(id, name, category, image_url)')
     .eq('seller_id', user.id)
 
   if (itemsError) {
@@ -52,12 +52,14 @@ export default defineEventHandler(async (event) => {
       (sum, line) => sum + Number(line.price) * Number(line.quantity),
       0,
     )
+    const seller_confirmed = lines.length > 0 && lines.every(line => line.is_confirmed)
     return {
       ...order,
       buyer: order.users,
       address: order.addresses,
       seller_items: lines,
       seller_subtotal,
+      seller_confirmed,
     }
   })
 

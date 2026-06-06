@@ -80,6 +80,13 @@
           <h2 class="text-sm font-medium text-farm-dark tracking-tight">User directory</h2>
           <p class="text-[11px] text-farm-dark/40 mt-0.5">{{ users.length }} accounts on platform</p>
         </div>
+        <div class="flex items-center gap-4">
+        <NuxtLink
+          to="/admin/approvals"
+          class="text-[10px] font-medium tracking-[0.12em] uppercase text-market-orange border-b border-market-orange pb-0.5 hover:text-farm-dark transition-colors"
+        >
+          Review approvals
+        </NuxtLink>
         <button
           type="button"
           class="text-[10px] font-medium tracking-[0.12em] uppercase text-farm-deep border-b border-farm-deep pb-0.5 hover:text-farm-dark transition-colors flex items-center gap-1"
@@ -89,6 +96,7 @@
           <Icon name="heroicons:arrow-path" class="w-3.5 h-3.5" :class="{ 'animate-spin': analyticsPending }" />
           Refresh
         </button>
+        </div>
       </div>
 
       <div class="flex flex-wrap gap-1 px-5 py-3 border-b border-farm-light bg-farm-light/20">
@@ -122,6 +130,7 @@
             <tr class="text-[10px] uppercase tracking-wider text-farm-dark/40">
               <th class="px-5 py-3 font-medium">Member</th>
               <th class="px-5 py-3 font-medium">Role</th>
+              <th class="px-5 py-3 font-medium">Status</th>
               <th class="px-5 py-3 font-medium text-right">Joined</th>
             </tr>
           </thead>
@@ -138,6 +147,14 @@
               <td class="px-5 py-4">
                 <span class="text-[10px] font-medium tracking-[0.12em] uppercase text-farm-deep border border-farm-light px-2 py-1">
                   {{ u.role }}
+                </span>
+              </td>
+              <td class="px-5 py-4">
+                <span
+                  class="text-[10px] font-medium tracking-[0.1em] uppercase px-2 py-1 border"
+                  :class="approvalBadgeClass(u.approval_status)"
+                >
+                  {{ u.approval_status ?? 'approved' }}
                 </span>
               </td>
               <td class="px-5 py-4 text-[11px] text-farm-dark/45 text-right tabular-nums">
@@ -170,6 +187,7 @@ interface PlatformUser {
   full_name: string
   email: string
   role: string
+  approval_status?: string
   created_at: string
 }
 
@@ -274,6 +292,12 @@ const roleDonutChartOptions = computed<Options>(() => {
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function approvalBadgeClass(status?: string) {
+  if (status === 'pending') return 'text-market-orange border-market-orange/30 bg-market-orange/5'
+  if (status === 'rejected') return 'text-red-700 border-red-200 bg-red-50'
+  return 'text-farm-leaf border-farm-light bg-farm-light/30'
 }
 
 useHead({ title: 'Admin Dashboard — Senoro Green Farm' })

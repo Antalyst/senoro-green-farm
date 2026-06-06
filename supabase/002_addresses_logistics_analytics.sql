@@ -45,7 +45,7 @@ ALTER TABLE public.orders
     'processing',
     'ready_for_pickup',
     'out_for_delivery',
-    'delivered',
+    'delivered', 
     'cancelled'
   ));
 

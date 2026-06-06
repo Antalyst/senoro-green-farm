@@ -11,10 +11,9 @@ export default defineEventHandler(async (event) => {
 
   const supabase = await serverSupabaseClient(event)
 
-  // Look up user by email
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, full_name, email, password, role')
+    .select('id, full_name, email, password, role, approval_status')
     .eq('email', email.toLowerCase().trim())
     .single()
 
@@ -22,9 +21,22 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Invalid email or password' })
   }
 
-  // Verify hashed password
   if (!bcrypt.compareSync(password, user.password)) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid email or password' })
+  }
+
+  if (user.approval_status === 'pending') {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Your account is pending admin approval. Please check back later.',
+    })
+  }
+
+  if (user.approval_status === 'rejected') {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Your registration was not approved. Contact support if you believe this is an error.',
+    })
   }
 
   const payload = {
@@ -34,15 +46,13 @@ export default defineEventHandler(async (event) => {
     role: user.role,
   }
 
-  // Sign JWT and set as HttpOnly cookie
   const token = signToken(payload)
 
   setCookie(event, 'auth_token', token, {
     httpOnly: true,
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
     sameSite: 'lax',
-    // secure: true — enable in production (requires HTTPS)
   })
 
   return {

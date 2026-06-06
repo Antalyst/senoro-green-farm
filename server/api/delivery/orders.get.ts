@@ -13,7 +13,8 @@ const ORDER_SELECT = `
   ),
   order_items(
     id, quantity, price,
-    products(id, name)
+    products(id, name),
+    users!seller_id(id, full_name, shop_name, shop_avatar_url)
   ),
   users:buyer_id(id, full_name, email)
 `
@@ -44,8 +45,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Failed to fetch delivery orders' })
   }
 
+  const mapOrder = (order: any) => {
+    const shopsMap = new Map<string, { id: string; shop_name: string; shop_avatar_url: string | null }>()
+    for (const item of order.order_items ?? []) {
+      const seller = item.users
+      if (seller && seller.id) {
+        shopsMap.set(seller.id, {
+          id: seller.id,
+          shop_name: seller.shop_name || seller.full_name || 'Market Seller',
+          shop_avatar_url: seller.shop_avatar_url || null,
+        })
+      }
+    }
+    return {
+      ...order,
+      shops: Array.from(shopsMap.values()),
+    }
+  }
+
   return {
-    pickup_queue: pickupResult.data ?? [],
-    active_deliveries: activeResult.data ?? [],
+    pickup_queue: (pickupResult.data ?? []).map(mapOrder),
+    active_deliveries: (activeResult.data ?? []).map(mapOrder),
   }
 })

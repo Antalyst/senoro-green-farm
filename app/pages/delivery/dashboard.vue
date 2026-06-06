@@ -72,14 +72,24 @@
             </span>
           </div>
           <DeliveryOrderMeta :order="order" />
-          <button
-            type="button"
-            class="w-full py-4 bg-farm-leaf text-white text-xs font-black tracking-[0.15em] uppercase hover:bg-farm-deep transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-farm-leaf/20"
-            :disabled="updatingId === order.id"
-            @click="updateStatus(order.id, 'delivered')"
-          >
-            {{ updatingId === order.id ? 'Confirming…' : 'Confirm delivery drop-off' }}
-          </button>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              class="w-full py-4 border-2 border-farm-dark text-farm-dark text-xs font-black tracking-[0.15em] uppercase hover:bg-farm-light/40 transition-all duration-300 text-center flex items-center justify-center gap-2"
+              @click="openOrderChat(order)"
+            >
+              <Icon name="heroicons:chat-bubble-left-right" class="w-4 h-4" />
+              Message buyer
+            </button>
+            <button
+              type="button"
+              class="w-full py-4 bg-farm-leaf text-white text-xs font-black tracking-[0.15em] uppercase hover:bg-farm-deep transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-farm-leaf/20"
+              :disabled="updatingId === order.id"
+              @click="updateStatus(order.id, 'delivered')"
+            >
+              {{ updatingId === order.id ? 'Confirming…' : 'Confirm delivery drop-off' }}
+            </button>
+          </div>
         </article>
       </div>
     </section>
@@ -94,6 +104,7 @@ definePageMeta({ layout: 'delivery' })
 
 interface DeliveryOrderRow {
   id: string
+  buyer_id?: string | null
   total_amount: number | string
   status: string
   created_at: string
@@ -106,10 +117,17 @@ interface DeliveryOrderRow {
   } | null
   users?: { full_name?: string } | null
   order_items?: { quantity: number; products?: { name?: string } | null }[]
+  shops?: { id: string; shop_name: string; shop_avatar_url: string | null }[]
 }
 
 const { user } = useAuth()
 const api = useApiFetch()
+const triggerChatModal = inject<(orderId: string, receiverId?: string | null, label?: string) => Promise<void>>('triggerChatModal')
+
+function openOrderChat(order: DeliveryOrderRow) {
+  const label = order.users?.full_name ? `Chat with ${order.users.full_name}` : 'Chat with buyer'
+  triggerChatModal?.(order.id, order.buyer_id ?? null, label)
+}
 
 const activeTab = ref<'pickup' | 'active'>('pickup')
 const updatingId = ref<string | null>(null)

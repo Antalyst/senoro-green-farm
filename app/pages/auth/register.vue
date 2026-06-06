@@ -192,9 +192,14 @@ async function handleRegister() {
   errorMsg.value = ''
   successMsg.value = ''
   try {
-    const user = await register(form.full_name, form.email, form.password, form.role)
+    const result = await register(form.full_name, form.email, form.password, form.role)
+    if ('pendingApproval' in result && result.pendingApproval) {
+      successMsg.value = result.message ?? 'Account submitted for admin review. You can sign in once approved.'
+      setTimeout(() => router.push('/auth/login'), 2500)
+      return
+    }
     successMsg.value = 'Account created. Redirecting…'
-    setTimeout(() => router.push(dashboardRoute(user.role)), 800)
+    setTimeout(() => router.push(dashboardRoute(result.role)), 800)
   }
   catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string } }

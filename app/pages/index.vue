@@ -191,23 +191,7 @@
           </div>
 
           <!-- Search form within hero -->
-          <form class="mt-6 md:mt-8 flex max-w-lg gap-2 bg-white/10 backdrop-blur p-2 rounded-xl border border-white/10" @submit.prevent="applySearch">
-            <div class="flex min-w-0 flex-1 items-center gap-2 px-3">
-              <Icon name="heroicons:magnifying-glass" class="h-5 w-5 flex-shrink-0 text-white/40" />
-              <input
-                v-model="searchInput"
-                type="text"
-                placeholder="Search products or stores"
-                class="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/30"
-              >
-            </div>
-            <button
-              type="submit"
-              class="bg-campaign-gold hover:bg-campaign-amber px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-campaign-matte transition-all duration-300 rounded-lg hover:shadow-lg active:scale-95"
-            >
-              Search
-            </button>
-          </form>
+         
         </div>
 
         <!-- RIGHT: Rich Media Collage -->

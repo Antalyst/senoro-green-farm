@@ -143,6 +143,10 @@
     >
       <div class="max-w-page mx-auto w-full px-4 md:px-8 py-4 md:py-5 flex items-center justify-end gap-6">
         <div class="text-right">
+          <div class="mb-2 flex flex-col gap-1 items-end text-[10px] font-bold text-farm-dark/60 uppercase tracking-widest">
+            <p>Subtotal: <span class="tabular-nums ml-2 text-farm-dark">₱{{ itemsSubtotal.toFixed(2) }}</span></p>
+            <p>Delivery Fee: <span class="tabular-nums ml-2 text-farm-dark">₱50.00</span></p>
+          </div>
           <p class="text-[10px] font-bold tracking-[0.16em] uppercase text-farm-dark/60">Total Payment</p>
           <p class="text-2xl md:text-3xl font-black text-market-orange tabular-nums">
             ₱{{ totalCheckoutPrice.toFixed(2) }}
@@ -288,7 +292,7 @@ function formatPrice(price: string | number) {
   return parseFloat(String(price ?? 0)).toFixed(2)
 }
 
-const totalCheckoutPrice = computed(() => {
+const itemsSubtotal = computed(() => {
   let total = 0
   for (const item of checkedCartItems.value) {
     const price = item.products?.price
@@ -296,6 +300,12 @@ const totalCheckoutPrice = computed(() => {
     total += parseFloat(String(price)) * (item.quantity ?? 1)
   }
   return total
+})
+
+const deliveryFee = 50
+
+const totalCheckoutPrice = computed(() => {
+  return itemsSubtotal.value + deliveryFee
 })
 
 async function checkout() {

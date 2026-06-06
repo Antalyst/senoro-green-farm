@@ -15,9 +15,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid role' })
   }
 
-  const supabase = await serverSupabaseClient(event)
+  if (role === 'admin') {
+    throw createError({ statusCode: 403, statusMessage: 'Admin accounts cannot be created via public registration' })
+  }
 
-  // Check if email already exists
+  const supabase = await serverSupabaseClient(event)
+  const approvalStatus = role === 'buyer' ? 'approved' : 'pending'
+
   const { data: existing } = await supabase
     .from('users')
     .select('id')
@@ -28,7 +32,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Email already registered' })
   }
 
-  // Insert new user
   const hashedPassword = bcrypt.hashSync(password, 10)
   const { data: newUser, error } = await supabase
     .from('users')
@@ -37,12 +40,28 @@ export default defineEventHandler(async (event) => {
       email: email.toLowerCase().trim(),
       password: hashedPassword,
       role,
+      approval_status: approvalStatus,
     })
-    .select('id, full_name, email, role')
+    .select('id, full_name, email, role, approval_status')
     .single()
 
   if (error || !newUser) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to create account' })
+  }
+
+  if (newUser.approval_status === 'pending') {
+    return {
+      success: true,
+      pendingApproval: true,
+      message: 'Your account is pending admin review. You will be able to sign in once approved.',
+      user: {
+        id: newUser.id,
+        full_name: newUser.full_name,
+        email: newUser.email,
+        role: newUser.role,
+        approval_status: newUser.approval_status,
+      },
+    }
   }
 
   const payload = {
@@ -52,7 +71,6 @@ export default defineEventHandler(async (event) => {
     role: newUser.role,
   }
 
-  // Sign JWT and set as HttpOnly cookie
   const token = signToken(payload)
 
   setCookie(event, 'auth_token', token, {

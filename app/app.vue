@@ -15,4 +15,5 @@ const { fetchUser } = useAuth()
 onMounted(async () => {
   await fetchUser()
 })
+
 </script>

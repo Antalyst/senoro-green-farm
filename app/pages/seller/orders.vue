@@ -91,15 +91,23 @@
           >
             Accept order
           </button>
-          <button
-            v-if="order.status === 'processing'"
-            type="button"
-            class="flex-1 min-w-[200px] py-3 bg-farm-leaf text-white text-xs font-medium tracking-[0.12em] uppercase hover:bg-farm-deep disabled:opacity-50"
-            :disabled="updatingId === order.id"
-            @click="updateStatus(order.id, 'ready_for_pickup')"
-          >
-            Mark as ready for pickup
-          </button>
+          <template v-else-if="order.status === 'processing'">
+            <button
+              v-if="!order.seller_confirmed"
+              type="button"
+              class="flex-1 min-w-[200px] py-3 bg-farm-leaf text-white text-xs font-medium tracking-[0.12em] uppercase hover:bg-farm-deep disabled:opacity-50"
+              :disabled="updatingId === order.id"
+              @click="updateStatus(order.id, 'ready_for_pickup')"
+            >
+              Mark as ready for pickup
+            </button>
+            <div
+              v-else
+              class="flex-1 min-w-[200px] py-3 bg-farm-light/35 border border-farm-leaf/40 text-farm-deep text-center text-xs font-medium tracking-[0.12em] uppercase cursor-not-allowed select-none"
+            >
+              Confirmed (Waiting for other shops)
+            </div>
+          </template>
         </div>
       </article>
     </section>
@@ -117,6 +125,7 @@ interface SellerOrder {
   total_amount: number
   created_at: string
   seller_subtotal: number
+  seller_confirmed?: boolean
   buyer?: { full_name?: string; email?: string }
   address?: {
     full_name: string

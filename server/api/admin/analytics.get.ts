@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const [{ data: users, error: usersError }, { data: orders, error: ordersError }] = await Promise.all([
     supabase
       .from('users')
-      .select('id, full_name, email, role, created_at')
+      .select('id, full_name, email, role, approval_status, created_at')
       .order('created_at', { ascending: false }),
     supabase
       .from('orders')
