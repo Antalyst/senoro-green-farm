@@ -12,7 +12,7 @@ An online farm market (multi-seller e-commerce).
 - **Delivery riders** pick up ready orders and deliver them.
 - **Admin** approves new sellers/riders and sees analytics.
 
-Location context: Bago City, Negros, Philippines. Currency: PHP (₱). Flat delivery fee: **₱50** per order.
+Location context: Bacolod City, Negros, Philippines. Currency: PHP (₱). Flat delivery fee: **₱50** per order.
 
 ---
 
@@ -256,7 +256,7 @@ Error format: Nuxt `createError` → `{ statusCode, statusMessage }`.
 | Table | Key columns |
 |---|---|
 | users | id, full_name, email (unique), password (bcrypt), role, approval_status, shop_name (unique), shop_avatar_url, shop_banner_url, shop_latitude, shop_longitude, shop_address (pickup pin, migration 010) |
-| addresses | user_id, full_name, phone_number, city, barangay, detailed_address, is_default, latitude, longitude (map pin, migration 009). City/barangay are picked from the PSGC API (saved as names, e.g. "Bago City") |
+| addresses | user_id, full_name, phone_number, city, barangay, detailed_address, is_default, latitude, longitude (map pin, migration 009). City/barangay are picked from the PSGC API (saved as names, e.g. "Bacolod City") |
 | categories | seller_id, name (unique per seller) — each seller has own categories |
 | products | seller_id, name, description, price, stock, category (text copy), category_id, image_url, unit_type (`pc,kg,g,bundle,serving`) |
 | cart_items | buyer_id, product_id, quantity (unique buyer+product) |

@@ -349,7 +349,7 @@ const busyId = ref<string | null>(null)
 const formError = ref<string | null>(null)
 const notice = ref<string | null>(null)
 
-const DEFAULT_CITY = 'Bago City'
+const DEFAULT_CITY = 'Bacolod City'
 
 const form = ref({
   full_name: '',
@@ -435,7 +435,7 @@ function onCityChange() {
   loadBarangays(form.value.city)
 }
 
-// "City of Bago", "Bago City" and "Bago" all compare equal; same for "Barangay 6 (Pob.)" and "Barangay 6".
+// "City of Bago", "Bacolod City" and "Bago" all compare equal; same for "Barangay 6 (Pob.)" and "Barangay 6".
 function normalizePlace(name: string) {
   return name
     .toLowerCase()

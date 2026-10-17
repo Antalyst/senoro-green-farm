@@ -115,7 +115,7 @@ Top to bottom. "Data" names the real source in this system.
 - Mobile: photo on top (height 240 px), text under it, numbers centered.
 - Example text:
   - Title: "Fresh from the farm, straight to your table"
-  - Text: "Buy vegetables, fruits and local food from Negros farmers. Delivered in Bago City and nearby."
+  - Text: "Buy vegetables, fruits and local food from Negros farmers. Delivered in Bacolod City and nearby."
 
 ### 4.3 Shop By Categories
 - Label "01. Find your favourite", title "Shop By Categories".
@@ -171,7 +171,7 @@ When the distance-based fee (see `docs/feature-requests-analysis.md`) is built, 
   2. **Shop:** All products, Categories, Shops
   3. **Account:** My orders, Addresses, Cart
   4. **Sell with us:** Become a seller (→ `/auth/register`), Become a rider
-  5. **Contact:** location (Bago City), email/phone if available
+  5. **Contact:** location (Bacolod City), email/phone if available
 - Bottom row: "© 2026 NFWM", and on the right a "Cash on delivery" badge.
 - **Do not** show Visa / Mastercard / PayPal icons. There is no online payment.
 - **Do not** add a newsletter form unless an email list backend is added.

@@ -175,7 +175,7 @@ export default defineEventHandler(async (event) => {
         user_id: rider.id,
         order_id: id,
         title: 'New Job Available! 🛵',
-        message: 'A unified market order package is packed and ready for pickup in Bago City.',
+        message: 'A unified market order package is packed and ready for pickup in Bacolod City.',
       })))
     }
   }

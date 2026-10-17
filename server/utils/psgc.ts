@@ -9,7 +9,7 @@ export interface PsgcPlace {
   name: string
 }
 
-// PSGC names cities "City of Bago"; saved addresses use "Bago City".
+// PSGC names cities "City of Bago"; saved addresses use "Bacolod City".
 function normalizeName(name: string): string {
   const match = name.match(/^City of (.+)$/)
   return match ? `${match[1]} City` : name

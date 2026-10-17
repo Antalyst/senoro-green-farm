@@ -124,7 +124,7 @@ const emit = defineEmits<{
   'resolved': [place: ResolvedPlace]
 }>()
 
-// Bago City, where the market is.
+// Bacolod City, where the market is.
 const DEFAULT_CENTER: [number, number] = [10.5378, 122.8356]
 
 const api = useApiFetch()

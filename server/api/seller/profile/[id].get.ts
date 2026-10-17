@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
   return {
     seller: {
       ...seller,
-      location: 'Bago City',
+      location: 'Bacolod City',
       average_rating: Math.round(averageRating * 10) / 10,
       review_count: reviewCount,
     },

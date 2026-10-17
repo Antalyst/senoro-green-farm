@@ -214,7 +214,7 @@ const heroSlides: HeroSlide[] = [
   {
     kicker: 'Negros Farmers Weekend Market',
     title: 'Fresh from the farm, straight to your table',
-    text: 'Buy vegetables, fruits and local food from Negros farmers. Delivered in Bago City and nearby.',
+    text: 'Buy vegetables, fruits and local food from Negros farmers. Delivered in Bacolod City and nearby.',
     image: '/images/campaign/fresh-produce-basket.png',
     imageAlt: 'Basket of fresh vegetables',
     ctaLabel: 'Go To Shop',
@@ -223,7 +223,7 @@ const heroSlides: HeroSlide[] = [
   {
     kicker: 'Local favourites',
     title: 'Street food from your favourite market stalls',
-    text: 'Order inasal, kakanin and other local food from vendors in Bago City.',
+    text: 'Order inasal, kakanin and other local food from vendors in Bacolod City.',
     image: '/images/campaign/street-food-hero.png',
     imageAlt: 'Grilled local street food',
     ctaLabel: 'Browse categories',

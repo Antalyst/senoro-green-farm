@@ -25,7 +25,7 @@
         <ul class="mt-3 space-y-2 text-sm text-gray-600">
           <li class="flex items-start gap-2">
             <Icon name="heroicons:map-pin" class="mt-0.5 h-4 w-4 flex-shrink-0 text-farm-leaf" />
-            Bago City, Negros Occidental
+            Bacolod City, Negros Occidental
           </li>
         </ul>
       </div>

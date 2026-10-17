@@ -120,7 +120,7 @@ Use one `link` column (a route path). It is simpler than separate `action_type` 
 - The fee is a fixed ₱50 in **two** places: `server/api/cart/checkout.post.ts` (`deliveryFee = 50`) and `app/pages/buyer/checkout.vue` (line ~148 text, line ~305 const).
 - Orders do not store the fee. Only `total_amount` is saved.
 - Addresses have `city` + `barangay`, picked from fixed lists in `app/utils/phLocations.ts` (6 cities, ~60 barangays). There are no GPS coordinates.
-- Riders pick up the whole order as one package at the market in Bago City. Sellers have no location fields.
+- Riders pick up the whole order as one package at the market in Bacolod City. Sellers have no location fields.
 
 **Key point:** the rider travels **market → buyer**, so distance should be measured from the **market**, not from each seller. Confirm this with the requester: are all sellers at one weekend market, or do riders visit each farm?
 
