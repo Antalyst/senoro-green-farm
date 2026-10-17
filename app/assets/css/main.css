@@ -1,5 +1,5 @@
 /* ===================================================
-   Senoro Green Farm — Global CSS
+   NFWM — Global CSS
    =================================================== */
 
 /* Ionic Core CSS */
@@ -256,3 +256,62 @@ ion-tab-button {
   animation: fill-bar 1.2s ease-out forwards;
 }
 
+
+/* ===================================================
+   Shared UI (admin + seller): flat, no shadows, glows or gradients.
+   Balance: light green page, white cards, green structure,
+   orange for the main action and anything that needs attention.
+   =================================================== */
+@layer components {
+  .ui-btn {
+    @apply inline-flex min-h-[40px] items-center justify-center gap-2 rounded bg-farm-leaf px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-farm-deep disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .ui-btn-accent {
+    @apply inline-flex min-h-[40px] items-center justify-center gap-2 rounded bg-market-orange px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#cf6d17] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .ui-btn-outline {
+    @apply inline-flex min-h-[40px] items-center justify-center gap-2 rounded border border-farm-leaf/40 bg-white px-4 py-2 text-sm font-medium text-farm-deep transition-colors hover:border-farm-leaf hover:bg-farm-light disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .ui-btn-danger {
+    @apply inline-flex min-h-[40px] items-center justify-center gap-2 rounded border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .ui-input {
+    @apply w-full rounded border border-farm-leaf/25 bg-white px-3 py-2.5 text-sm text-shop-ink outline-none transition-colors placeholder:text-gray-400 focus:border-farm-leaf;
+  }
+  .ui-label {
+    @apply mb-1.5 block text-sm font-medium text-farm-deep;
+  }
+  .ui-card {
+    @apply rounded-md border border-farm-leaf/15 bg-white;
+  }
+  .ui-card-head {
+    @apply flex items-center justify-between gap-3 border-b border-farm-leaf/15 bg-shop-mint px-4 py-3 md:px-5;
+  }
+  .ui-tab {
+    @apply flex-shrink-0 border-b-2 border-transparent px-1 pb-2 text-sm text-gray-500 transition-colors hover:text-farm-deep;
+  }
+  .ui-tab--active {
+    @apply border-market-orange font-semibold text-farm-deep;
+  }
+  .ui-link {
+    @apply inline-flex min-h-[40px] items-center gap-1.5 text-sm font-medium text-farm-leaf transition-colors hover:text-farm-deep disabled:opacity-50;
+  }
+  .ui-icon-btn {
+    @apply inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded border border-farm-leaf/25 bg-white text-farm-leaf transition-colors hover:bg-farm-light;
+  }
+  .ui-pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .ui-pill-green {
+    @apply bg-farm-light text-farm-deep;
+  }
+  .ui-pill-orange {
+    @apply bg-market-orange/10 text-market-orange;
+  }
+  .ui-pill-red {
+    @apply bg-red-50 text-red-600;
+  }
+  .ui-pill-gray {
+    @apply bg-gray-100 text-gray-600;
+  }
+}

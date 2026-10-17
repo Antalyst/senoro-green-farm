@@ -1,173 +1,226 @@
 <template>
-  <PageContainer class="space-y-8 py-8 md:py-12">
-    <header class="border-b border-farm-light pb-6">
-      <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45 mb-1">
-        Purchases
-      </p>
-      <h1 class="text-2xl font-light text-farm-dark tracking-tight">My orders</h1>
-      <p class="text-sm text-farm-dark/50 mt-1">Track parcels and review your harvest</p>
-    </header>
-
-    <div v-if="pending" class="p-12 text-center text-xs text-farm-dark/40">
-      Loading orders…
+  <div class="pb-28 pt-4 md:pb-12 md:pt-8">
+    <div class="flex items-end justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-shop-ink md:text-3xl">My orders</h1>
+        <p class="mt-1 text-sm text-gray-500">Track your orders and review what you bought.</p>
+      </div>
+      <button type="button" class="flex-shrink-0 text-sm font-semibold text-farm-leaf hover:text-farm-deep" :disabled="pending" @click="refresh()">
+        {{ pending ? 'Refreshing…' : 'Refresh' }}
+      </button>
     </div>
 
-    <div
-      v-else-if="!orders.length"
-      class="border border-farm-light p-12 text-center bg-white"
-    >
-      <p class="text-sm font-medium text-farm-dark">No orders yet</p>
-      <p class="text-xs text-farm-dark/45 mt-1">Start shopping from local farmers.</p>
+    <!-- Status tabs (?status=to_receive etc., linked from the profile page) -->
+    <nav v-if="orders.length" class="no-scrollbar -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0" aria-label="Filter orders">
       <NuxtLink
-        to="/"
-        class="inline-block mt-4 px-5 py-2.5 bg-farm-deep text-white text-xs font-medium tracking-wide uppercase"
+        :to="{ query: { ...route.query, status: undefined } }"
+        replace
+        class="status-tab"
+        :class="!activeGroup ? 'status-tab--active' : ''"
       >
-        Shop now
+        All
+        <span class="tab-count">{{ orders.length }}</span>
+      </NuxtLink>
+      <NuxtLink
+        v-for="group in ORDER_GROUPS"
+        :key="group.key"
+        :to="{ query: { ...route.query, status: group.key } }"
+        replace
+        class="status-tab"
+        :class="activeGroup?.key === group.key ? 'status-tab--active' : ''"
+      >
+        {{ group.label }}
+        <span v-if="groupCounts[group.key]" class="tab-count" :class="group.key === 'to_receive' && activeGroup?.key !== group.key ? 'tab-count--orange' : ''">
+          {{ groupCounts[group.key] }}
+        </span>
+      </NuxtLink>
+    </nav>
+
+    <p v-if="pending && !ordersData" class="py-24 text-center text-sm text-gray-400">Loading…</p>
+
+    <!-- No orders at all -->
+    <div v-else-if="!orders.length" class="mt-6 rounded-lg bg-shop-mint px-6 py-14 text-center">
+      <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-farm-leaf">
+        <Icon name="heroicons:clipboard-document-list" class="h-7 w-7" />
+      </span>
+      <p class="mt-4 text-base font-semibold text-shop-ink">No orders yet</p>
+      <p class="mt-1 text-sm text-gray-500">Your orders from local farmers will show here.</p>
+      <NuxtLink to="/" class="mt-5 inline-flex min-h-[44px] items-center rounded bg-farm-leaf px-6 text-sm font-semibold text-white hover:bg-farm-deep">
+        Start shopping
       </NuxtLink>
     </div>
 
-    <section v-else class="space-y-px border border-farm-light">
-      <article
-        v-for="order in orders"
-        :key="order.id"
-        class="bg-white p-5 space-y-4"
-      >
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p class="text-[10px] uppercase tracking-wider text-farm-dark/40">Order</p>
-            <p class="text-sm font-medium text-farm-dark">#{{ shortId(order.id) }}</p>
-            <p class="text-xs text-farm-dark/50 mt-0.5">{{ formatDate(order.created_at) }}</p>
+    <!-- Nothing in this tab -->
+    <div v-else-if="!filteredOrders.length" class="mt-5 rounded-lg border border-dashed border-gray-200 px-6 py-12 text-center">
+      <p class="text-sm font-medium text-shop-ink">No orders in “{{ activeGroup?.label }}”</p>
+      <NuxtLink :to="{ query: { ...route.query, status: undefined } }" replace class="mt-2 inline-flex min-h-[40px] items-center text-sm font-semibold text-farm-leaf">
+        Show all orders
+      </NuxtLink>
+    </div>
+
+    <ul v-else class="mt-5 space-y-4">
+      <li v-for="order in filteredOrders" :key="order.id" class="overflow-hidden rounded-lg border border-gray-100">
+        <!-- Header -->
+        <div class="flex items-center justify-between gap-3 bg-shop-mint px-4 py-3">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-shop-ink">Order #{{ shortId(order.id) }}</p>
+            <p class="text-xs text-gray-500">{{ formatDate(order.created_at) }}</p>
           </div>
-          <span
-            class="text-[10px] font-medium tracking-wider uppercase px-2 py-1 border"
-            :class="statusChipClass(order.status)"
-          >
+          <span class="flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusPillClass(order.status)">
             {{ labelFor(order.status) }}
           </span>
         </div>
 
-        <div class="space-y-2 border-t border-farm-light pt-3">
-          <div
-            v-for="item in (order.order_items ?? []).slice(0, 3)"
-            :key="item.id"
-            class="flex items-center justify-between text-sm gap-3"
-          >
-            <p class="text-farm-dark truncate flex-1">{{ item.products?.name ?? 'Item' }}</p>
-            <p class="text-xs text-farm-dark/45 tabular-nums flex-shrink-0">
-              ×{{ item.quantity }}
-            </p>
-          </div>
-          <p v-if="(order.order_items?.length ?? 0) > 3" class="text-xs text-farm-dark/40">
-            +{{ (order.order_items?.length ?? 0) - 3 }} more item(s)
-          </p>
-        </div>
-
-        <div class="flex items-center justify-between pt-1">
-          <span class="text-xs text-farm-dark/45 uppercase tracking-wider">Total</span>
-          <span class="text-base font-medium text-farm-leaf tabular-nums">
-            ₱{{ parseFloat(String(order.total_amount)).toFixed(2) }}
-          </span>
-        </div>
-
-        <div class="flex flex-wrap gap-2 pt-1">
-          <NuxtLink
-            :to="trackOrderPath(order.id)"
-            class="flex-1 min-w-[140px] py-2.5 text-center bg-farm-deep text-white text-xs font-medium tracking-[0.1em] uppercase hover:bg-farm-dark"
-          >
-            Track order
-          </NuxtLink>
-          <button
-            v-if="order.status === 'delivered' && firstProduct(order)"
-            type="button"
-            class="py-2.5 px-4 border border-farm-light text-farm-deep text-xs font-medium tracking-wide uppercase hover:bg-farm-light/50"
-            @click="openReviewModal(firstProduct(order)!)"
-          >
-            Review
-          </button>
-        </div>
-      </article>
-    </section>
-
-    <Transition name="modal-fade">
-      <div v-if="showReviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="fixed inset-0 bg-black/40" @click="showReviewModal = false" />
-        <div class="bg-white w-full max-w-sm relative z-10 border border-farm-light overflow-hidden">
-          <div class="bg-farm-deep p-5 text-white flex justify-between items-center">
-            <div>
-              <h3 class="font-medium text-sm">Submit review</h3>
-              <p class="text-white/70 text-xs mt-0.5">{{ selectedProduct?.name }}</p>
+        <NuxtLink :to="`/buyer/orders/${order.id}`" class="block px-4 py-4">
+          <!-- Progress (active orders only) -->
+          <div v-if="stepIndex(order.status) >= 0 && order.status !== 'delivered'" class="mb-4">
+            <div class="flex gap-1" aria-hidden="true">
+              <span
+                v-for="(step, i) in STEPS"
+                :key="step"
+                class="h-1.5 flex-1 rounded-full"
+                :class="i <= stepIndex(order.status) ? 'bg-farm-leaf' : 'bg-gray-100'"
+              />
             </div>
-            <button type="button" class="text-white/80" @click="showReviewModal = false">
-              <Icon name="heroicons:x-mark" class="w-5 h-5" />
-            </button>
+            <p class="mt-2 text-sm text-farm-deep">{{ statusHint(order) }}</p>
           </div>
-          <div class="p-5 space-y-4">
-            <div class="flex items-center justify-center gap-2 py-2">
-              <button
-                v-for="i in 5"
-                :key="i"
-                type="button"
-                @click="rating = i"
+
+          <!-- Items -->
+          <div class="flex items-center gap-3">
+            <div class="flex flex-shrink-0 -space-x-3">
+              <img
+                v-for="item in (order.order_items ?? []).slice(0, 3)"
+                :key="item.id"
+                :src="orderItemImage(item)"
+                :alt="orderItemName(item)"
+                loading="lazy"
+                class="h-12 w-12 rounded border-2 border-white bg-shop-cream object-cover"
               >
-                <Icon
-                  :name="i <= rating ? 'heroicons:star-solid' : 'heroicons:star'"
-                  :class="`w-7 h-7 ${i <= rating ? 'text-farm-yellow' : 'text-gray-200'}`"
-                />
-              </button>
             </div>
-            <textarea
-              v-model="comment"
-              rows="3"
-              placeholder="Share your thoughts on quality and freshness…"
-              class="w-full border border-farm-light px-3 py-2 text-xs outline-none focus:border-farm-leaf resize-none bg-farm-light/30"
-            />
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm text-shop-ink">{{ itemSummary(order) }}</p>
+              <p class="text-xs text-gray-500">
+                {{ unitCount(order) }} {{ unitCount(order) === 1 ? 'item' : 'items' }} · Cash on delivery
+              </p>
+            </div>
+            <Icon name="heroicons:chevron-right" class="h-5 w-5 flex-shrink-0 text-gray-300" />
+          </div>
+        </NuxtLink>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
+          <p class="text-sm">
+            <span class="text-gray-500">Total </span>
+            <span class="font-bold tabular-nums text-farm-leaf">{{ formatPeso(order.total_amount) }}</span>
+          </p>
+          <div class="flex flex-shrink-0 gap-2">
             <button
+              v-if="order.status === 'delivered' && reviewableItems(order).length"
               type="button"
-              class="w-full py-3 bg-farm-deep text-white text-xs font-medium tracking-wide uppercase disabled:opacity-50"
-              :disabled="submitting || !comment.trim()"
-              @click="submitReview"
+              class="btn-outline"
+              @click="openReview(order)"
             >
-              {{ submitting ? 'Posting…' : 'Post review' }}
+              Review
+            </button>
+            <NuxtLink :to="`/buyer/orders/${order.id}`" :class="isActiveDelivery(order.status) ? 'btn-accent' : 'btn-outline'">
+              {{ isActiveDelivery(order.status) ? 'Track order' : 'Details' }}
+            </NuxtLink>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <!-- Review: bottom sheet on phones, dialog on desktop -->
+    <UiSheet :open="showReview" title="Write a review" :caption="`Order #${reviewOrder ? shortId(reviewOrder.id) : ''}`" @close="showReview = false">
+      <div class="space-y-4">
+        <div v-if="reviewItems.length > 1">
+          <p class="mb-1.5 text-sm font-medium text-shop-ink">Which item?</p>
+          <ul class="space-y-2">
+            <li v-for="item in reviewItems" :key="item.id">
+              <label
+                class="flex cursor-pointer items-center gap-3 rounded-md border p-2.5"
+                :class="selectedProductId === item.products!.id ? 'border-farm-leaf bg-shop-mint' : 'border-gray-200'"
+              >
+                <input v-model="selectedProductId" type="radio" name="review-item" :value="item.products!.id" class="h-5 w-5 flex-shrink-0 accent-farm-leaf">
+                <img :src="orderItemImage(item)" alt="" class="h-10 w-10 flex-shrink-0 rounded bg-shop-cream object-cover">
+                <span class="min-w-0 truncate text-sm text-shop-ink">{{ orderItemName(item) }}</span>
+              </label>
+            </li>
+          </ul>
+        </div>
+        <div v-else-if="reviewItems[0]" class="flex items-center gap-3">
+          <img :src="orderItemImage(reviewItems[0])" alt="" class="h-12 w-12 flex-shrink-0 rounded bg-shop-cream object-cover">
+          <p class="min-w-0 truncate text-sm font-medium text-shop-ink">{{ orderItemName(reviewItems[0]) }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm font-medium text-shop-ink">Your rating</p>
+          <div class="mt-1 flex gap-1" role="radiogroup" aria-label="Your rating">
+            <button
+              v-for="i in 5"
+              :key="i"
+              type="button"
+              class="flex h-11 w-11 items-center justify-center"
+              role="radio"
+              :aria-checked="rating === i"
+              :aria-label="`${i} ${i === 1 ? 'star' : 'stars'}`"
+              @click="rating = i"
+            >
+              <Icon name="heroicons:star-solid" class="h-8 w-8" :class="i <= rating ? 'text-amber-400' : 'text-gray-200'" />
             </button>
           </div>
         </div>
-      </div>
-    </Transition>
 
-    <Transition name="slide-up">
-      <div
-        v-if="toast.show"
-        class="fixed bottom-24 left-4 right-4 z-50 p-4 text-white text-sm font-medium flex items-center gap-3"
-        :class="toast.type === 'success' ? 'bg-farm-deep' : 'bg-red-600'"
-      >
-        <span class="flex-1">{{ toast.message }}</span>
-        <button type="button" @click="toast.show = false">
-          <Icon name="heroicons:x-mark" class="w-4 h-4" />
-        </button>
+        <div>
+          <label for="review-comment" class="text-sm font-medium text-shop-ink">Comment</label>
+          <textarea
+            id="review-comment"
+            v-model="comment"
+            rows="3"
+            placeholder="How was the quality and freshness?"
+            class="mt-1 w-full resize-none rounded border border-gray-200 px-3 py-2.5 text-sm text-shop-ink outline-none placeholder:text-gray-400 focus:border-farm-leaf"
+          />
+        </div>
       </div>
-    </Transition>
-  </PageContainer>
+      <template #footer>
+        <button
+          type="button"
+          class="inline-flex min-h-[48px] w-full items-center justify-center rounded bg-farm-leaf text-sm font-semibold text-white hover:bg-farm-deep disabled:opacity-50"
+          :disabled="submitting || !comment.trim() || !selectedProductId"
+          @click="submitReview"
+        >
+          {{ submitting ? 'Posting…' : 'Post review' }}
+        </button>
+      </template>
+    </UiSheet>
+
+    <BuyerToast :show="toast.show" :message="toast.message" :type="toast.type" @close="toast.show = false" />
+  </div>
 </template>
 
 <script setup lang="ts">
-import PageContainer from '~/components/ui/PageContainer.vue'
-
 definePageMeta({ layout: 'buyer' })
+
+interface OrderItem {
+  id: string
+  quantity: number
+  price: number | string
+  product_name?: string | null
+  product_image_url?: string | null
+  products?: { id?: string; name?: string; category?: string; image_url?: string | null } | null
+}
 
 interface OrderRow {
   id: string
   status: string
   total_amount: number | string
   created_at: string
-  order_items?: {
-    id: string
-    quantity: number
-    price: number | string
-    products?: { id?: string; name?: string; category?: string }
-  }[]
+  delivery_rider?: { full_name?: string | null } | null
+  order_items?: OrderItem[]
 }
 
 const api = useApiFetch()
+const route = useRoute()
 
 const { data: ordersData, pending, refresh } = await useAsyncData(
   'buyer:orders-list',
@@ -176,12 +229,19 @@ const { data: ordersData, pending, refresh } = await useAsyncData(
 )
 
 const orders = computed(() => ordersData.value?.orders ?? [])
+const activeGroup = computed(() => orderGroupFor(route.query.status))
+const groupCounts = computed(() => countOrdersByGroup(orders.value))
+const filteredOrders = computed(() => {
+  const group = activeGroup.value
+  if (!group) return orders.value
+  return orders.value.filter(o => (group.statuses as readonly string[]).includes(o.status))
+})
 
 onMounted(() => refresh())
 
-function trackOrderPath(id: string) {
-  return `/buyer/orders/${id}`
-}
+// Progress bar steps, in order.
+const STEPS = ['pending', 'processing', 'ready_for_pickup', 'out_for_delivery', 'delivered'] as const
+const stepIndex = (status: string) => STEPS.indexOf(status as typeof STEPS[number])
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase()
@@ -189,84 +249,130 @@ function shortId(id: string) {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-PH', {
-    month: 'short', day: 'numeric', year: 'numeric',
+    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
   })
 }
 
 function labelFor(status: string) {
   const map: Record<string, string> = {
-    pending: 'Pending',
-    processing: 'Processing',
+    pending: 'To confirm',
+    processing: 'Preparing',
     ready_for_pickup: 'Ready for pickup',
-    out_for_delivery: 'Out for delivery',
+    out_for_delivery: 'On the way',
     delivered: 'Delivered',
     cancelled: 'Cancelled',
   }
   return map[status] ?? status
 }
 
-function statusChipClass(status: string) {
-  if (status === 'delivered') return 'border-farm-leaf/50 text-farm-leaf bg-farm-light/40'
-  if (status === 'out_for_delivery') return 'border-farm-deep/40 text-farm-deep bg-farm-light/30'
-  if (status === 'cancelled') return 'border-red-200 text-red-600 bg-red-50'
-  if (status === 'processing') return 'border-farm-leaf/40 text-farm-deep'
-  return 'border-farm-light text-farm-dark/55'
+function statusPillClass(status: string) {
+  if (status === 'delivered') return 'bg-farm-leaf text-white'
+  if (status === 'out_for_delivery' || status === 'ready_for_pickup') return 'bg-market-orange text-white'
+  if (status === 'cancelled') return 'bg-red-50 text-red-600'
+  return 'bg-white text-farm-deep'
 }
 
-function firstProduct(order: OrderRow) {
-  return order.order_items?.find(i => i.products)?.products
+function statusHint(order: OrderRow) {
+  const rider = order.delivery_rider?.full_name
+  switch (order.status) {
+    case 'pending': return 'Waiting for the shop to accept your order.'
+    case 'processing': return 'The shop is preparing your items.'
+    case 'ready_for_pickup': return rider ? `${rider} is picking up your order.` : 'Packed. Waiting for a rider.'
+    case 'out_for_delivery': return rider ? `${rider} is on the way. Have cash ready.` : 'Your order is on the way.'
+    default: return ''
+  }
 }
 
-const showReviewModal = ref(false)
-const selectedProduct = ref<{ id: string; name?: string } | null>(null)
+const isActiveDelivery = (status: string) => status === 'ready_for_pickup' || status === 'out_for_delivery'
+
+function itemSummary(order: OrderRow) {
+  const names = (order.order_items ?? []).map(orderItemName)
+  if (names.length <= 2) return names.join(', ')
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2} more`
+}
+
+function unitCount(order: OrderRow) {
+  return (order.order_items ?? []).reduce((sum, i) => sum + (i.quantity ?? 1), 0)
+}
+
+// Items that still exist as products (deleted products can't be reviewed).
+function reviewableItems(order: OrderRow) {
+  return (order.order_items ?? []).filter(i => i.products?.id)
+}
+
+// Review sheet
+const showReview = ref(false)
+const reviewOrder = ref<OrderRow | null>(null)
+const selectedProductId = ref<string | null>(null)
 const rating = ref(5)
 const comment = ref('')
 const submitting = ref(false)
-const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'error' })
+const reviewItems = computed(() => (reviewOrder.value ? reviewableItems(reviewOrder.value) : []))
 
-function openReviewModal(product: { id?: string; name?: string }) {
-  if (!product.id) return
-  selectedProduct.value = { id: product.id, name: product.name }
+function openReview(order: OrderRow) {
+  reviewOrder.value = order
+  selectedProductId.value = reviewableItems(order)[0]?.products?.id ?? null
   rating.value = 5
   comment.value = ''
-  showReviewModal.value = true
+  showReview.value = true
+}
+
+const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'error' })
+
+function triggerToast(message: string, type: 'success' | 'error' = 'success') {
+  toast.value = { show: true, message, type }
+  setTimeout(() => { toast.value.show = false }, 4000)
 }
 
 async function submitReview() {
-  if (!selectedProduct.value?.id || !comment.value.trim()) return
+  if (!selectedProductId.value || !comment.value.trim()) return
   submitting.value = true
   try {
     await api('/api/products/review', {
       method: 'POST',
       body: {
-        product_id: selectedProduct.value.id,
+        product_id: selectedProductId.value,
         rating: rating.value,
         comment: comment.value.trim(),
       },
     })
-    toast.value = { show: true, message: 'Review submitted', type: 'success' }
-    showReviewModal.value = false
-    setTimeout(() => { toast.value.show = false }, 4000)
+    showReview.value = false
+    triggerToast('Thanks! Your review is posted.')
   }
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
-    toast.value = { show: true, message: e.data?.statusMessage || 'Failed to submit review', type: 'error' }
+    triggerToast(e.data?.statusMessage || 'Failed to submit review', 'error')
   }
   finally {
     submitting.value = false
   }
 }
 
-useHead({ title: 'My Orders — Senoro Green Farm' })
+useHead({ title: 'My Orders — NFWM' })
 </script>
 
 <style scoped>
-.modal-fade-enter-active,
-.modal-fade-leave-active { transition: opacity 0.2s ease; }
-.modal-fade-enter-from,
-.modal-fade-leave-to { opacity: 0; }
-.slide-up-enter-active,
-.slide-up-leave-active { transition: transform 0.25s ease, opacity 0.25s ease; }
-.slide-up-enter-from,
-.slide-up-leave-to { transform: translateY(100%); opacity: 0; }
+.status-tab {
+  @apply inline-flex min-h-[40px] flex-shrink-0 items-center gap-1.5 rounded-full border border-gray-200 px-4 text-sm text-gray-600 transition-colors hover:border-farm-leaf hover:text-farm-leaf;
+}
+.status-tab--active {
+  @apply border-farm-leaf bg-farm-leaf text-white hover:text-white;
+}
+.tab-count {
+  @apply rounded-full bg-black/5 px-1.5 text-xs tabular-nums;
+}
+.status-tab--active .tab-count {
+  @apply bg-white/20;
+}
+.tab-count--orange {
+  @apply bg-market-orange text-white;
+}
+.btn-outline {
+  @apply inline-flex min-h-[40px] items-center justify-center rounded border border-farm-leaf px-4 text-sm font-semibold text-farm-leaf transition-colors hover:bg-farm-leaf hover:text-white;
+}
+.btn-accent {
+  @apply inline-flex min-h-[40px] items-center justify-center rounded bg-market-orange px-4 text-sm font-semibold text-white transition-colors hover:bg-[#cf6d17];
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
 </style>

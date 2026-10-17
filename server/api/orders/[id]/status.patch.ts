@@ -1,9 +1,6 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { requireAuth } from '../../../utils/auth'
-import {
-  assertDeliveryTransition,
-  type OrderStatus,
-} from '../../../utils/orderStatus'
+import type { OrderStatus } from '../../../utils/orderStatus'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -115,24 +112,9 @@ export default defineEventHandler(async (event) => {
     }
   }
   else if (user.role === 'delivery') {
-    assertDeliveryTransition(current, target)
-
-    if (target === 'out_for_delivery') {
-      if (current !== 'ready_for_pickup') {
-        throw createError({ statusCode: 400, statusMessage: 'Order must be ready for pickup' })
-      }
-      updatePayload.delivery_rider_id = user.id
-    }
-
-    if (target === 'delivered') {
-      if (current !== 'out_for_delivery') {
-        throw createError({ statusCode: 400, statusMessage: 'Order must be out for delivery' })
-      }
-      if (order.delivery_rider_id && order.delivery_rider_id !== user.id) {
-        throw createError({ statusCode: 403, statusMessage: 'Order assigned to another rider' })
-      }
-      updatePayload.delivery_rider_id = user.id
-    }
+    // QR handoff flow: riders accept via /api/delivery/orders/:id/accept and
+    // move the order forward only by scanning QR codes (/api/delivery/scan).
+    throw createError({ statusCode: 403, statusMessage: 'Riders update orders by accepting the job and scanning QR codes.' })
   }
   else if (user.role === 'admin') {
     // Admin may force status for support (optional)
@@ -152,106 +134,49 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Failed to update order status' })
   }
 
-  // Multi-role notification pipeline — fires only when status actually changed
+  // Multi-role notification pipeline — fires only when status actually changed.
+  // Best effort: the status is already saved, so a notification problem must not return an error.
   if (current !== updated.status) {
-    const newStatus = updated.status
-
-    // Step 2: Seller accepts order -> Notify BUYER that their order is being prepared
-    if (newStatus === 'processing' && updated.buyer_id) {
-      const { error: processingNotifError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: updated.buyer_id,
-          order_id: id,
-          title: 'Order Accepted & Preparing! 🍳',
-          message: 'The shop has accepted your order and is currently preparing your fresh items.',
-          is_read: false,
-        })
-
-      if (processingNotifError) {
-        throw createError({ statusCode: 500, statusMessage: 'Failed to notify buyer of order acceptance' })
-      }
+    const newStatus = updated.status as OrderStatus
+    const buyerMessages: Partial<Record<OrderStatus, { title: string; message: string }>> = {
+      processing: {
+        title: 'Order Accepted & Preparing! 🍳',
+        message: 'The shop has accepted your order and is currently preparing your fresh items.',
+      },
+      out_for_delivery: {
+        title: 'Order is On the Way! 🚀',
+        message: 'Your delivery rider has collected your parcels and is en route to your location.',
+      },
+      delivered: {
+        title: 'Order Delivered! 🎉',
+        message: 'Enjoy your fresh farm items! Thank you for ordering from NFWM.',
+      },
+      cancelled: {
+        title: 'Order Cancelled ❌',
+        message: 'Your order was cancelled. Please check your payment or contact support.',
+      },
     }
 
-    // Step 3: All sellers confirmed, order ready -> Notify ALL DELIVERY RIDERS to claim the job
+    const buyerMessage = buyerMessages[newStatus]
+    if (buyerMessage && updated.buyer_id) {
+      await notify(event, [{ user_id: updated.buyer_id, order_id: id, ...buyerMessage }])
+    }
+
+    // All sellers confirmed -> tell every delivery rider a job is ready
     if (newStatus === 'ready_for_pickup') {
       const { data: riders, error: ridersError } = await supabase
         .from('users')
         .select('id')
         .eq('role', 'delivery')
 
-      if (ridersError) {
-        throw createError({ statusCode: 500, statusMessage: 'Failed to fetch delivery riders for notification' })
-      }
+      if (ridersError) console.error('[status] failed to load riders:', ridersError.message)
 
-      if (riders && riders.length > 0) {
-        for (const rider of riders) {
-          const { error: riderNotifError } = await supabase
-            .from('notifications')
-            .insert({
-              user_id: rider.id,
-              order_id: id,
-              title: 'New Job Available! 🛵',
-              message: 'A unified market order package is packed and ready for pickup in Bago City.',
-              is_read: false,
-            })
-
-          if (riderNotifError) {
-            throw createError({ statusCode: 500, statusMessage: 'Failed to notify delivery riders of ready order' })
-          }
-        }
-      }
-    }
-
-    // Step 4: Rider picks up order -> Notify BUYER that their order is on the way
-    if (newStatus === 'out_for_delivery' && updated.buyer_id) {
-      const { error: outForDeliveryNotifError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: updated.buyer_id,
-          order_id: id,
-          title: 'Order is On the Way! 🚀',
-          message: 'Your delivery rider has collected your parcels and is en route to your location.',
-          is_read: false,
-        })
-
-      if (outForDeliveryNotifError) {
-        throw createError({ statusCode: 500, statusMessage: 'Failed to notify buyer of pickup' })
-      }
-    }
-
-    // Final delivery confirmation -> Notify BUYER their order was delivered
-    if (newStatus === 'delivered' && updated.buyer_id) {
-      const { error: deliveredNotifError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: updated.buyer_id,
-          order_id: id,
-          title: 'Order Delivered! 🎉',
-          message: 'Enjoy your fresh farm items! Thank you for ordering from Senoro Green Farm.',
-          is_read: false,
-        })
-
-      if (deliveredNotifError) {
-        throw createError({ statusCode: 500, statusMessage: 'Failed to notify buyer of delivery' })
-      }
-    }
-
-    // Cancellation -> Notify BUYER their order was cancelled
-    if (newStatus === 'cancelled' && updated.buyer_id) {
-      const { error: cancelledNotifError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: updated.buyer_id,
-          order_id: id,
-          title: 'Order Cancelled ❌',
-          message: 'Your order was cancelled. Please check your payment or contact support.',
-          is_read: false,
-        })
-
-      if (cancelledNotifError) {
-        throw createError({ statusCode: 500, statusMessage: 'Failed to notify buyer of cancellation' })
-      }
+      await notify(event, (riders ?? []).map(rider => ({
+        user_id: rider.id,
+        order_id: id,
+        title: 'New Job Available! 🛵',
+        message: 'A unified market order package is packed and ready for pickup in Bago City.',
+      })))
     }
   }
 

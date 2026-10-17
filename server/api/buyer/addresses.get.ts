@@ -11,7 +11,8 @@ export default defineEventHandler(async (event) => {
 
   const { data: addresses, error } = await supabase
     .from('addresses')
-    .select('id, full_name, phone_number, city, barangay, detailed_address, is_default, created_at')
+    // '*' includes latitude/longitude once migration 009 is applied, without failing before it.
+    .select('*')
     .eq('user_id', user.id)
     .order('is_default', { ascending: false })
     .order('created_at', { ascending: false })

@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     .from('cart_items')
     .select(`
       id, quantity, created_at,
-      products!inner(id, name, price, category, stock, image_url, users!seller_id(id, full_name))
+      products!inner(id, name, price, category, stock, image_url, unit_type, users!seller_id(id, full_name, shop_name, shop_avatar_url))
     `)
     .eq('buyer_id', user.id)
 

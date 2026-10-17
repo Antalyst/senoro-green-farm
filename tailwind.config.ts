@@ -16,6 +16,10 @@ export default {
         'farm-yellow': '#D9C84B',
         'farm-light': '#EEF5EE',
         'farm-dark': '#1A3521',
+        // Storefront (buyer) light theme — see docs/design-storefront-redesign.md
+        'shop-mint': '#E4F1EA',
+        'shop-cream': '#FBF4EC',
+        'shop-ink': '#1F2A24',
         // 6.6 Campaign tokens
         'campaign-matte': '#1e392a',
         'campaign-deep': '#2d5a27',

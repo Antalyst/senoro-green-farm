@@ -15,11 +15,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { approval_status } = body ?? {}
+  const { approval_status, reason } = body ?? {}
 
   if (!approval_status || !VALID_STATUSES.includes(approval_status)) {
     throw createError({ statusCode: 400, statusMessage: 'approval_status must be approved or rejected' })
   }
+
+  // Shown to the user on their verification screen so they know what to fix.
+  const rejectionReason = approval_status === 'rejected'
+    ? (String(reason ?? '').trim().slice(0, 300) || null)
+    : null
 
   const supabase = await serverSupabaseClient(event)
 
@@ -39,7 +44,7 @@ export default defineEventHandler(async (event) => {
 
   const { data: updated, error: updateError } = await supabase
     .from('users')
-    .update({ approval_status })
+    .update({ approval_status, rejection_reason: rejectionReason })
     .eq('id', id)
     .select('id, full_name, email, role, approval_status, created_at')
     .single()

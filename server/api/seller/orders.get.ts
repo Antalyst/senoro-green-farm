@@ -9,9 +9,10 @@ export default defineEventHandler(async (event) => {
 
   const supabase = await serverSupabaseClient(event)
 
+  // '*' includes picked_up_at once migration 012 is applied, without failing before it.
   const { data: sellerItems, error: itemsError } = await supabase
     .from('order_items')
-    .select('id, order_id, quantity, price, product_id, is_confirmed, products(id, name, category, image_url)')
+    .select('*, products(id, name, category, image_url)')
     .eq('seller_id', user.id)
 
   if (itemsError) {
@@ -24,15 +25,17 @@ export default defineEventHandler(async (event) => {
     return { orders: [] }
   }
 
+  // Ready orders stay listed so the seller can reprint the receipt and see the rider.
   const { data: orders, error: ordersError } = await supabase
     .from('orders')
     .select(`
-      id, status, total_amount, created_at,
+      id, status, total_amount, created_at, delivery_rider_id,
       addresses(id, full_name, phone_number, city, barangay, detailed_address),
-      users:buyer_id(id, full_name, email)
+      users:buyer_id(id, full_name, email),
+      delivery_rider:users!delivery_rider_id(id, full_name)
     `)
     .in('id', orderIds)
-    .in('status', ['pending', 'processing'])
+    .in('status', ['pending', 'processing', 'ready_for_pickup'])
     .order('created_at', { ascending: false })
 
   if (ordersError) {
@@ -53,6 +56,7 @@ export default defineEventHandler(async (event) => {
       0,
     )
     const seller_confirmed = lines.length > 0 && lines.every(line => line.is_confirmed)
+    const seller_picked_up = lines.length > 0 && lines.every(line => !!line.picked_up_at)
     return {
       ...order,
       buyer: order.users,
@@ -60,6 +64,9 @@ export default defineEventHandler(async (event) => {
       seller_items: lines,
       seller_subtotal,
       seller_confirmed,
+      seller_picked_up,
+      // Same code as on the printed receipt, so the seller can read it out if the receipt is damaged.
+      pickup_code: seller_confirmed ? displayCode(pickupCode(order.id, user.id)) : null,
     }
   })
 

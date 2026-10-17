@@ -3,6 +3,9 @@ export interface AuthUser {
   full_name: string
   email: string
   role: string
+  /** pending | approved | rejected — only approved accounts get past the verification screen */
+  approval_status?: string
+  avatar_url?: string | null
   shop_name?: string
   shop_avatar_url?: string
   shop_banner_url?: string
@@ -17,6 +20,8 @@ const useAuthInitialized = () => useState<boolean>('auth:initialized', () => fal
 const LS_KEY = 'sgf_auth_user'
 const TOKEN_KEY = 'sgf_auth_token'
 
+export const VERIFICATION_ROUTE = '/account/verification'
+
 export function useAuth() {
   const user = useUserState()
   const loading = useAuthLoading()
@@ -24,6 +29,16 @@ export function useAuth() {
 
   const isLoggedIn = computed(() => !!user.value)
   const role = computed(() => user.value?.role ?? null)
+  // Accounts from before identity verification have no status stored locally; treat them as approved.
+  const isVerified = computed(() =>
+    !!user.value && (user.value.role === 'admin' || (user.value.approval_status ?? 'approved') === 'approved'),
+  )
+
+  function storeToken(token?: string) {
+    if (import.meta.client && token) {
+      localStorage.setItem(TOKEN_KEY, token)
+    }
+  }
 
   /** Persist user to localStorage (Capacitor native fallback) */
   function persistToLocal(u: AuthUser | null) {
@@ -55,15 +70,17 @@ export function useAuth() {
    * Fetch current user from the server (/api/auth/me).
    * Falls back to localStorage if the server call fails (Capacitor).
    */
-  async function fetchUser() {
-    if (initialized.value) return
+  async function fetchUser(force = false) {
+    if (initialized.value && !force) return
 
     loading.value = true
     try {
       const api = useApiFetch()
-      const data = await api<{ user: AuthUser }>('/api/auth/me')
+      // The server sends a new token when the approval status changed since sign-in.
+      const data = await api<{ user: AuthUser; token?: string }>('/api/auth/me')
       user.value = data.user
       persistToLocal(data.user)
+      storeToken(data.token)
     }
     catch {
       // Server call failed — try localStorage fallback (native Capacitor context)
@@ -89,9 +106,7 @@ export function useAuth() {
       })
       user.value = data.user
       persistToLocal(data.user)
-      if (import.meta.client && data.token) {
-        localStorage.setItem(TOKEN_KEY, data.token)
-      }
+      storeToken(data.token)
       return data.user
     }
     finally {
@@ -100,37 +115,33 @@ export function useAuth() {
   }
 
   /**
-   * Register a new account.
+   * Register a new account. The form carries full_name, email, password, role, id_type
+   * and the two verification photos (selfie, id_document). New accounts start pending.
    */
-  async function register(full_name: string, email: string, password: string, role: string) {
+  async function register(form: FormData) {
     loading.value = true
     try {
       const api = useApiFetch()
-      const data = await api<{
-        success: boolean
-        token?: string
-        pendingApproval?: boolean
-        message?: string
-        user: AuthUser
-      }>('/api/auth/register', {
+      const data = await api<{ success: boolean; token?: string; user: AuthUser }>('/api/auth/register', {
         method: 'POST',
-        body: { full_name, email, password, role },
+        body: form,
       })
-
-      if (data.pendingApproval) {
-        return { ...data.user, pendingApproval: true as const, message: data.message }
-      }
 
       user.value = data.user
       persistToLocal(data.user)
-      if (import.meta.client && data.token) {
-        localStorage.setItem(TOKEN_KEY, data.token)
-      }
+      storeToken(data.token)
       return data.user
     }
     finally {
       loading.value = false
     }
+  }
+
+  /** Merge changes (e.g. a new profile photo) into the signed-in user. */
+  function updateUser(patch: Partial<AuthUser>) {
+    if (!user.value) return
+    user.value = { ...user.value, ...patch }
+    persistToLocal(user.value)
   }
 
   /**
@@ -152,6 +163,14 @@ export function useAuth() {
     }
   }
 
+  /** Where to send a user after sign-in: the verification screen until an admin approves them. */
+  function homeRoute(u?: Pick<AuthUser, 'role' | 'approval_status'> | null): string {
+    if (u && u.role !== 'admin' && (u.approval_status ?? 'approved') !== 'approved') {
+      return VERIFICATION_ROUTE
+    }
+    return dashboardRoute(u?.role)
+  }
+
   /** Get the dashboard route for a given role */
   function dashboardRoute(r?: string | null): string {
     const roleMap: Record<string, string> = {
@@ -166,13 +185,16 @@ export function useAuth() {
   return {
     user: readonly(user),
     isLoggedIn,
+    isVerified,
     role,
     loading: readonly(loading),
     initialized: readonly(initialized),
     fetchUser,
     login,
     register,
+    updateUser,
     logout,
+    homeRoute,
     dashboardRoute,
   }
 }

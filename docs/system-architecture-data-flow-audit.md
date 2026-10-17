@@ -2,7 +2,7 @@
 
 ## 1. High-Level System Overview
 
-Senoro Green Farm is a marketplace/e-commerce application for farm products. The system supports four operational roles:
+NFWM is a marketplace/e-commerce application for farm products. The system supports four operational roles:
 
 - `buyer`: browses products, manages cart, shipping addresses, orders, and reviews.
 - `seller`: manages products, inventory, seller orders, metrics, and review replies.
@@ -171,7 +171,7 @@ useApiFetch()
 Current `apiBaseUrl` default:
 
 ```text
-https://nfwm.vercel.app
+https://Negros Farmers Weekend Market.vercel.app
 ```
 
 ### Session Hydration Flow
@@ -667,7 +667,7 @@ export default defineNuxtConfig({
     public: {
       supabaseUrl: process.env.SUPABASE_URL || '',
       supabaseKey: process.env.SUPABASE_KEY || '',
-      apiBaseUrl: process.env.API_BASE_URL || 'https://nfwm.vercel.app',
+      apiBaseUrl: process.env.API_BASE_URL || 'https://Negros Farmers Weekend Market.vercel.app',
     },
   },
   supabase: {
@@ -714,7 +714,7 @@ Risk scenario: Capacitor/native app calls Vercel API.
 
 ```text
 Capacitor webview
-  -> baseURL = API_BASE_URL or default https://nfwm.vercel.app
+  -> baseURL = API_BASE_URL or default https://Negros Farmers Weekend Market.vercel.app
   -> Authorization: Bearer <localStorage token>
 ```
 

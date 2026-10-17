@@ -22,8 +22,9 @@ export default defineEventHandler(async (event) => {
       addresses(id, full_name, phone_number, city, barangay, detailed_address),
       delivery_rider:users!delivery_rider_id(id, full_name, email),
       order_items(
-        id, quantity, price,
-        products(id, name, category, image_url, seller_id)
+        *,
+        products(id, name, category, image_url, seller_id),
+        seller:users!seller_id(id, shop_name, full_name, shop_avatar_url)
       )
     `)
     .eq('id', id)
@@ -34,5 +35,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Order not found' })
   }
 
-  return { order }
+  // Proof of delivery: the buyer shows this QR; the rider scans it to complete the order.
+  const delivery_qr = order.status === 'out_for_delivery'
+    ? { payload: deliveryQrPayload(order.id), code: displayCode(deliveryCode(order.id)) }
+    : null
+
+  return { order: { ...order, delivery_qr } }
 })

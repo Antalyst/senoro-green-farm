@@ -24,10 +24,10 @@ const STATUS_RANK: Record<OrderStatus, number> = {
 }
 
 const STEPS: { key: OrderStatus; label: string; description: string }[] = [
-  { key: 'pending', label: 'Order placed', description: 'Payment received and order logged' },
-  { key: 'processing', label: 'Packed by farmer', description: 'Seller is preparing your harvest' },
-  { key: 'ready_for_pickup', label: 'Ready for pickup', description: 'Waiting for courier assignment' },
-  { key: 'out_for_delivery', label: 'Out for delivery', description: 'Courier is on the way' },
+  { key: 'pending', label: 'Order placed', description: 'Waiting for the shop to accept (cash on delivery)' },
+  { key: 'processing', label: 'Packed by Seller', description: 'Seller is preparing your harvest' },
+  { key: 'ready_for_pickup', label: 'Ready for pickup', description: 'Packed with a QR receipt; a rider will collect it' },
+  { key: 'out_for_delivery', label: 'Out for delivery', description: 'Rider is on the way; show your delivery QR on arrival' },
   { key: 'delivered', label: 'Delivered', description: 'Parcel received successfully' },
 ]
 

@@ -1,3 +1,5 @@
+import { VERIFICATION_ROUTE } from '~/composables/useAuth'
+
 export default defineNuxtRouteMiddleware(async (to) => {
   // Skip middleware on server (ssr: false, but guard is defensive)
   if (import.meta.server) return
@@ -12,6 +14,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const path = to.path
   const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/', '/buyer/categories']
   const PUBLIC_PREFIXES = ['/buyer/product/', '/buyer/shop/']
+
+  // Signed in but not yet approved by an admin: the verification status page is all they get.
+  if (auth.isLoggedIn?.value && !auth.isVerified?.value) {
+    return path === VERIFICATION_ROUTE ? undefined : navigateTo(VERIFICATION_ROUTE)
+  }
+  if (path === VERIFICATION_ROUTE) {
+    return navigateTo(auth.isLoggedIn?.value ? auth.homeRoute(auth.user?.value) : '/auth/login')
+  }
 
   // Allow public routes always
   if (PUBLIC_ROUTES.includes(path) || PUBLIC_PREFIXES.some(prefix => path.startsWith(prefix))) {

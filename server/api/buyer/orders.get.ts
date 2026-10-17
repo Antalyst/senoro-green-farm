@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       addresses(id, full_name, phone_number, city, barangay, detailed_address),
       delivery_rider:users!delivery_rider_id(id, full_name, email),
       order_items(
-        id, quantity, price,
+        *,
         products(id, name, category, image_url)
       )
     `)

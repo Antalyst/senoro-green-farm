@@ -1,248 +1,156 @@
 <template>
-  <PageContainer class="space-y-12 py-8 md:py-12">
-    <header class="border-b border-farm-light pb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-      <div>
-        <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45 mb-2">
-          Catalog
-        </p>
-        <h1 class="text-2xl md:text-3xl font-light text-farm-dark tracking-tight">
-          Inventory
-        </h1>
-        <p class="text-sm text-farm-dark/50 mt-2">Manage listings and stock levels</p>
-      </div>
-      <button
-        type="button"
-        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-farm-deep text-farm-deep text-xs font-medium tracking-[0.12em] uppercase hover:bg-farm-deep hover:text-white transition-colors"
-        @click="openAddModal"
-      >
-        <Icon name="heroicons:plus" class="w-4 h-4 stroke-[1.5]" />
+  <div class="mx-auto w-full max-w-page space-y-5 py-6 md:space-y-6 md:py-8">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-sm text-gray-500">{{ products.length }} {{ products.length === 1 ? 'product' : 'products' }} in your shop</p>
+      <button type="button" class="ui-btn-accent w-full sm:w-auto" @click="openAddModal">
+        <Icon name="heroicons:plus" class="h-4 w-4" />
         Add product
       </button>
-    </header>
+    </div>
 
-    <section class="flex flex-col sm:flex-row gap-3 border border-farm-light p-4">
-      <div class="flex-1 flex items-center border border-farm-light bg-farm-light/30 px-3 py-2 gap-2 min-w-0">
-        <Icon name="heroicons:magnifying-glass" class="w-4 h-4 text-farm-dark/35 flex-shrink-0" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search products..."
-          class="bg-transparent text-sm text-farm-dark placeholder:text-farm-dark/35 flex-1 outline-none min-w-0"
-        >
-      </div>
-      <select
-        v-model="categoryFilter"
-        class="text-xs border border-farm-light px-3 py-2 text-farm-dark/70 outline-none bg-white font-medium tracking-wide uppercase"
+    <div class="flex flex-col gap-2 sm:flex-row">
+      <input
+        v-model="searchQuery"
+        type="search"
+        placeholder="Search products"
+        aria-label="Search products"
+        class="ui-input sm:flex-1"
       >
+      <select v-model="categoryFilter" aria-label="Filter by category" class="ui-input sm:w-56">
         <option value="All">All categories</option>
         <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
       </select>
-    </section>
+    </div>
 
-    <section class="border border-farm-light">
-      <div v-if="pending" class="p-12 text-center text-xs text-farm-dark/40">
-        <Icon name="heroicons:arrow-path" class="w-6 h-6 text-farm-leaf animate-spin mx-auto mb-2" />
-        Loading inventory...
+    <div class="ui-card">
+      <p v-if="pending" class="py-16 text-center text-sm text-gray-400">Loading…</p>
+
+      <div v-else-if="!filteredProducts.length" class="py-16 text-center">
+        <p class="text-sm font-medium text-shop-ink">{{ products.length ? 'No products match' : 'No products yet' }}</p>
+        <p class="mt-1 text-xs text-gray-400">{{ products.length ? 'Try another search or category.' : 'Add your first product to start selling.' }}</p>
       </div>
 
-      <div v-else-if="!filteredProducts.length" class="p-12 text-center">
-        <p class="text-sm font-medium text-farm-dark">No products yet</p>
-        <p class="text-xs text-farm-dark/45 mt-1">Add your first listing to start selling.</p>
-      </div>
-
-      <div v-else class="divide-y divide-farm-light">
-        <article
-          v-for="product in filteredProducts"
-          :key="product.id"
-          class="p-5 flex gap-4 hover:bg-farm-light/20 transition-colors"
-        >
-          <div class="w-14 h-14 border border-farm-light flex-shrink-0 flex items-center justify-center bg-farm-light/40">
-            <Icon name="heroicons:tag" class="w-6 h-6 text-farm-leaf stroke-[1.5]" />
+      <ul v-else class="divide-y divide-farm-leaf/10">
+        <li v-for="product in filteredProducts" :key="product.id" class="flex gap-3 p-3 md:gap-4 md:p-4">
+          <div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded bg-shop-cream">
+            <img v-if="product.image_url" :src="product.image_url" :alt="product.name" loading="lazy" class="h-full w-full object-cover">
+            <div v-else class="flex h-full w-full items-center justify-center">
+              <Icon name="heroicons:photo" class="h-6 w-6 text-gray-300" />
+            </div>
           </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-start justify-between gap-2">
-              <h3 class="text-sm font-medium text-farm-dark truncate">{{ product.name }}</h3>
-              <span class="text-[10px] font-bold tracking-wider uppercase flex-shrink-0 px-1.5 py-0.5 border text-farm-leaf border-farm-leaf/30 bg-farm-leaf/5">
-                {{ product.category || 'Uncategorized' }}
+
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-farm-deep">{{ product.name }}</p>
+            <p class="truncate text-xs text-gray-400">{{ product.category || 'Uncategorized' }}</p>
+            <div class="mt-1.5 flex flex-wrap items-center gap-2">
+              <span class="text-sm tabular-nums">
+                <span class="font-semibold text-farm-leaf">₱{{ formatPrice(product.price) }}</span>
+                <span class="text-gray-400"> / {{ product.unit_type || 'pc' }}</span>
               </span>
-            </div>
-            <p class="text-xs text-farm-dark/45 line-clamp-1 mt-0.5">
-              {{ product.description || 'No description' }}
-            </p>
-            <div class="flex items-center gap-6 mt-3 text-sm">
-              <div>
-                <span class="text-[10px] uppercase tracking-wider text-farm-dark/40">Price</span>
-                <p class="text-farm-deep font-medium tabular-nums">
-                  PHP {{ formatPrice(product.price) }} <span class="text-xs text-farm-dark/50 lowercase">/ {{ product.unit_type || 'pc' }}</span>
-                </p>
-              </div>
-              <div>
-                <span class="text-[10px] uppercase tracking-wider text-farm-dark/40">Stock</span>
-                <p
-                  class="font-medium tabular-nums"
-                  :class="product.stock === 0 ? 'text-red-600' : 'text-farm-dark'"
-                >
-                  {{ product.stock }}
-                </p>
-              </div>
+              <span :class="stockClass(product.stock)">{{ product.stock === 0 ? 'Sold out' : `${product.stock} in stock` }}</span>
             </div>
           </div>
-          <div class="flex flex-col gap-1 flex-shrink-0">
-            <button
-              type="button"
-              class="p-2 border border-farm-light text-farm-dark/50 hover:text-farm-deep hover:border-farm-deep transition-colors"
-              title="Edit"
-              @click="openEditModal(product)"
-            >
-              <Icon name="heroicons:pencil-square" class="w-4 h-4 stroke-[1.5]" />
-            </button>
-            <button
-              type="button"
-              class="p-2 border border-farm-light text-farm-dark/50 hover:text-red-600 hover:border-red-200 transition-colors"
-              title="Delete"
-              @click="confirmDelete(product)"
-            >
-              <Icon name="heroicons:trash" class="w-4 h-4 stroke-[1.5]" />
-            </button>
-          </div>
-        </article>
-      </div>
-    </section>
 
-    <Transition name="modal-fade">
-      <div v-if="showModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
-        <div class="fixed inset-0 bg-farm-dark/40" @click="showModal = false" />
-        <div class="modal-panel bg-white border border-farm-light w-full max-w-md relative z-10 flex flex-col max-h-[90vh]">
-          <div class="px-5 py-4 border-b border-farm-light flex justify-between items-center">
-            <div>
-              <h3 class="text-sm font-medium text-farm-dark tracking-tight">
-                {{ isEditing ? 'Edit product' : 'New product' }}
-              </h3>
-              <p class="text-xs text-farm-dark/45 mt-0.5">Listing details</p>
-            </div>
-            <button type="button" class="p-1 text-farm-dark/50 hover:text-farm-dark" @click="showModal = false">
-              <Icon name="heroicons:x-mark" class="w-5 h-5" />
+          <div class="flex flex-shrink-0 flex-col gap-2 sm:flex-row sm:items-start">
+            <button type="button" class="ui-icon-btn" title="Edit" :aria-label="`Edit ${product.name}`" @click="openEditModal(product)">
+              <Icon name="heroicons:pencil-square" class="h-4 w-4" />
+            </button>
+            <button type="button" class="ui-icon-btn hover:text-red-600" title="Delete" :aria-label="`Delete ${product.name}`" @click="confirmDelete(product)">
+              <Icon name="heroicons:trash" class="h-4 w-4" />
             </button>
           </div>
-          <form class="p-5 space-y-4 overflow-y-auto flex-1" @submit.prevent="saveProduct">
-            <div class="space-y-1">
-              <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Name</label>
+        </li>
+      </ul>
+    </div>
+
+    <UiSheet
+      :open="showModal"
+      :title="isEditing ? 'Edit product' : 'New product'"
+      @close="showModal = false"
+    >
+      <form id="product-form" class="space-y-4" @submit.prevent="saveProduct">
+        <div>
+          <label for="p-name" class="ui-label">Name</label>
+          <input id="p-name" v-model="form.name" type="text" required placeholder="e.g. Organic pechay" class="ui-input">
+        </div>
+
+        <div>
+          <label for="p-category" class="ui-label">Shop category</label>
+          <select id="p-category" v-model="form.category_id" required class="ui-input">
+            <option disabled value="">Select a category</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+          </select>
+          <p v-if="!categories.length" class="mt-1.5 text-xs text-red-600">
+            Add a shop category on the Dashboard before publishing products.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="p-price" class="ui-label">Price (₱)</label>
+            <input id="p-price" v-model.number="form.price" type="number" inputmode="decimal" step="0.01" min="0.01" required class="ui-input">
+          </div>
+          <div>
+            <label for="p-unit" class="ui-label">Per</label>
+            <select id="p-unit" v-model="form.unit_type" class="ui-input">
+              <option value="pc">pc</option>
+              <option value="kg">kg</option>
+              <option value="bundle">bundle</option>
+              <option value="serving">serving</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="p-stock" class="ui-label">Stock</label>
+          <input id="p-stock" v-model.number="form.stock" type="number" inputmode="numeric" min="0" required class="ui-input">
+        </div>
+
+        <div>
+          <p class="ui-label">Photo</p>
+          <div class="flex items-center gap-3">
+            <div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded bg-shop-cream">
+              <img v-if="form.image_url" :src="form.image_url" alt="Preview" class="h-full w-full object-cover">
+              <div v-else class="flex h-full w-full items-center justify-center">
+                <Icon name="heroicons:photo" class="h-6 w-6 text-gray-300" />
+              </div>
+            </div>
+            <label class="ui-btn-outline cursor-pointer">
+              {{ uploadingImage ? 'Uploading…' : form.image_url ? 'Change photo' : 'Choose photo' }}
               <input
-                v-model="form.name"
-                type="text"
-                required
-                placeholder="e.g. Organic Pechay"
-                class="w-full border border-farm-light px-3 py-2.5 text-sm outline-none focus:border-farm-deep"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                class="sr-only"
+                :disabled="uploadingImage"
+                @change="onImageSelected"
               >
-            </div>
-            <div class="space-y-1">
-              <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Shop category</label>
-              <select
-                v-model="form.category_id"
-                required
-                class="w-full border border-farm-light px-3 py-2.5 text-sm outline-none focus:border-farm-deep bg-white"
-              >
-                <option disabled value="">Select a shop category</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-              </select>
-              <p v-if="!categories.length" class="text-[10px] text-red-600">
-                Add a shop category on the Seller Dashboard before publishing products.
-              </p>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div class="space-y-1">
-                <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Price (PHP)</label>
-                <div class="flex items-center">
-                  <input
-                    v-model.number="form.price"
-                    type="number"
-                    step="0.01"
-                    required
-                    min="0.01"
-                    class="w-full border border-farm-light border-r-0 px-3 py-2.5 text-sm outline-none focus:border-farm-deep"
-                  >
-                  <select
-                    v-model="form.unit_type"
-                    class="border border-farm-light px-2 py-2.5 text-sm outline-none focus:border-farm-deep bg-farm-light/20 text-farm-dark/70"
-                  >
-                    <option value="pc">/ pc</option>
-                    <option value="kg">/ kg</option>
-                    <option value="bundle">/ bundle</option>
-                    <option value="serving">/ serving</option>
-                  </select>
-                </div>
-              </div>
-              <div class="space-y-1">
-                <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Stock</label>
-                <input
-                  v-model.number="form.stock"
-                  type="number"
-                  required
-                  min="0"
-                  class="w-full border border-farm-light px-3 py-2.5 text-sm outline-none focus:border-farm-deep"
-                >
-              </div>
-            </div>
-            <div class="space-y-1">
-              <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Product image</label>
-              <div class="border border-farm-light p-3 flex items-center gap-3">
-                <div v-if="form.image_url" class="w-14 h-14 border border-farm-light overflow-hidden flex-shrink-0">
-                  <img :src="form.image_url" alt="Preview" class="w-full h-full object-cover">
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  class="text-xs text-farm-dark/60"
-                  @change="onImageSelected"
-                >
-              </div>
-              <p v-if="uploadingImage" class="text-[10px] text-farm-leaf">Uploading image...</p>
-            </div>
-            <div class="space-y-1">
-              <label class="text-[10px] font-medium tracking-[0.16em] uppercase text-farm-dark/45">Description</label>
-              <textarea
-                v-model="form.description"
-                rows="3"
-                placeholder="Quality, size, origin..."
-                class="w-full border border-farm-light px-3 py-2.5 text-sm outline-none focus:border-farm-deep resize-none"
-              />
-            </div>
-            <button
-              type="submit"
-              :disabled="saving || !categories.length"
-              class="w-full bg-farm-deep text-white py-3 text-xs font-medium tracking-[0.12em] uppercase hover:bg-farm-leaf transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Icon v-if="saving" name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
-              <span>{{ isEditing ? 'Save changes' : 'Publish' }}</span>
-            </button>
-          </form>
+            </label>
+          </div>
         </div>
-      </div>
-    </Transition>
 
-    <Transition name="slide-up">
-      <div
-        v-if="toast.show"
-        class="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-page z-[60] px-4"
-      >
-        <div
-          class="p-4 border flex items-center gap-3 text-sm font-medium"
-          :class="toast.type === 'success' ? 'bg-farm-deep text-white border-farm-deep' : 'bg-red-600 text-white border-red-600'"
-        >
-          <Icon :name="toast.type === 'success' ? 'heroicons:check-circle' : 'heroicons:exclamation-circle'" class="w-5 h-5 flex-shrink-0" />
-          <span class="flex-1">{{ toast.message }}</span>
-          <button type="button" class="p-1 opacity-80 hover:opacity-100" @click="toast.show = false">
-            <Icon name="heroicons:x-mark" class="w-4 h-4" />
-          </button>
+        <div>
+          <label for="p-desc" class="ui-label">Description</label>
+          <textarea id="p-desc" v-model="form.description" rows="3" placeholder="Quality, size, where it's from" class="ui-input resize-none" />
         </div>
-      </div>
-    </Transition>
-  </PageContainer>
+      </form>
+
+      <template #footer>
+        <button
+          type="submit"
+          form="product-form"
+          :disabled="saving || uploadingImage || !categories.length"
+          class="ui-btn w-full"
+        >
+          {{ saving ? 'Saving…' : isEditing ? 'Save changes' : 'Publish' }}
+        </button>
+      </template>
+    </UiSheet>
+
+    <BuyerToast :show="toast.show" :message="toast.message" :type="toast.type" @close="toast.show = false" />
+  </div>
 </template>
 
 <script setup lang="ts">
-import PageContainer from '~/components/ui/PageContainer.vue'
-
 definePageMeta({ layout: 'seller' })
 
 interface SellerCategory {
@@ -279,10 +187,11 @@ const { data: categoriesData, refresh: refreshCategories } = await useAsyncData(
   { server: false },
 )
 
+const products = computed(() => productsData.value?.products ?? [])
 const categories = computed(() => categoriesData.value?.categories ?? [])
 
 const filteredProducts = computed(() => {
-  let list = productsData.value?.products ?? []
+  let list = products.value
 
   if (categoryFilter.value !== 'All') {
     list = list.filter(product => product.category_id === categoryFilter.value)
@@ -320,6 +229,12 @@ const toast = ref({
 
 function formatPrice(price: string | number) {
   return parseFloat(String(price ?? 0)).toFixed(2)
+}
+
+function stockClass(stock: number) {
+  if (stock === 0) return 'ui-pill ui-pill-red'
+  if (stock < 10) return 'ui-pill ui-pill-orange'
+  return 'ui-pill ui-pill-green'
 }
 
 function triggerToast(message: string, type: 'success' | 'error' = 'success') {
@@ -370,11 +285,11 @@ async function onImageSelected(event: Event) {
       },
     })
     form.value.image_url = result.url
-    triggerToast('Image uploaded.')
+    triggerToast('Photo uploaded.')
   }
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
-    triggerToast(e.data?.statusMessage || 'Image upload failed', 'error')
+    triggerToast(e.data?.statusMessage || 'Photo upload failed', 'error')
   }
   finally {
     uploadingImage.value = false
@@ -405,14 +320,14 @@ async function saveProduct() {
         method: 'PUT',
         body: form.value,
       })
-      triggerToast('Product updated successfully.')
+      triggerToast('Product updated.')
     }
     else {
       await api('/api/products/create', {
         method: 'POST',
         body: form.value,
       })
-      triggerToast('Product listed successfully.')
+      triggerToast('Product published.')
     }
     showModal.value = false
     await refresh()
@@ -427,7 +342,7 @@ async function saveProduct() {
 }
 
 async function confirmDelete(product: SellerProduct) {
-  const confirmed = confirm(`Are you sure you want to delete "${product.name}"?`)
+  const confirmed = confirm(`Delete "${product.name}"?`)
   if (!confirmed) return
 
   try {
@@ -441,36 +356,5 @@ async function confirmDelete(product: SellerProduct) {
   }
 }
 
-useHead({ title: 'Manage Inventory - Senoro Green Farm' })
+useHead({ title: 'Inventory — NFWM Seller' })
 </script>
-
-<style scoped>
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-.modal-fade-enter-active .modal-panel,
-.modal-fade-leave-active .modal-panel {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.modal-fade-enter-from .modal-panel {
-  transform: scale(0.95) translateY(10px);
-}
-.modal-fade-leave-to .modal-panel {
-  transform: scale(0.95) translateY(10px);
-}
-
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-}
-.slide-up-enter-from,
-.slide-up-leave-to {
-  transform: translateY(100%);
-  opacity: 0;
-}
-</style>

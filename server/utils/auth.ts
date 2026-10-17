@@ -5,6 +5,8 @@ export interface UserPayload {
   full_name: string
   email: string
   role: string
+  /** Missing on tokens issued before identity verification existed; those were all approved. */
+  approval_status?: string
 }
 
 interface JwtHeader {
@@ -111,14 +113,32 @@ export function verifyToken(token: string): UserPayload {
     full_name: payload.full_name,
     email: payload.email,
     role: payload.role,
+    approval_status: payload.approval_status ?? 'approved',
   }
+}
+
+/** Issues the session cookie and returns the token (native apps also keep it as a Bearer token). */
+export function startSession(event: Parameters<typeof getCookie>[0], payload: UserPayload): string {
+  const token = signToken(payload)
+  setCookie(event, 'auth_token', token, {
+    httpOnly: true,
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7,
+    sameSite: 'lax',
+  })
+  return token
 }
 
 /**
  * Helper to extract and verify the auth token from the request cookie.
  * Returns the user payload or throws.
+ * Accounts still waiting for identity verification (or rejected) get 403 unless
+ * `allowUnverified` is set; only the verification screen's own endpoints set it.
  */
-export function requireAuth(event: Parameters<typeof getCookie>[0]): UserPayload {
+export function requireAuth(
+  event: Parameters<typeof getCookie>[0],
+  options: { allowUnverified?: boolean } = {},
+): UserPayload {
   let token = getCookie(event, 'auth_token')
 
   if (!token) {
@@ -131,10 +151,16 @@ export function requireAuth(event: Parameters<typeof getCookie>[0]): UserPayload
   if (!token) {
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   }
+  let user: UserPayload
   try {
-    return verifyToken(token)
+    user = verifyToken(token)
   }
   catch {
     throw createError({ statusCode: 401, statusMessage: 'Invalid or expired session' })
   }
+
+  if (!options.allowUnverified && user.role !== 'admin' && user.approval_status !== 'approved') {
+    throw createError({ statusCode: 403, statusMessage: 'Your account is waiting for identity verification.' })
+  }
+  return user
 }

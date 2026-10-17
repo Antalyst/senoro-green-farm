@@ -1,44 +1,77 @@
 <template>
   <ion-page>
-    <ion-header class="seller-header sticky top-0 z-50 bg-farm-dark backdrop-blur-md shadow-sm">
-      <ion-toolbar class="bg-transparent text-white">
-        <div class="max-w-page mx-auto w-full px-4 md:px-8">
-          <div class="flex items-center justify-between gap-4 py-2">
-            <div class="flex items-center gap-3 min-w-0">
-              <img src="/logo2.png" alt="Senoro" class="w-7 h-7 object-contain flex-shrink-0">
-              <span class="text-sm font-medium text-white tracking-tight hidden sm:inline">
-                Seller center
-              </span>
-            </div>
+    <div class="flex h-full w-full bg-white">
+      <!-- Desktop sidebar (md+). Phones use the bottom tab bar + "More" sheet instead. -->
+      <aside class="hidden w-60 flex-shrink-0 flex-col bg-farm-deep text-white md:flex" aria-label="Seller navigation">
+        <NuxtLink to="/seller/dashboard" class="flex h-16 items-center gap-2 border-b border-white/10 px-5">
+          <img src="/logo2.png" alt="NFWM" class="h-8 w-8 object-contain">
+          <span class="text-base font-bold tracking-tight text-white">NFWM</span>
+          <span class="rounded bg-market-orange px-1.5 py-0.5 text-[11px] font-semibold text-white">Seller</span>
+        </NuxtLink>
 
-            <!-- Desktop & Mobile top navigation -->
-            <nav class="flex items-center gap-1 flex-1 justify-start md:justify-center overflow-x-auto no-scrollbar mask-edges px-2">
-              <NuxtLink
-                v-for="tab in tabs"
-                :key="tab.path"
-                :to="tab.path"
-                class="px-2 py-1.5 text-xs font-bold tracking-[0.15em] uppercase transition-colors"
-                :class="isActive(tab.path)
-                  ? 'text-market-orange border-b-2 border-market-orange'
-                  : 'text-white hover:text-market-orange'"
-              >
-                {{ tab.label }}
-              </NuxtLink>
-            </nav>
+        <div class="flex items-center gap-3 border-b border-white/10 px-5 py-4">
+          <AccountAvatar
+            :name="shopName"
+            :url="shop.shop_avatar_url"
+            class="h-10 w-10 rounded-full bg-market-orange text-sm text-white"
+          />
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium text-white">{{ shopName }}</p>
+            <NuxtLink v-if="user?.id" :to="`/buyer/shop/${user.id}`" target="_blank" class="text-xs text-white/60 hover:text-market-orange">
+              View my shop
+            </NuxtLink>
+          </div>
+        </div>
 
-            <div class="flex items-center gap-4 relative">
+        <nav class="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+          <div v-for="group in navGroups" :key="group.label">
+            <p class="mb-1 px-3 text-xs text-white/45">{{ group.label }}</p>
+            <ul>
+              <li v-for="item in group.items" :key="item.path">
+                <NuxtLink
+                  :to="item.path"
+                  class="flex items-center gap-3 rounded border-l-2 px-3 py-2 text-sm transition-colors"
+                  :class="isActive(item.path) ? 'border-market-orange bg-white/10 font-medium text-white' : 'border-transparent text-white/70 hover:bg-white/5 hover:text-white'"
+                >
+                  <Icon :name="item.icon" class="h-5 w-5 flex-shrink-0" :class="isActive(item.path) ? 'text-market-orange' : 'text-white/50'" />
+                  <span class="flex-1">{{ item.label }}</span>
+                  <span v-if="item.badge && item.badge() > 0" class="min-w-[20px] rounded-full bg-market-orange px-1.5 py-0.5 text-center text-[10px] font-semibold text-white">{{ item.badge() }}</span>
+                </NuxtLink>
+              </li>
+            </ul>
+          </div>
+        </nav>
+
+        <div class="border-t border-white/10 p-3">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+            @click="handleLogout"
+          >
+            <Icon name="heroicons:arrow-left-on-rectangle" class="h-5 w-5 text-white/50" />
+            Sign out
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main column -->
+      <div class="flex min-w-0 flex-1 flex-col">
+        <ion-header class="seller-header">
+          <ion-toolbar>
+            <div class="flex h-14 items-center gap-3 px-4 md:h-16 md:px-8">
+              <img src="/logo2.png" alt="" class="h-8 w-8 object-contain md:hidden">
+              <h1 class="min-w-0 flex-1 truncate text-base font-semibold text-white md:text-lg md:text-farm-deep">{{ currentTitle }}</h1>
+
               <button
                 type="button"
-                class="relative p-2 text-white/80 hover:text-white transition-colors z-[99] flex items-center justify-center cursor-pointer min-w-[40px] min-h-[40px] bg-transparent border-0"
-                @click.stop="toggleNotificationModal"
+                class="relative flex h-10 w-10 items-center justify-center rounded text-white/85 hover:text-white md:text-farm-deep md:hover:text-farm-leaf"
                 aria-label="Notifications"
+                @click.stop="toggleNotificationModal"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 pointer-events-none">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
-                </svg>
+                <Icon name="heroicons:bell" class="h-6 w-6" />
                 <span
                   v-if="unreadCount > 0"
-                  class="absolute top-1 right-1 bg-[#f2994a] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center pointer-events-none"
+                  class="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-market-orange px-1 text-[10px] font-semibold text-white"
                 >
                   {{ unreadCount }}
                 </span>
@@ -46,240 +79,293 @@
 
               <button
                 type="button"
-                class="flex items-center gap-2 py-1 text-white/80 hover:text-white"
+                class="hidden items-center gap-2 rounded py-1 pl-1 pr-2 text-gray-600 hover:text-shop-ink md:flex"
+                aria-label="Account menu"
                 @click="showProfileMenu = !showProfileMenu"
               >
-                <div class="w-8 h-8 border border-market-orange flex items-center justify-center text-[10px] font-medium text-market-orange">
-                  {{ userInitial }}
-                </div>
-                <Icon name="heroicons:chevron-down" class="w-3.5 h-3.5 hidden sm:block" />
+                <AccountAvatar :name="user?.full_name" :url="user?.avatar_url" fallback="S" class="h-8 w-8 rounded-full bg-farm-leaf text-xs text-white" />
+                <span class="hidden max-w-[140px] truncate text-sm lg:block">{{ user?.full_name }}</span>
+                <Icon name="heroicons:chevron-down" class="h-4 w-4 text-gray-400" />
               </button>
             </div>
-          </div>
-        </div>
-      </ion-toolbar>
-    </ion-header>
+          </ion-toolbar>
+        </ion-header>
 
-    <Transition name="fade-down">
-      <div
-        v-if="showProfileMenu"
-        class="fixed right-4 md:right-[max(1rem,calc((100vw-1200px)/2+2rem))] top-14 z-[60] bg-white border border-farm-light py-2 w-56 shadow-sm"
-      >
-        <div class="px-4 py-3 border-b border-farm-light">
-          <p class="text-sm font-medium text-farm-dark truncate">{{ user?.full_name }}</p>
-          <p class="text-[11px] text-farm-dark/45 truncate">{{ user?.email }}</p>
-        </div>
-        <button
-          type="button"
-          class="w-full px-4 py-3 text-left text-xs font-medium tracking-wide uppercase text-farm-dark/60 hover:bg-farm-light hover:text-red-700 transition-colors"
-          @click="handleLogout"
-        >
-          Sign out
-        </button>
-      </div>
-    </Transition>
-    <div v-if="showProfileMenu" class="fixed inset-0 z-50" @click="showProfileMenu = false" />
-
-    <ion-content class="seller-ion-content bg-white">
-      <AppShell with-tab-bar>
-        <slot />
-      </AppShell>
-    </ion-content>
-
-    <!-- Bottom navigation (mobile + consistent app pattern) -->
-    <nav class="seller-tab-bar md:hidden">
-      <div class="max-w-page mx-auto w-full flex">
-        <button
-          v-for="tab in tabs"
-          :key="tab.path"
-          type="button"
-          class="seller-tab-btn"
-          :class="{ 'seller-tab-btn--active': isActive(tab.path) }"
-          @click="router.push(tab.path)"
-        >
-          <div class="relative">
-            <Icon
-              :name="isActive(tab.path) ? tab.iconActive : tab.icon"
-              class="w-5 h-5 stroke-[1.5]"
-            />
-            <span v-if="isActive(tab.path)" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-market-orange"></span>
-          </div>
-          <span class="mt-1">{{ tab.label }}</span>
-        </button>
-      </div>
-    </nav>
-
-    <!-- Global Layered Notification Modal (z-[99999]) -->
-    <div
-      v-if="isNotificationModalOpen"
-      class="fixed inset-0 z-[99999] flex justify-end overflow-hidden bg-black/55 backdrop-blur-sm transition-opacity duration-300"
-      @click="isNotificationModalOpen = false"
-    >
-      <div
-        class="w-full max-w-md bg-[#f4f7f5] h-full shadow-2xl flex flex-col"
-        @click.stop
-      >
-        <!-- Modal Header -->
-        <div class="p-6 bg-farm-dark border-b border-white/10 flex items-center justify-between">
-          <div>
-            <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#f2994a]">Seller notifications</p>
-            <h2 class="mt-1 text-xl font-black tracking-tight text-white flex items-center gap-2">
-              Inbox
-              <span
-                v-if="unreadCount > 0"
-                class="px-2 py-0.5 rounded-full bg-[#f2994a] text-white text-[11px] font-extrabold animate-pulse"
-              >
-                {{ unreadCount }} new
-              </span>
-            </h2>
-          </div>
-          <div class="flex items-center gap-2">
-            <button
-              v-if="unreadCount > 0"
-              type="button"
-              class="text-xs font-black uppercase tracking-[0.12em] text-white/70 hover:text-white hover:underline transition-colors px-2 py-1"
-              :disabled="pending"
-              @click="markAllAsRead"
-            >
-              Mark all as read
-            </button>
-            <button
-              type="button"
-              class="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors flex items-center justify-center"
-              aria-label="Close panel"
-              @click="isNotificationModalOpen = false"
-            >
-              <Icon name="heroicons:x-mark" class="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-
-        <!-- Modal Content / List -->
-        <div class="flex-1 overflow-y-auto p-6 space-y-4">
-          <div v-if="pending && notifications.length === 0" class="flex flex-col items-center justify-center h-64 gap-4">
-            <div class="h-8 w-8 animate-spin rounded-full border-4 border-[#2d5a27] border-t-transparent" />
-            <p class="text-sm font-bold text-[#1a2e22]/50">Fetching notifications...</p>
-          </div>
-
-          <div v-else-if="notifications.length === 0" class="flex flex-col items-center justify-center h-64 p-6 border-2 border-dashed border-[#1a2e22]/15 bg-white rounded-xl">
-            <Icon name="heroicons:bell" class="w-12 h-12 text-[#1a2e22]/30 mb-3" />
-            <p class="text-sm font-bold text-[#1a2e22]/60">No notifications yet.</p>
-            <p class="text-xs text-[#1a2e22]/40 mt-1">Order alerts will appear here.</p>
-          </div>
-
-          <div v-else class="space-y-3">
-            <article
-              v-for="notification in notifications"
-              :key="notification.id"
-              class="border bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition duration-200 border-[#1a2e22]/5 relative overflow-hidden"
-              :class="notification.is_read ? 'opacity-85' : 'ring-1 ring-[#f2994a]/25'"
-            >
-              <div
-                v-if="!notification.is_read"
-                class="absolute left-0 top-0 bottom-0 w-1 bg-[#f2994a]"
-              />
-              <div class="flex w-full gap-3">
-                <span
-                  class="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                  :class="notification.is_read ? 'bg-[#1a2e22]/15' : 'bg-[#f2994a] animate-pulse'"
-                />
-                <div class="min-w-0 flex-1">
-                  <span class="block text-sm font-black text-[#1a2e22]">{{ notification.title }}</span>
-                  <p class="mt-1.5 text-xs leading-relaxed text-[#1a2e22]/70">{{ notification.message }}</p>
-                  <div class="mt-3 flex items-center justify-between">
-                    <span class="block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#1a2e22]/40">
-                      {{ formatDate(notification.created_at) }}
-                    </span>
-                    <button
-                      v-if="!notification.is_read"
-                      type="button"
-                      class="text-[10px] font-black uppercase tracking-[0.1em] text-[#2d5a27] hover:underline"
-                      @click="markSingleAsRead(notification.id)"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </article>
-          </div>
-        </div>
+        <ion-content class="seller-ion-content">
+          <AppShell with-tab-bar tinted>
+            <slot />
+          </AppShell>
+        </ion-content>
       </div>
     </div>
+
+    <!-- Phones: bottom tab bar -->
+    <nav class="seller-tab-bar md:hidden" aria-label="Seller navigation">
+      <NuxtLink
+        v-for="tab in tabs"
+        :key="tab.path"
+        :to="tab.path"
+        class="seller-tab"
+        :class="{ 'seller-tab--active': isActive(tab.path) }"
+      >
+        <span class="relative">
+          <Icon :name="isActive(tab.path) ? tab.iconActive : tab.icon" class="h-6 w-6" />
+          <span
+            v-if="tab.badge && tab.badge() > 0"
+            class="absolute -right-2 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-market-orange px-1 text-[10px] font-semibold text-white"
+          >
+            {{ tab.badge() }}
+          </span>
+        </span>
+        {{ tab.label }}
+      </NuxtLink>
+      <button type="button" class="seller-tab" :class="{ 'seller-tab--active': moreActive }" @click="showMore = true">
+        <Icon name="heroicons:bars-3" class="h-6 w-6" />
+        More
+      </button>
+    </nav>
+
+    <!-- Phones: "More" sheet -->
+    <UiSheet :open="showMore" title="More" @close="showMore = false">
+      <div class="-mx-4 -mt-4">
+        <div class="flex items-center gap-3 bg-farm-deep px-4 py-4">
+          <AccountAvatar :name="shopName" :url="shop.shop_avatar_url" class="h-11 w-11 rounded-full bg-market-orange text-sm text-white" />
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium text-white">{{ shopName }}</p>
+            <p class="truncate text-xs text-white/60">{{ user?.email }}</p>
+          </div>
+        </div>
+        <ul class="divide-y divide-gray-100">
+          <li v-for="item in moreLinks" :key="item.label">
+            <NuxtLink
+              :to="item.path"
+              :target="item.external ? '_blank' : undefined"
+              class="flex min-h-[52px] items-center gap-3 px-4 text-sm text-shop-ink"
+              @click="showMore = false"
+            >
+              <Icon :name="item.icon" class="h-5 w-5 text-farm-leaf" />
+              <span class="flex-1">{{ item.label }}</span>
+              <Icon name="heroicons:chevron-right" class="h-4 w-4 text-gray-300" />
+            </NuxtLink>
+          </li>
+          <li>
+            <button type="button" class="flex min-h-[52px] w-full items-center gap-3 px-4 text-left text-sm text-red-600" @click="handleLogout">
+              <Icon name="heroicons:arrow-left-on-rectangle" class="h-5 w-5" />
+              Sign out
+            </button>
+          </li>
+        </ul>
+      </div>
+    </UiSheet>
+
+    <!-- Desktop account menu -->
+    <div
+      v-if="showProfileMenu"
+      class="fixed right-8 top-16 z-[95] w-60 rounded-md border border-gray-100 bg-white py-1"
+    >
+      <div class="border-b border-gray-100 px-4 py-3">
+        <p class="truncate text-sm font-medium text-shop-ink">{{ user?.full_name }}</p>
+        <p class="truncate text-xs text-gray-400">{{ user?.email }}</p>
+      </div>
+      <NuxtLink
+        to="/seller/settings"
+        class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:text-shop-ink"
+        @click="showProfileMenu = false"
+      >
+        <Icon name="heroicons:cog-6-tooth" class="h-4 w-4 text-gray-400" />
+        Shop settings
+      </NuxtLink>
+      <button
+        type="button"
+        class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-600 hover:text-red-600"
+        @click="handleLogout"
+      >
+        <Icon name="heroicons:arrow-left-on-rectangle" class="h-4 w-4 text-gray-400" />
+        Sign out
+      </button>
+    </div>
+    <div v-if="showProfileMenu" class="fixed inset-0 z-[94]" @click="showProfileMenu = false" />
+
+    <NotificationInbox
+      :open="isNotificationModalOpen"
+      :notifications="notifications"
+      :unread-count="unreadCount"
+      :pending="pending"
+      empty-text="Order alerts will appear here."
+      @close="isNotificationModalOpen = false"
+      @select="openNotification"
+      @read-all="markAllAsRead"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { IonPage, IonHeader, IonToolbar, IonContent } from '@ionic/vue'
 import AppShell from '~/components/ui/AppShell.vue'
+import type { MarketplaceNotification } from '~/composables/useNotificationEngine'
 
-const isNotificationModalOpen = ref(false)
-const { notifications, unreadCount, pending, fetchNotifications, markAllAsRead } = useNotificationEngine()
-
-const toggleNotificationModal = () => {
-  isNotificationModalOpen.value = !isNotificationModalOpen.value
-  if (isNotificationModalOpen.value) {
-    fetchNotifications()
-  }
-}
-
-const markSingleAsRead = async (id: string) => {
-  await $fetch(`/api/notifications/${id}`, {
-    method: 'PATCH',
-    body: { is_read: true },
-  })
-  await fetchNotifications()
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-PH', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
+interface NavItem {
+  label: string
+  path: string
+  icon: string
+  iconActive: string
+  badge?: () => number
 }
 
 const { user, logout } = useAuth()
 const router = useRouter()
 const route = useRoute()
+const api = useApiFetch()
+
+const showMore = ref(false)
 const showProfileMenu = ref(false)
+const isNotificationModalOpen = ref(false)
+const pendingOrderCount = ref(0)
+const shop = ref<{ shop_name?: string | null; shop_avatar_url?: string | null }>({})
 
-const userInitial = computed(() =>
-  user.value?.full_name?.charAt(0).toUpperCase() ?? 'S',
-)
+const { notifications, unreadCount, pending, fetchNotifications, markAllAsRead } = useNotificationEngine()
 
-const tabs = [
-  { label: 'Home', path: '/seller/dashboard', icon: 'heroicons:home', iconActive: 'heroicons:home-solid' },
-  { label: 'Orders', path: '/seller/orders', icon: 'heroicons:clipboard-document-list', iconActive: 'heroicons:clipboard-document-list-solid' },
-  { label: 'Stock', path: '/seller/inventory', icon: 'heroicons:archive-box', iconActive: 'heroicons:archive-box-solid' },
-  { label: 'Reviews', path: '/seller/reviews', icon: 'heroicons:chat-bubble-left-right', iconActive: 'heroicons:chat-bubble-left-right-solid' },
-  { label: 'Profile', path: '/seller/profile', icon: 'heroicons:user', iconActive: 'heroicons:user-solid' },
-  { label: 'Settings', path: '/seller/settings', icon: 'heroicons:cog-6-tooth', iconActive: 'heroicons:cog-6-tooth-solid' },
+const nav = {
+  dashboard: { label: 'Dashboard', path: '/seller/dashboard', icon: 'heroicons:squares-2x2', iconActive: 'heroicons:squares-2x2-solid' },
+  orders: { label: 'Orders', path: '/seller/orders', icon: 'heroicons:clipboard-document-list', iconActive: 'heroicons:clipboard-document-list-solid', badge: () => pendingOrderCount.value },
+  reviews: { label: 'Reviews', path: '/seller/reviews', icon: 'heroicons:star', iconActive: 'heroicons:star-solid' },
+  inventory: { label: 'Inventory', path: '/seller/inventory', icon: 'heroicons:archive-box', iconActive: 'heroicons:archive-box-solid' },
+  profile: { label: 'Profile', path: '/seller/profile', icon: 'heroicons:user-circle', iconActive: 'heroicons:user-circle-solid' },
+  settings: { label: 'Shop settings', path: '/seller/settings', icon: 'heroicons:cog-6-tooth', iconActive: 'heroicons:cog-6-tooth-solid' },
+} satisfies Record<string, NavItem>
+
+const navGroups: { label: string; items: NavItem[] }[] = [
+  { label: 'Overview', items: [nav.dashboard] },
+  { label: 'Sales', items: [nav.orders, nav.reviews] },
+  { label: 'Products', items: [nav.inventory] },
+  { label: 'Shop', items: [nav.profile, nav.settings] },
 ]
+
+const tabs: NavItem[] = [
+  { ...nav.dashboard, label: 'Home' },
+  nav.orders,
+  { ...nav.inventory, label: 'Products' },
+  nav.reviews,
+]
+
+const moreLinks = computed(() => [
+  { label: 'Profile', path: nav.profile.path, icon: nav.profile.icon, external: false },
+  { label: 'Shop settings', path: nav.settings.path, icon: nav.settings.icon, external: false },
+  ...(user.value?.id
+    ? [{ label: 'View my shop', path: `/buyer/shop/${user.value.id}`, icon: 'heroicons:building-storefront', external: true }]
+    : []),
+])
 
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(`${path}/`)
 }
 
+const moreActive = computed(() => isActive(nav.profile.path) || isActive(nav.settings.path))
+
+const currentTitle = computed(() => {
+  for (const group of navGroups) {
+    const item = group.items.find(i => isActive(i.path))
+    if (item) return item.label
+  }
+  return 'Seller Centre'
+})
+
+const shopName = computed(() => shop.value.shop_name || user.value?.shop_name || user.value?.full_name || 'My shop')
+
+async function loadShop() {
+  try {
+    const res = await api<{ seller: { shop_name?: string | null; shop_avatar_url?: string | null } }>('/api/seller/profile')
+    shop.value = res.seller
+  }
+  catch { /* falls back to the user name */ }
+}
+
+async function loadPendingOrders() {
+  try {
+    const res = await api<{ orders: { seller_confirmed?: boolean }[] }>('/api/seller/orders')
+    pendingOrderCount.value = (res.orders ?? []).filter(o => !o.seller_confirmed).length
+  }
+  catch {
+    pendingOrderCount.value = 0
+  }
+}
+
+const toggleNotificationModal = () => {
+  isNotificationModalOpen.value = !isNotificationModalOpen.value
+  if (isNotificationModalOpen.value) fetchNotifications()
+}
+
+async function markSingleAsRead(id: string) {
+  await api(`/api/notifications/${id}`, { method: 'PATCH', body: { is_read: true } })
+  await fetchNotifications()
+}
+
+// Seller notifications are about orders: open the Orders page.
+async function openNotification(notification: MarketplaceNotification) {
+  if (!notification.is_read) await markSingleAsRead(notification.id)
+  if (notification.order_id) {
+    isNotificationModalOpen.value = false
+    await router.push('/seller/orders')
+  }
+}
+
 async function handleLogout() {
   showProfileMenu.value = false
+  showMore.value = false
   await logout()
   router.push('/')
 }
 
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') showProfileMenu.value = false
+}
+
+// Close menus after navigating; refresh the Orders badge on every page change.
+watch(() => route.path, () => {
+  showMore.value = false
+  loadPendingOrders()
+})
+
+// Shop name/avatar can change on the settings page.
+watch(() => [user.value?.shop_name, user.value?.shop_avatar_url], loadShop)
+
 onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
   fetchNotifications()
+  loadShop()
+  loadPendingOrders()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
 })
 </script>
 
 <style scoped>
+/* Phones: green header bar. Desktop: white bar next to the green sidebar. */
+.seller-header {
+  box-shadow: none;
+}
+
 .seller-header ion-toolbar {
-  --background: transparent;
-  --min-height: 52px;
+  --background: #2F5D3A;
+  --min-height: 56px;
+  --padding-start: 0;
+  --padding-end: 0;
+  --border-width: 0;
+}
+
+@media (min-width: 768px) {
+  .seller-header {
+    border-bottom: 1px solid rgba(78, 139, 87, 0.15);
+  }
+  .seller-header ion-toolbar {
+    --background: #ffffff;
+  }
 }
 
 .seller-ion-content {
-  --background: #ffffff;
+  --background: #EEF5EE;
 }
 
 .seller-tab-bar {
@@ -288,48 +374,40 @@ onMounted(() => {
   left: 0;
   right: 0;
   z-index: 50;
-  background: #1A3521;
+  display: flex;
+  background: #ffffff;
+  border-top: 1px solid rgba(78, 139, 87, 0.15);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-.seller-tab-btn {
+.seller-tab {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 10px 4px 14px;
-  color: rgba(255, 255, 255, 0.4);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 10px;
+  min-height: 56px;
+  padding: 8px 4px;
+  color: #9ca3af;
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: color 0.2s ease;
 }
 
-.seller-tab-btn--active {
-  color: #E67E22;
+.seller-tab--active {
+  color: #2F5D3A;
+  font-weight: 600;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.fade-down-enter-active,
-.fade-down-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.fade-down-enter-from,
-.fade-down-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
+/* Short orange bar above the active tab */
+.seller-tab--active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 30%;
+  right: 30%;
+  height: 2px;
+  background: #E67E22;
 }
 </style>

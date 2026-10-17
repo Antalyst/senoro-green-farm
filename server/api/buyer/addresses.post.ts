@@ -14,6 +14,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'All address fields are required' })
   }
 
+  const coordinates = parseCoordinates(body?.latitude, body?.longitude)
+
   const supabase = await serverSupabaseClient(event)
 
   if (is_default) {
@@ -30,23 +32,32 @@ export default defineEventHandler(async (event) => {
 
   const makeDefault = is_default || (count ?? 0) === 0
 
-  const { data: address, error } = await supabase
+  const row = {
+    user_id: user.id,
+    full_name: full_name.trim(),
+    phone_number: phone_number.trim(),
+    city: city.trim(),
+    barangay: barangay.trim(),
+    detailed_address: detailed_address.trim(),
+    is_default: makeDefault,
+  }
+
+  let coordinatesSaved = !!coordinates
+  let { data: address, error } = await supabase
     .from('addresses')
-    .insert({
-      user_id: user.id,
-      full_name: full_name.trim(),
-      phone_number: phone_number.trim(),
-      city: city.trim(),
-      barangay: barangay.trim(),
-      detailed_address: detailed_address.trim(),
-      is_default: makeDefault,
-    })
+    .insert({ ...row, ...coordinates })
     .select()
     .single()
+
+  // DB without migration 009: save the address without the pin.
+  if (coordinates && isMissingCoordinateColumns(error)) {
+    coordinatesSaved = false
+    ;({ data: address, error } = await supabase.from('addresses').insert(row).select().single())
+  }
 
   if (error || !address) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to create address' })
   }
 
-  return { address }
+  return { address, coordinates_saved: coordinatesSaved }
 })

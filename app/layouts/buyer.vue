@@ -1,116 +1,108 @@
 <template>
   <ion-page>
-    <ion-header class="buyer-header sticky top-0 z-50 bg-white shadow-sm border-b border-farm-light">
-      <ion-toolbar class="buyer-toolbar bg-transparent text-farm-dark">
-        <div class="max-w-page mx-auto w-full px-4 md:px-8 flex items-center gap-4 py-3">
+    <ion-header class="buyer-header">
+      <ion-toolbar>
+        <div class="mx-auto flex h-16 w-full max-w-page items-center gap-3 px-4 md:gap-6 md:px-8">
           <button
             v-if="isSubPage"
             type="button"
-            @click="router.back()"
-            class="p-2 -ml-1 text-farm-dark/60 hover:text-farm-dark transition-colors flex-shrink-0"
+            class="-ml-1 flex-shrink-0 rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-shop-ink"
             aria-label="Go back"
+            @click="router.back()"
           >
-            <Icon name="heroicons:arrow-left" class="w-5 h-5 stroke-[1.5]" />
+            <Icon name="heroicons:arrow-left" class="h-5 w-5" />
           </button>
-          <NuxtLink v-else to="/" class="flex-shrink-0 flex items-center gap-2">
-            <img
-              src="/logo2.png"
-              class="w-8 h-8 object-contain"
-              alt="Senoro"
-            >
-            <span class="hidden lg:block text-lg font-black text-market-orange tracking-tight">Negros Farmers Weekend Market</span>
+          <NuxtLink v-else to="/" class="flex flex-shrink-0 items-center gap-2">
+            <img src="/logo2.png" class="h-9 w-9 object-contain" alt="NFWM">
+            <span class="hidden text-lg font-bold tracking-tight text-shop-ink sm:block">NFWM</span>
           </NuxtLink>
 
-          <div
-            v-if="showSearch"
-            class="flex-1 flex items-center bg-farm-light/50 px-3 py-2 gap-2 min-w-0 rounded border border-farm-light"
-          >
-            <Icon name="heroicons:magnifying-glass" class="w-4 h-4 text-farm-dark/50 flex-shrink-0" />
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search for fresh produce or street food…"
-              class="bg-transparent text-sm text-farm-dark placeholder:text-farm-dark/50 flex-1 outline-none min-w-0"
-            >
-          </div>
-          <div v-else class="flex-1 min-w-0 flex items-center gap-4">
-            <h1 class="text-sm font-bold text-farm-dark tracking-tight truncate mr-2">
-              {{ headerTitle }}
-            </h1>
-          </div>
-
-          <!-- Desktop Navigation -->
-          <nav class="hidden md:flex items-center gap-6 ml-4">
-            <NuxtLink
-              v-for="tab in desktopTabs"
-              :key="tab.path"
-              :to="tab.path"
-              class="text-xs font-bold tracking-[0.15em] uppercase transition-colors"
-              :class="currentPath === tab.path || (tab.path !== '/' && currentPath.startsWith(tab.path))
-                ? 'text-market-orange border-b-2 border-market-orange py-1'
-                : 'text-farm-dark hover:text-market-orange py-1'"
-            >
-              {{ tab.label }}
-            </NuxtLink>
+          <!-- Desktop navigation -->
+          <nav class="hidden items-center gap-7 lg:flex" aria-label="Main">
+            <template v-for="link in navLinks" :key="link.label">
+              <NuxtLink
+                v-if="link.to"
+                :to="link.to"
+                class="nav-link"
+                :class="isNavActive(link.to) ? 'nav-link--active' : ''"
+              >
+                {{ link.label }}
+              </NuxtLink>
+              <button v-else type="button" class="nav-link" @click="goToSection(link.section!)">
+                {{ link.label }}
+              </button>
+            </template>
           </nav>
 
-          <div class="flex items-center gap-4 ml-4">
+          <div v-if="showSearch" class="flex min-w-0 flex-1 justify-end">
+            <label class="flex w-full min-w-0 items-center gap-2 rounded-full bg-gray-100 px-4 py-2 transition focus-within:bg-white focus-within:ring-2 focus-within:ring-farm-leaf/30 md:max-w-xs">
+              <Icon name="heroicons:magnifying-glass" class="h-4 w-4 flex-shrink-0 text-gray-400" />
+              <input
+                v-model="searchQuery"
+                type="search"
+                placeholder="Search fresh produce…"
+                aria-label="Search products"
+                class="min-w-0 flex-1 bg-transparent text-sm text-shop-ink outline-none placeholder:text-gray-400"
+              >
+            </label>
+          </div>
+          <!-- Page title on phones; on desktop the nav is shown instead (element stays as spacer) -->
+          <h1 v-else class="min-w-0 flex-1 truncate text-sm font-semibold text-shop-ink">
+            <span class="lg:hidden">{{ headerTitle }}</span>
+          </h1>
+
+          <div class="flex flex-shrink-0 items-center gap-1">
             <button
               v-if="route.path !== '/buyer/cart' && route.path !== '/buyer/checkout'"
               type="button"
-              class="relative p-2 text-farm-dark hover:text-market-orange transition-colors flex-shrink-0"
+              class="icon-btn"
               aria-label="Cart"
               @click="router.push('/buyer/cart')"
             >
-              <Icon name="heroicons:shopping-cart" class="w-6 h-6" />
-              <span
-                v-if="cartCount > 0"
-                class="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 bg-market-orange text-white text-[10px] font-black flex items-center justify-center rounded-full shadow-sm ring-2 ring-white"
-              >
-                {{ cartCount }}
-              </span>
+              <Icon name="heroicons:shopping-cart" class="h-6 w-6" />
+              <span v-if="cartCount > 0" class="badge">{{ cartCount }}</span>
             </button>
-            <div v-else class="w-10" />
 
             <button
+              v-if="user"
               type="button"
-              class="relative p-2 text-gray-700 hover:text-green-700 transition-colors z-[99] flex items-center justify-center cursor-pointer min-w-[40px] min-h-[40px] bg-transparent border-0 animate-none"
-              @click.stop="toggleNotificationModal"
+              class="icon-btn"
               aria-label="Notifications"
+              @click.stop="toggleNotificationModal"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 pointer-events-none">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-              </svg>
-              <span
-                v-if="unreadCount > 0"
-                class="absolute top-1 right-1 bg-[#f2994a] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center pointer-events-none"
-              >
-                {{ unreadCount }}
-              </span>
+              <Icon name="heroicons:bell" class="h-6 w-6" />
+              <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
             </button>
 
-            <!-- Profile Avatar -->
             <NuxtLink
-  to="/buyer/profile"
-  class="hidden md:flex h-9 ml-2 border-2 border-farm-dark bg-farm-light items-center justify-center text-farm-dark hover:border-market-orange hover:text-market-orange transition-colors flex-shrink-0 overflow-hidden"
-  :class="user ? 'w-9 h-9 rounded-full' : 'px-4 rounded-lg'"
-  title="Your Profile"
->
-  <span class="text-sm font-black uppercase">
-    {{ user?.full_name?.charAt(0) || 'Sign In' }}
-  </span>
-</NuxtLink>
+              v-if="user"
+              to="/buyer/profile"
+              class="ml-1 hidden h-9 w-9 items-center justify-center rounded-full bg-farm-leaf text-sm font-semibold text-white transition hover:bg-farm-deep md:flex"
+              title="Your profile"
+            >
+              <AccountAvatar :name="user.full_name" :url="user.avatar_url" class="h-full w-full rounded-full" />
+            </NuxtLink>
+            <NuxtLink
+              v-else
+              to="/auth/login"
+              class="ml-1 hidden rounded bg-farm-leaf px-4 py-2 text-sm font-semibold text-white transition hover:bg-farm-deep md:block"
+            >
+              Sign in
+            </NuxtLink>
           </div>
         </div>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="buyer-ion-content bg-white">
-      <AppShell with-tab-bar>
-        <!-- Minimalist Page Loader (Global) -->
-        <div v-if="isLoading" class="absolute top-0 left-0 right-0 h-0.5 bg-market-orange animate-pulse z-50" />
+    <ion-content class="buyer-ion-content">
+      <!-- Page loader -->
+      <div v-if="isLoading" class="absolute left-0 right-0 top-0 z-50 h-0.5 animate-pulse bg-farm-leaf" />
+      <AppShell :with-tab-bar="!showFooter">
         <slot />
       </AppShell>
+      <div v-if="showFooter" class="pb-20 md:pb-0 bg-shop-mint">
+        <StorefrontSiteFooter />
+      </div>
     </ion-content>
 
     <nav class="buyer-tab-bar md:hidden">
@@ -128,114 +120,23 @@
               :name="currentPath === tab.path || (tab.path !== '/' && currentPath.startsWith(tab.path)) ? tab.iconActive : tab.icon"
               class="w-5 h-5 stroke-[1.5]"
             />
-            <span v-if="currentPath === tab.path || (tab.path !== '/' && currentPath.startsWith(tab.path))" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-market-orange"></span>
+            <span v-if="currentPath === tab.path || (tab.path !== '/' && currentPath.startsWith(tab.path))" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-farm-leaf"></span>
           </div>
           <span class="mt-1">{{ tab.label }}</span>
         </button>
       </div>
     </nav>
 
-    <!-- Global Layered Notification Modal (z-[99999]) -->
-    <div
-      v-if="isNotificationModalOpen"
-      class="fixed inset-0 z-[99999] flex justify-end overflow-hidden bg-black/55 backdrop-blur-sm transition-opacity duration-300"
-      @click="isNotificationModalOpen = false"
-    >
-      <div
-        class="w-full max-w-md bg-[#f4f7f5] h-full shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-0"
-        @click.stop
-      >
-        <!-- Modal Header -->
-        <div class="p-6 bg-white border-b border-[#2d5a27]/10 flex items-center justify-between">
-          <div>
-            <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#f2994a]">Buyer notifications</p>
-            <h2 class="mt-1 text-xl font-black tracking-tight text-[#1a2e22] flex items-center gap-2">
-              Inbox
-              <span
-                v-if="unreadCount > 0"
-                class="px-2 py-0.5 rounded-full bg-[#f2994a] text-white text-[11px] font-extrabold animate-pulse"
-              >
-                {{ unreadCount }} new
-              </span>
-            </h2>
-          </div>
-          <div class="flex items-center gap-2">
-            <button
-              v-if="unreadCount > 0"
-              type="button"
-              class="text-xs font-black uppercase tracking-[0.12em] text-[#2d5a27] hover:text-[#1e3c1a] hover:underline transition-colors px-2 py-1"
-              :disabled="pending"
-              @click="markAllAsRead"
-            >
-              Mark all as read
-            </button>
-            <button
-              type="button"
-              class="p-2 text-[#1a2e22]/50 hover:text-[#1a2e22] hover:bg-[#1a2e22]/5 rounded-full transition-colors flex items-center justify-center"
-              aria-label="Close panel"
-              @click="isNotificationModalOpen = false"
-            >
-              <Icon name="heroicons:x-mark" class="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-
-        <!-- Modal Content / List -->
-        <div class="flex-1 overflow-y-auto p-6 space-y-4">
-          <div v-if="pending && notifications.length === 0" class="flex flex-col items-center justify-center h-64 gap-4">
-            <div class="h-8 w-8 animate-spin rounded-full border-4 border-[#2d5a27] border-t-transparent" />
-            <p class="text-sm font-bold text-[#1a2e22]/50">Fetching notifications...</p>
-          </div>
-
-          <div v-else-if="notifications.length === 0" class="flex flex-col items-center justify-center h-64 p-6 border-2 border-dashed border-[#1a2e22]/15 bg-white rounded-xl">
-            <Icon name="heroicons:bell" class="w-12 h-12 text-[#1a2e22]/30 mb-3" />
-            <p class="text-sm font-bold text-[#1a2e22]/60">You are all caught up!</p>
-            <p class="text-xs text-[#1a2e22]/40 mt-1">Order updates will appear here.</p>
-          </div>
-
-          <div v-else class="space-y-3">
-            <article
-              v-for="notification in notifications"
-              :key="notification.id"
-              class="border bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition duration-200 border-[#1a2e22]/5 relative overflow-hidden cursor-pointer"
-              :class="notification.is_read ? 'opacity-85' : 'ring-1 ring-[#f2994a]/25'"
-              @click="handleNotificationAction(notification)"
-            >
-              <div
-                v-if="!notification.is_read"
-                class="absolute left-0 top-0 bottom-0 w-1 bg-[#f2994a]"
-              />
-
-              <div class="flex w-full gap-3 text-left">
-                <span
-                  class="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                  :class="notification.is_read ? 'bg-[#1a2e22]/15' : 'bg-[#f2994a] animate-pulse'"
-                />
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-start justify-between gap-2">
-                    <span class="block text-sm font-black text-[#1a2e22]">{{ notification.title }}</span>
-                  </div>
-                  <p class="mt-1.5 text-xs leading-relaxed text-[#1a2e22]/70">{{ notification.message }}</p>
-                  <div class="mt-3 flex items-center justify-between">
-                    <span class="block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#1a2e22]/40">
-                      {{ formatDate(notification.created_at) }}
-                    </span>
-                    <button
-                      v-if="!notification.is_read"
-                      type="button"
-                      class="text-[10px] font-black uppercase tracking-[0.1em] text-[#2d5a27] hover:underline"
-                      @click.stop="markSingleAsRead(notification.id)"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </article>
-          </div>
-        </div>
-      </div>
-    </div>
+    <NotificationInbox
+      :open="isNotificationModalOpen"
+      :notifications="notifications"
+      :unread-count="unreadCount"
+      :pending="pending"
+      empty-text="Order updates will appear here."
+      @close="isNotificationModalOpen = false"
+      @select="handleNotificationAction"
+      @read-all="markAllAsRead"
+    />
 
     <OrderChatDrawer
       :open="isChatModalOpen"
@@ -287,7 +188,7 @@ const toggleNotificationModal = () => {
 }
 
 const markSingleAsRead = async (id: string) => {
-  await $fetch(`/api/notifications/${id}`, {
+  await useApiFetch()(`/api/notifications/${id}`, {
     method: 'PATCH',
     body: { is_read: true },
   })
@@ -304,13 +205,6 @@ const handleNotificationAction = async (notification: MarketplaceNotification) =
     isNotificationModalOpen.value = false
     await openChatModal(notification.order_id, null, 'Rider chat')
   }
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-PH', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
 }
 
 const { user } = useAuth()
@@ -349,7 +243,7 @@ const headerTitle = computed(() => {
     if (currentPath.value.startsWith('/buyer/orders/')) return subPageTitle.value || 'Order tracking'
     if (currentPath.value === '/buyer/profile/addresses') return 'Addresses'
     if (currentPath.value.startsWith('/buyer/shop/')) return subPageTitle.value || 'Shop'
-    return subPageTitle.value || 'Senoro Green Farm'
+    return subPageTitle.value || 'NFWM'
   }
   if (currentPath.value === '/buyer/cart') return 'Cart'
   if (currentPath.value === '/buyer/profile') return 'Profile'
@@ -359,6 +253,35 @@ const headerTitle = computed(() => {
 const showSearch = computed(() => {
   return currentPath.value === '/' || currentPath.value === '/buyer/categories'
 })
+
+// Storefront pages get the footer; account/checkout pages stay focused.
+const showFooter = computed(() =>
+  currentPath.value === '/'
+  || currentPath.value === '/buyer/categories'
+  || currentPath.value.startsWith('/buyer/shop/')
+  || currentPath.value.startsWith('/buyer/product/'),
+)
+
+const navLinks: { label: string; to?: string; section?: string }[] = [
+  { label: 'Home', to: '/' },
+  { label: 'Shop', section: 'products' },
+  { label: 'Categories', section: 'categories' },
+  { label: 'Local shops', section: 'shops' },
+  { label: 'My Orders', to: '/buyer/orders' },
+]
+
+function isNavActive(to: string) {
+  return to === '/' ? currentPath.value === '/' : currentPath.value.startsWith(to)
+}
+
+// Sections live on the home page. ion-content scrolls (not the window), so scroll the element directly.
+function goToSection(id: string) {
+  if (currentPath.value === '/') {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+  router.push({ path: '/', hash: `#${id}` })
+}
 
 async function refreshCartCount() {
   try {
@@ -387,11 +310,22 @@ const tabs = [
 
 const desktopTabs = tabs.filter(t => ['/', '/buyer/orders'].includes(t.path))
 
+// Cart and notifications need a login; guests browsing the storefront skip them (no 401s).
+function loadAccountBadges() {
+  if (!user.value) {
+    cartCount.value = 0
+    return
+  }
+  refreshCartCount()
+  fetchNotifications()
+}
+
+watch(() => user.value?.id, loadAccountBadges)
+
 onMounted(() => {
   searchQuery.value = (route.query.search as string) || ''
   layoutReady.value = true
-  refreshCartCount()
-  fetchNotifications()
+  loadAccountBadges()
 })
 
 watch(searchQuery, (newVal) => {
@@ -406,13 +340,39 @@ watch(() => route.query.search, (newVal) => {
 </script>
 
 <style scoped>
+.buyer-header {
+  border-bottom: 1px solid #f3f4f6;
+  box-shadow: none;
+}
+
 .buyer-header ion-toolbar {
-  --background: transparent;
-  --min-height: 52px;
+  --background: #ffffff;
+  --min-height: 64px;
+  --padding-start: 0;
+  --padding-end: 0;
+  --border-width: 0;
 }
 
 .buyer-ion-content {
   --background: #ffffff;
+}
+
+.nav-link {
+  @apply relative py-1 text-sm font-medium text-gray-600 transition-colors hover:text-farm-leaf;
+}
+.nav-link--active {
+  @apply text-farm-leaf;
+}
+.nav-link--active::after {
+  content: '';
+  @apply absolute -bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-farm-leaf;
+}
+
+.icon-btn {
+  @apply relative flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-gray-100 hover:text-shop-ink;
+}
+.badge {
+  @apply absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-market-orange px-1 text-[10px] font-bold text-white ring-2 ring-white;
 }
 
 .buyer-tab-bar {
@@ -421,7 +381,9 @@ watch(() => route.query.search, (newVal) => {
   left: 0;
   right: 0;
   z-index: 50;
-  background: #1A3521;
+  background: #ffffff;
+  border-top: 1px solid #f3f4f6;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -432,19 +394,17 @@ watch(() => route.query.search, (newVal) => {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 10px 4px 14px;
-  color: rgba(255, 255, 255, 0.4);
+  padding: 10px 4px 12px;
+  color: #9ca3af;
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   transition: color 0.2s ease;
 }
 
 .buyer-tab-btn--active {
-  color: #E67E22;
+  color: #4E8B57;
 }
 </style>

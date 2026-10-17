@@ -67,19 +67,19 @@ export default defineEventHandler(async (event) => {
     .single()
 
   if (msgErr) {
-    throw createError({ statusCode: 500, statusMessage: msgErr.message })
+    console.error('[chat] insert failed:', msgErr.code, msgErr.message)
+    throw createError({ statusCode: 500, statusMessage: 'Failed to send message. Please try again.' })
   }
 
   const isSenderRider = user.id === order.delivery_rider_id
   const alertTitle = isSenderRider ? 'New Message from Rider! 🛵' : 'New Message from Buyer! 🌾'
 
-  await supabase.from('notifications').insert({
+  await notify(event, [{
     user_id: receiver_id,
     order_id,
     title: alertTitle,
     message: trimmedText.length > 45 ? `${trimmedText.slice(0, 42)}...` : trimmedText,
-    is_read: false,
-  })
+  }])
 
   await supabase.channel(`realtime-order-chat:${order_id}`).send({
     type: 'broadcast',

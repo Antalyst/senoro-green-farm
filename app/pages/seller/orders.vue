@@ -1,122 +1,124 @@
 <template>
-  <PageContainer class="space-y-12 py-8 md:py-12">
-    <header class="border-b border-farm-light pb-8">
-      <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45 mb-2">
-        Fulfillment
-      </p>
-      <h1 class="text-2xl md:text-3xl font-light text-farm-dark tracking-tight">
-        Incoming orders
-      </h1>
-      <p class="text-sm text-farm-dark/50 mt-2">
-        Accept and prepare orders before courier pickup
-      </p>
-    </header>
+  <div class="mx-auto w-full max-w-page space-y-5 py-6 md:space-y-6 md:py-8">
+    <div class="flex items-center justify-between gap-3">
+      <p class="text-sm text-gray-500">Accept and pack orders before a rider picks them up.</p>
+      <button type="button" class="ui-link flex-shrink-0" :disabled="pending" @click="refresh()">
+        {{ pending ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
 
-    <section v-if="pending" class="p-12 text-center text-xs text-farm-dark/40">
-      Loading order ledger…
-    </section>
+    <p v-if="pending && !orders.length" class="ui-card py-16 text-center text-sm text-gray-400">Loading…</p>
 
-    <section v-else-if="!orders.length" class="border border-farm-light p-12 text-center">
-      <p class="text-sm font-medium text-farm-dark">No active orders</p>
-      <p class="text-xs text-farm-dark/45 mt-1">New buyer orders appear here until marked ready for pickup.</p>
-    </section>
+    <div v-else-if="!orders.length" class="ui-card py-16 text-center">
+      <p class="text-sm font-medium text-shop-ink">No active orders</p>
+      <p class="mt-1 text-xs text-gray-400">New orders appear here until a rider picks them up.</p>
+    </div>
 
-    <section v-else class="space-y-px border border-farm-light">
-      <article
-        v-for="order in orders"
-        :key="order.id"
-        class="bg-white p-5 md:p-6 space-y-5"
-      >
-        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-farm-light pb-4">
+    <ul v-else class="space-y-4">
+      <li v-for="order in orders" :key="order.id" class="ui-card overflow-hidden">
+        <!-- Top row -->
+        <div class="ui-card-head items-start">
           <div>
-            <p class="text-[10px] uppercase tracking-wider text-farm-dark/40">Order</p>
-            <p class="text-sm font-medium text-farm-dark">#{{ shortId(order.id) }}</p>
-            <p class="text-xs text-farm-dark/50 mt-1">{{ formatDate(order.created_at) }}</p>
+            <p class="text-sm font-semibold text-farm-deep">Order #{{ shortId(order.id) }}</p>
+            <p class="text-xs text-gray-400">{{ formatDate(order.created_at) }}</p>
           </div>
-          <span
-            class="text-[10px] font-medium tracking-wider uppercase px-2 py-1 border"
-            :class="statusChip(order.status)"
-          >
+          <span class="flex-shrink-0" :class="statusClass(order.status)">
             {{ statusLabel(order.status) }}
           </span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div class="border border-farm-light p-4 bg-farm-light/20">
-            <p class="text-[10px] uppercase tracking-wider text-farm-dark/40 mb-1">Buyer</p>
-            <p class="font-medium text-farm-dark">{{ order.buyer?.full_name ?? 'Buyer' }}</p>
-            <p class="text-xs text-farm-dark/50">{{ order.buyer?.email }}</p>
-          </div>
-          <div class="border border-farm-light p-4">
-            <p class="text-[10px] uppercase tracking-wider text-farm-dark/40 mb-1">Ship to</p>
-            <template v-if="order.address">
-              <p class="text-farm-dark">{{ order.address.full_name }}</p>
-              <p class="text-xs text-farm-dark/60 mt-1">{{ order.address.phone_number }}</p>
-              <p class="text-xs text-farm-dark/50 mt-2 leading-relaxed">
-                {{ order.address.detailed_address }}, Brgy. {{ order.address.barangay }}, {{ order.address.city }}
-              </p>
-            </template>
-            <p v-else class="text-xs text-farm-dark/45">No address attached</p>
-          </div>
-        </div>
-
-        <div class="divide-y divide-farm-light border border-farm-light">
-          <div
-            v-for="item in order.seller_items"
-            :key="item.id"
-            class="flex items-center justify-between px-4 py-3 text-sm"
-          >
+        <div class="space-y-4 px-4 py-4 md:px-5">
+          <!-- Buyer + address -->
+          <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
             <div>
-              <p class="font-medium text-farm-dark">{{ item.products?.name }}</p>
-              <p class="text-xs text-farm-dark/45">{{ item.quantity }} × ₱{{ parseFloat(String(item.price)).toFixed(2) }}</p>
+              <p class="text-xs text-gray-400">Buyer</p>
+              <p class="mt-0.5 text-shop-ink">{{ order.buyer?.full_name ?? 'Buyer' }}</p>
+              <p v-if="order.buyer?.email" class="truncate text-xs text-gray-500">{{ order.buyer.email }}</p>
             </div>
-            <p class="text-farm-leaf font-medium tabular-nums">
-              ₱{{ (Number(item.price) * item.quantity).toFixed(2) }}
-            </p>
+            <div>
+              <p class="text-xs text-gray-400">Deliver to</p>
+              <template v-if="order.address">
+                <p class="mt-0.5 text-shop-ink">
+                  {{ order.address.full_name }}
+                  <a :href="`tel:${order.address.phone_number}`" class="text-farm-leaf">{{ order.address.phone_number }}</a>
+                </p>
+                <p class="text-xs leading-relaxed text-gray-500">
+                  {{ order.address.detailed_address }}, Brgy. {{ order.address.barangay }}, {{ order.address.city }}
+                </p>
+              </template>
+              <p v-else class="mt-0.5 text-xs text-gray-400">No address attached</p>
+            </div>
           </div>
-        </div>
 
-        <div class="flex items-center justify-between pt-2">
-          <span class="text-xs text-farm-dark/45 uppercase tracking-wider">Your subtotal</span>
-          <span class="text-lg font-medium text-farm-leaf tabular-nums">₱{{ order.seller_subtotal.toFixed(2) }}</span>
-        </div>
+          <!-- Items -->
+          <ul class="divide-y divide-farm-leaf/10 rounded border border-farm-leaf/15">
+            <li v-for="item in order.seller_items" :key="item.id" class="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+              <div class="min-w-0">
+                <p class="truncate text-shop-ink">{{ orderItemName(item) }}</p>
+                <p class="text-xs text-gray-400">{{ item.quantity }} × ₱{{ Number(item.price).toFixed(2) }}</p>
+              </div>
+              <p class="flex-shrink-0 tabular-nums text-shop-ink">₱{{ (Number(item.price) * item.quantity).toFixed(2) }}</p>
+            </li>
+          </ul>
 
-        <div class="flex flex-wrap gap-3">
-          <button
-            v-if="order.status === 'pending'"
-            type="button"
-            class="flex-1 min-w-[200px] py-3 bg-farm-deep text-white text-xs font-medium tracking-[0.12em] uppercase hover:bg-farm-dark disabled:opacity-50"
-            :disabled="updatingId === order.id"
-            @click="updateStatus(order.id, 'processing')"
-          >
-            Accept order
-          </button>
-          <template v-else-if="order.status === 'processing'">
-            <button
-              v-if="!order.seller_confirmed"
-              type="button"
-              class="flex-1 min-w-[200px] py-3 bg-farm-leaf text-white text-xs font-medium tracking-[0.12em] uppercase hover:bg-farm-deep disabled:opacity-50"
-              :disabled="updatingId === order.id"
-              @click="updateStatus(order.id, 'ready_for_pickup')"
-            >
-              Mark as ready for pickup
-            </button>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-500">Your subtotal</span>
+            <span class="text-base font-semibold tabular-nums text-farm-leaf">₱{{ order.seller_subtotal.toFixed(2) }}</span>
+          </div>
+
+          <!-- Packed: where the pickup stands -->
+          <template v-if="order.seller_confirmed">
+            <p class="flex items-center gap-2 rounded bg-farm-light px-3 py-2.5 text-sm text-farm-deep">
+              <Icon :name="pickupState(order).icon" class="h-4 w-4 flex-shrink-0 text-farm-leaf" />
+              {{ pickupState(order).label }}
+            </p>
             <div
-              v-else
-              class="flex-1 min-w-[200px] py-3 bg-farm-light/35 border border-farm-leaf/40 text-farm-deep text-center text-xs font-medium tracking-[0.12em] uppercase cursor-not-allowed select-none"
+              v-if="order.pickup_code && !order.seller_picked_up"
+              class="flex items-center justify-between gap-3 rounded border border-farm-leaf/15 px-3 py-2.5"
+              title="Give this code to the rider if the receipt QR cannot be scanned"
             >
-              Confirmed (Waiting for other shops)
+              <span class="text-sm text-gray-500">Pickup code</span>
+              <span class="font-mono text-lg font-semibold tracking-[0.15em] text-market-orange">{{ order.pickup_code }}</span>
             </div>
           </template>
         </div>
-      </article>
-    </section>
-  </PageContainer>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-2 border-t border-farm-leaf/15 px-4 py-3 sm:flex-row sm:justify-end md:px-5">
+          <button
+            v-if="order.status === 'pending'"
+            type="button"
+            class="ui-btn-accent w-full sm:w-auto"
+            :disabled="updatingId === order.id"
+            @click="updateStatus(order.id, 'processing')"
+          >
+            {{ updatingId === order.id ? 'Saving…' : 'Accept order' }}
+          </button>
+          <button
+            v-else-if="order.status === 'processing' && !order.seller_confirmed"
+            type="button"
+            class="ui-btn w-full sm:w-auto"
+            :disabled="updatingId === order.id"
+            @click="markReady(order.id)"
+          >
+            <Icon name="heroicons:printer" class="h-4 w-4" />
+            {{ updatingId === order.id ? 'Saving…' : 'Mark ready & print receipt' }}
+          </button>
+          <NuxtLink
+            v-else-if="order.seller_confirmed"
+            :to="`/seller/receipt/${order.id}`"
+            class="ui-btn-outline w-full sm:w-auto"
+          >
+            <Icon name="heroicons:qr-code" class="h-4 w-4" />
+            Receipt
+          </NuxtLink>
+        </div>
+      </li>
+    </ul>
+  </div>
 </template>
 
 <script setup lang="ts">
-import PageContainer from '~/components/ui/PageContainer.vue'
-
 definePageMeta({ layout: 'seller' })
 
 interface SellerOrder {
@@ -126,6 +128,9 @@ interface SellerOrder {
   created_at: string
   seller_subtotal: number
   seller_confirmed?: boolean
+  seller_picked_up?: boolean
+  pickup_code?: string | null
+  delivery_rider?: { full_name?: string } | null
   buyer?: { full_name?: string; email?: string }
   address?: {
     full_name: string
@@ -143,6 +148,7 @@ interface SellerOrder {
 }
 
 const api = useApiFetch()
+const router = useRouter()
 const updatingId = ref<string | null>(null)
 
 const { data, pending, refresh } = await useAsyncData(
@@ -165,17 +171,40 @@ function formatDate(d: string) {
 
 function statusLabel(status: string) {
   const map: Record<string, string> = {
-    pending: 'Pending',
-    processing: 'Processing',
+    pending: 'New',
+    processing: 'Preparing',
     ready_for_pickup: 'Ready for pickup',
   }
   return map[status] ?? status
 }
 
-function statusChip(status: string) {
-  if (status === 'pending') return 'border-farm-yellow/60 text-farm-dark bg-farm-yellow/10'
-  if (status === 'processing') return 'border-farm-leaf/50 text-farm-deep bg-farm-light/50'
-  return 'border-farm-light text-farm-dark/60'
+function statusClass(status: string) {
+  if (status === 'pending') return 'ui-pill ui-pill-orange'
+  if (status === 'processing') return 'ui-pill ui-pill-green'
+  return 'ui-pill ui-pill-gray'
+}
+
+function pickupState(order: SellerOrder) {
+  if (order.seller_picked_up) return { icon: 'heroicons:check-circle', label: 'Picked up by rider' }
+  if (order.status === 'processing') return { icon: 'heroicons:clock', label: 'Packed. Waiting for the other shops in this order.' }
+  if (order.delivery_rider?.full_name) return { icon: 'heroicons:truck', label: `${order.delivery_rider.full_name} is coming to pick up` }
+  return { icon: 'heroicons:clock', label: 'Packed. Waiting for a rider to accept.' }
+}
+
+// Marks this shop's items ready, then opens the receipt with its pickup QR for printing.
+async function markReady(orderId: string) {
+  updatingId.value = orderId
+  try {
+    await api(`/api/orders/${orderId}/status`, { method: 'PATCH', body: { status: 'ready_for_pickup' } })
+    await router.push({ path: `/seller/receipt/${orderId}`, query: { print: '1' } })
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    alert(e.data?.statusMessage || 'Failed to update order')
+  }
+  finally {
+    updatingId.value = null
+  }
 }
 
 async function updateStatus(orderId: string, status: string) {
@@ -193,5 +222,5 @@ async function updateStatus(orderId: string, status: string) {
   }
 }
 
-useHead({ title: 'Seller Orders — Senoro Green Farm' })
+useHead({ title: 'Orders — NFWM Seller' })
 </script>

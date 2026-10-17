@@ -1,72 +1,80 @@
 <template>
   <ion-page>
-    <ion-header class="admin-header sticky top-0 z-50 bg-farm-dark backdrop-blur-md shadow-sm">
-      <ion-toolbar class="bg-transparent text-white">
-        <div class="max-w-page mx-auto w-full px-4 md:px-8 flex items-center justify-between py-2">
-          <div class="flex items-center gap-6">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 flex items-center justify-center">
-                <img src="/logo2.png" alt="Senoro Admin" class="w-7 h-7 object-contain flex-shrink-0">
-              </div>
-              <span class="text-sm font-medium text-white tracking-tight hidden sm:inline">Administration</span>
-            </div>
-            <nav class="hidden md:flex items-center gap-4">
-              <NuxtLink
-                to="/admin/dashboard"
-                class="text-[10px] font-bold tracking-[0.14em] uppercase transition-colors"
-                :class="route.path === '/admin/dashboard' ? 'text-market-orange' : 'text-white/60 hover:text-white'"
-              >
-                Dashboard
-              </NuxtLink>
-              <NuxtLink
-                to="/admin/approvals"
-                class="text-[10px] font-bold tracking-[0.14em] uppercase transition-colors"
-                :class="route.path === '/admin/approvals' ? 'text-market-orange' : 'text-white/60 hover:text-white'"
-              >
-                Approvals
-              </NuxtLink>
-            </nav>
-          </div>
+    <ion-header class="admin-header">
+      <ion-toolbar>
+        <div class="mx-auto flex h-16 w-full max-w-page items-center gap-3 px-4 md:gap-6 md:px-8">
+          <NuxtLink to="/admin/dashboard" class="flex flex-shrink-0 items-center gap-2">
+            <img src="/logo2.png" alt="NFWM" class="h-9 w-9 object-contain">
+            <span class="hidden text-lg font-bold tracking-tight text-white sm:block">NFWM</span>
+            <span class="rounded bg-market-orange px-1.5 py-0.5 text-[11px] font-semibold text-white">Admin</span>
+          </NuxtLink>
 
-          <div class="relative">
+          <nav class="hidden items-center gap-7 md:flex" aria-label="Admin">
+            <NuxtLink
+              v-for="link in navLinks"
+              :key="link.to"
+              :to="link.to"
+              class="nav-link"
+              :class="route.path === link.to ? 'nav-link--active' : ''"
+            >
+              {{ link.label }}
+            </NuxtLink>
+          </nav>
+
+          <div class="ml-auto flex flex-shrink-0 items-center">
             <button
               type="button"
-              class="flex items-center gap-2 py-1.5 text-white/70 hover:text-white transition-colors"
+              class="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white"
               @click="showProfileMenu = !showProfileMenu"
             >
-              <div class="w-7 h-7 border border-white/20 flex items-center justify-center text-[10px] font-medium text-white">
-                {{ userInitial }}
-              </div>
-              <span class="text-xs font-medium max-w-[120px] truncate hidden sm:inline">{{ user?.full_name }}</span>
-              <Icon name="heroicons:chevron-down" class="w-3 h-3" />
+              <AccountAvatar :name="user?.full_name" :url="user?.avatar_url" fallback="A" class="h-9 w-9 rounded-full bg-market-orange text-sm text-white" />
+              <span class="hidden max-w-[140px] truncate text-sm font-medium sm:inline">{{ user?.full_name }}</span>
+              <Icon name="heroicons:chevron-down" class="h-4 w-4" />
             </button>
           </div>
         </div>
+
+        <!-- Phones: the links scroll sideways under the bar -->
+        <nav class="admin-tabs flex gap-6 overflow-x-auto border-t border-white/10 px-4 pt-2 md:hidden" aria-label="Admin">
+          <NuxtLink
+            v-for="link in navLinks"
+            :key="link.to"
+            :to="link.to"
+            class="ui-tab"
+            :class="route.path === link.to ? 'ui-tab--active' : ''"
+          >
+            {{ link.label }}
+          </NuxtLink>
+        </nav>
       </ion-toolbar>
     </ion-header>
 
     <Transition name="fade-down">
       <div
         v-if="showProfileMenu"
-        class="fixed right-4 md:right-[max(1rem,calc((100vw-1200px)/2+2rem))] top-14 z-[60] bg-white border border-farm-light py-2 w-56 shadow-sm"
+        class="fixed right-4 md:right-[max(1rem,calc((100vw-1200px)/2+2rem))] top-16 z-[60] w-60 rounded-md border border-farm-leaf/15 bg-white py-2"
       >
-        <div class="px-4 py-3 border-b border-farm-light">
-          <p class="text-sm font-medium text-farm-dark">{{ user?.full_name }}</p>
-          <p class="text-[11px] text-farm-dark/45 truncate">{{ user?.email }}</p>
+        <div class="flex items-center gap-3 border-b border-farm-leaf/15 bg-shop-mint px-4 py-3">
+          <AccountAvatarUpload avatar-class="w-12 h-12 rounded-full bg-farm-leaf text-lg text-white" />
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium text-shop-ink">{{ user?.full_name }}</p>
+            <p class="truncate text-xs text-gray-400">{{ user?.email }}</p>
+          </div>
         </div>
         <button
           type="button"
-          class="w-full px-4 py-3 text-left text-xs font-medium tracking-wide uppercase text-farm-dark/60 hover:bg-farm-light hover:text-red-700 transition-colors"
+          class="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-red-600"
           @click="handleLogout"
         >
+          <Icon name="heroicons:arrow-right-on-rectangle" class="h-4 w-4" />
           Sign out
         </button>
       </div>
     </Transition>
     <div v-if="showProfileMenu" class="fixed inset-0 z-50" @click="showProfileMenu = false" />
 
-    <ion-content class="admin-ion-content bg-white">
-      <AppShell>
+    <ion-content class="admin-ion-content">
+      <AppShell tinted>
         <slot />
       </AppShell>
     </ion-content>
@@ -82,9 +90,11 @@ const router = useRouter()
 const route = useRoute()
 const showProfileMenu = ref(false)
 
-const userInitial = computed(() =>
-  user.value?.full_name?.charAt(0).toUpperCase() ?? 'A',
-)
+const navLinks = [
+  { to: '/admin/dashboard', label: 'Dashboard' },
+  { to: '/admin/approvals', label: 'Approvals' },
+  { to: '/admin/delivery', label: 'Delivery Fee' },
+]
 
 async function handleLogout() {
   showProfileMenu.value = false
@@ -94,13 +104,41 @@ async function handleLogout() {
 </script>
 
 <style scoped>
+/* Green header bar, light green page. */
+.admin-header {
+  box-shadow: none;
+}
+
 .admin-header ion-toolbar {
-  --background: transparent;
-  --min-height: 52px;
+  --background: #2F5D3A;
+  --min-height: 64px;
+  --padding-start: 0;
+  --padding-end: 0;
+  --border-width: 0;
 }
 
 .admin-ion-content {
-  --background: #ffffff;
+  --background: #EEF5EE;
+}
+
+.nav-link {
+  @apply relative py-1 text-sm font-medium text-white/70 transition-colors hover:text-white;
+}
+.nav-link--active {
+  @apply text-white;
+}
+.nav-link--active::after {
+  content: '';
+  @apply absolute -bottom-1.5 left-0 right-0 h-0.5 bg-market-orange;
+}
+
+/* Phone tabs sit on the green bar */
+.admin-tabs .ui-tab {
+  color: rgba(255, 255, 255, 0.7);
+}
+.admin-tabs .ui-tab--active {
+  color: #ffffff;
+  border-color: #E67E22;
 }
 
 .fade-down-enter-active,

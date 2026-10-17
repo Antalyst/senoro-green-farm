@@ -1,13 +1,17 @@
+import { randomUUID } from 'node:crypto'
+import { serverSupabaseClient } from '#supabase/server'
 import { requireAuth } from '../../utils/auth'
 
-interface ImgBBResponse {
-  data?: {
-    url?: string
-    display_url?: string
-    delete_url?: string
-  }
-  success?: boolean
-  error?: { message?: string }
+// Uploads a product photo or shop avatar/banner to Supabase Storage and returns its public URL.
+// Accepts multipart/form-data (field "image") or JSON { image: dataURI | base64, filename }.
+// Needs migration 013 (bucket "product-images").
+const BUCKET = 'product-images'
+const MAX_BYTES = 5 * 1024 * 1024
+const EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
 }
 
 export default defineEventHandler(async (event) => {
@@ -16,82 +20,63 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden — sellers only' })
   }
 
-  const config = useRuntimeConfig()
-  const apiKey = config.imgbbApiKey as string
-  if (!apiKey) {
-    throw createError({
-      statusCode: 503,
-      statusMessage: 'Image upload is not configured. Set IMGBB_API_KEY in your environment.',
-    })
-  }
-
   const contentType = getHeader(event, 'content-type') || ''
-  let base64 = ''
-  let filename = `product-${Date.now()}`
+  let bytes: Buffer
+  let mime: string
 
   if (contentType.includes('multipart/form-data')) {
     const parts = await readMultipartFormData(event)
     const filePart = parts?.find(p => p.name === 'image' && p.data)
-
     if (!filePart?.data) {
-      throw createError({ statusCode: 400, statusMessage: 'image file is required' })
+      throw createError({ statusCode: 400, statusMessage: 'Image file is required' })
     }
-
-    const mime = filePart.type ?? 'image/jpeg'
-    if (!mime.startsWith('image/')) {
-      throw createError({ statusCode: 400, statusMessage: 'Only image uploads are allowed' })
-    }
-
-    if (filePart.data.length > 10 * 1024 * 1024) {
-      throw createError({ statusCode: 400, statusMessage: 'Image must be 10 MB or smaller' })
-    }
-
-    base64 = Buffer.from(filePart.data).toString('base64')
-    filename = filePart.filename ?? filename
-  } else if (contentType.includes('application/json')) {
+    bytes = Buffer.from(filePart.data)
+    mime = filePart.type ?? ''
+  }
+  else if (contentType.includes('application/json')) {
     const body = await readBody(event)
-    if (!body?.image) {
-      throw createError({ statusCode: 400, statusMessage: 'image is required' })
-    }
-    
-    // Extract base64 from data URI if present
-    const match = body.image.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/)
-    if (match) {
-      base64 = match[2]
-    } else {
-      base64 = body.image
-    }
-    filename = body.filename ?? filename
-
-    if (base64.length > 14 * 1024 * 1024) {
-      throw createError({ statusCode: 400, statusMessage: 'Image must be 10 MB or smaller' })
-    }
-  } else {
+    const raw = String(body?.image ?? '')
+    if (!raw) throw createError({ statusCode: 400, statusMessage: 'Image is required' })
+    const match = raw.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/)
+    mime = match?.[1] ?? 'image/jpeg'
+    bytes = Buffer.from(match?.[2] ?? raw, 'base64')
+  }
+  else {
     throw createError({ statusCode: 400, statusMessage: 'Unsupported content type' })
   }
 
-  try {
-    const response = await $fetch<ImgBBResponse>('https://api.imgbb.com/1/upload', {
-      method: 'POST',
-      body: new URLSearchParams({
-        key: apiKey,
-        image: base64,
-        name: filename,
-      }),
-    })
+  const ext = EXTENSIONS[mime.toLowerCase()]
+  if (!ext) {
+    throw createError({ statusCode: 400, statusMessage: 'Use a JPG, PNG, WebP or GIF image.' })
+  }
+  if (!bytes.length) {
+    throw createError({ statusCode: 400, statusMessage: 'The image file is empty.' })
+  }
+  if (bytes.length > MAX_BYTES) {
+    throw createError({ statusCode: 400, statusMessage: 'Image must be 5 MB or smaller.' })
+  }
 
-    const url = response.data?.url ?? response.data?.display_url
-    if (!response.success || !url) {
-      throw createError({
-        statusCode: 502,
-        statusMessage: response.error?.message ?? 'Cloud image host rejected the upload',
-      })
+  // Files are grouped per seller: <sellerId>/<time>-<random>.<ext>
+  const path = `${user.id}/${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`
+  const supabase = await serverSupabaseClient(event)
+  const storage = supabase.storage.from(BUCKET)
+
+  const { error } = await storage.upload(path, bytes, {
+    contentType: mime,
+    cacheControl: '31536000',
+    upsert: false,
+  })
+
+  if (error) {
+    console.error('[upload]', error.message)
+    if (/bucket not found/i.test(error.message)) {
+      throw createError({ statusCode: 503, statusMessage: 'Image storage is not set up yet. Run database migration 013.' })
     }
+    if (/row-level security|unauthorized|not allowed/i.test(error.message)) {
+      throw createError({ statusCode: 503, statusMessage: 'Image storage does not allow uploads yet. Run database migration 013.' })
+    }
+    throw createError({ statusCode: 502, statusMessage: 'Image upload failed. Please try again.' })
+  }
 
-    return { url, delete_url: response.data?.delete_url ?? null }
-  }
-  catch (err: unknown) {
-    if (err && typeof err === 'object' && 'statusCode' in err) throw err
-    throw createError({ statusCode: 502, statusMessage: 'Failed to upload image to cloud storage' })
-  }
+  return { url: storage.getPublicUrl(path).data.publicUrl }
 })

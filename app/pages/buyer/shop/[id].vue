@@ -302,5 +302,5 @@ async function handleBuyNow(product: BuyerProduct) {
   }
 }
 
-useHead({ title: 'Shop - Senoro Green Farm' })
+useHead({ title: 'Shop - NFWM' })
 </script>

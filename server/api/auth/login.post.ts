@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, full_name, email, password, role, approval_status')
+    .select('id, full_name, email, password, role, approval_status, avatar_url')
     .eq('email', email.toLowerCase().trim())
     .single()
 
@@ -25,39 +25,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Invalid email or password' })
   }
 
-  if (user.approval_status === 'pending') {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Your account is pending admin approval. Please check back later.',
-    })
-  }
-
-  if (user.approval_status === 'rejected') {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Your registration was not approved. Contact support if you believe this is an error.',
-    })
-  }
-
+  // Pending and rejected accounts can sign in, but the token only opens the
+  // verification status page (requireAuth blocks every other endpoint).
   const payload = {
     id: user.id,
     full_name: user.full_name,
     email: user.email,
     role: user.role,
+    approval_status: user.approval_status,
   }
 
-  const token = signToken(payload)
-
-  setCookie(event, 'auth_token', token, {
-    httpOnly: true,
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7,
-    sameSite: 'lax',
-  })
+  const token = startSession(event, payload)
 
   return {
     success: true,
     token,
-    user: payload,
+    user: { ...payload, avatar_url: user.avatar_url },
   }
 })

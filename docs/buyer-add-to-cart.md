@@ -1,7 +1,7 @@
 # Buyer Add to Cart Functionality
 
 ## Overview
-The Add to Cart feature allows buyers to add products from the marketplace to their shopping cart for later checkout. This document covers the technical implementation, API endpoints, JWT token handling, and best practices for the buyer-side add to cart functionality in Senoro Green Farm.
+The Add to Cart feature allows buyers to add products from the marketplace to their shopping cart for later checkout. This document covers the technical implementation, API endpoints, JWT token handling, and best practices for the buyer-side add to cart functionality in NFWM.
 
 ## Architecture
 

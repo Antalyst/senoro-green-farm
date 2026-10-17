@@ -1,5 +1,6 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { requireAuth } from '../../utils/auth'
+import { quoteDeliveryFee } from '../../utils/deliveryFee'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -20,7 +21,7 @@ export default defineEventHandler(async (event) => {
     .from('cart_items')
     .select(`
       id, quantity, buyer_id, product_id,
-      products!inner(id, name, price, seller_id, stock)
+      products!inner(id, name, price, seller_id, stock, image_url)
     `)
     .in('id', cart_item_ids)
 
@@ -34,46 +35,54 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const deliveryFee = 50
   let itemsSubtotal = 0
   for (const item of cartItems) {
     // @ts-ignore Supabase relation typing is generated as object at runtime.
     const price = parseFloat(item.products.price)
     itemsSubtotal += price * item.quantity
   }
-  const totalAmount = itemsSubtotal + deliveryFee
 
-  let resolvedAddressId = address_id as string | undefined
+  // '*' includes latitude/longitude once migration 009 is applied, without failing before it.
+  let address: { id: string; latitude?: number | null; longitude?: number | null } | null = null
 
-  if (resolvedAddressId) {
+  if (address_id) {
     const { data: addr } = await supabase
       .from('addresses')
-      .select('id')
-      .eq('id', resolvedAddressId)
+      .select('*')
+      .eq('id', address_id)
       .eq('user_id', user.id)
       .maybeSingle()
 
     if (!addr) {
       throw createError({ statusCode: 400, statusMessage: 'Invalid shipping address' })
     }
+    address = addr
   }
   else {
     const { data: defaultAddr } = await supabase
       .from('addresses')
-      .select('id')
+      .select('*')
       .eq('user_id', user.id)
       .eq('is_default', true)
       .maybeSingle()
 
-    resolvedAddressId = defaultAddr?.id
+    address = defaultAddr
   }
 
-  if (!resolvedAddressId) {
+  if (!address) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Cannot process order without a valid shipping address.',
     })
   }
+  const resolvedAddressId = address.id
+
+  // @ts-ignore Supabase relation typing is generated as object at runtime.
+  const sellerIds: string[] = [...new Set(cartItems.map(item => item.products?.seller_id).filter(Boolean))]
+
+  // Rate per km (set by admin) × distance from each shop to the buyer.
+  const { fee: deliveryFee } = await quoteDeliveryFee(supabase, sellerIds, address)
+  const totalAmount = Math.round((itemsSubtotal + deliveryFee) * 100) / 100
 
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
@@ -100,9 +109,22 @@ export default defineEventHandler(async (event) => {
     price: item.products.price,
   }))
 
-  const { error: itemsError } = await supabase
-    .from('order_items')
-    .insert(orderItemsData)
+  // Copy the product name and image onto the order (migration 014) so order history
+  // keeps them even if the seller later edits or deletes the product.
+  const withSnapshot = orderItemsData.map((row, i) => ({
+    ...row,
+    // @ts-ignore Supabase relation typing is generated as object at runtime.
+    product_name: cartItems[i].products.name,
+    // @ts-ignore Supabase relation typing is generated as object at runtime.
+    product_image_url: cartItems[i].products.image_url ?? null,
+  }))
+
+  let { error: itemsError } = await supabase.from('order_items').insert(withSnapshot)
+
+  // DB without migration 014: save the items without the snapshot.
+  if (itemsError && (itemsError.code === 'PGRST204' || /product_name|product_image_url/.test(itemsError.message))) {
+    ;({ error: itemsError } = await supabase.from('order_items').insert(orderItemsData))
+  }
 
   if (itemsError) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to create order items' })
@@ -123,27 +145,13 @@ export default defineEventHandler(async (event) => {
     .in('id', cart_item_ids)
 
   // Step 1: Notify each unique seller that a new order has been placed from their shop
-  // @ts-ignore Supabase relation typing is generated as object at runtime.
-  const sellerIds = [...new Set(cartItems.map(item => item.products?.seller_id).filter(Boolean))]
-
-  for (const sellerId of sellerIds) {
-    const { error: sellerNotifError } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: sellerId,
-        order_id: newOrder.id,
-        title: 'New Order Received! 🌾',
-        message: 'A customer has checked out items from your shop. Please review and accept.',
-        is_read: false,
-      })
-
-    if (sellerNotifError) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Order created, but seller notification failed',
-      })
-    }
-  }
+  // The order is already saved, so a notification problem must not show the buyer an error.
+  await notify(event, sellerIds.map(sellerId => ({
+    user_id: sellerId as string,
+    order_id: newOrder.id,
+    title: 'New Order Received! 🌾',
+    message: 'A customer has checked out items from your shop. Please review and accept.',
+  })))
 
   return {
     success: true,

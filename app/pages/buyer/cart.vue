@@ -1,220 +1,210 @@
 <template>
-  <div class="py-8 md:py-12 space-y-10">
-      <header class="border-b border-farm-light pb-8">
-        <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45 mb-2">
-          Checkout
+  <div class="pb-40 pt-4 md:pt-8 lg:pb-12">
+    <div class="flex items-end justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-shop-ink md:text-3xl">Your cart</h1>
+        <p v-if="cartItems.length" class="mt-1 text-sm text-gray-500">
+          {{ itemCount }} {{ itemCount === 1 ? 'item' : 'items' }} from {{ shopCount }} {{ shopCount === 1 ? 'shop' : 'shops' }}
         </p>
-        <h1 class="text-2xl md:text-3xl font-light text-farm-dark tracking-tight">
-          Your cart
-        </h1>
-      </header>
-
-      <div v-if="pending" class="py-24 text-center">
-        <Icon name="heroicons:arrow-path" class="w-6 h-6 text-farm-leaf animate-spin mx-auto" />
-        <p class="mt-3 text-xs text-farm-dark/45">Loading cart…</p>
       </div>
-
-      <div v-else-if="cartItems.length === 0" class="py-24 text-center border border-farm-light">
-        <p class="text-sm font-medium text-farm-dark">Your cart is empty</p>
-        <p class="text-xs text-farm-dark/45 mt-2">Discover fresh produce from local farms.</p>
-        <NuxtLink
-          to="/"
-          class="inline-block mt-6 px-6 py-2.5 border border-farm-deep text-farm-deep text-[10px] font-medium tracking-[0.14em] uppercase hover:bg-farm-deep hover:text-white transition-colors"
-        >
-          Browse shop
-        </NuxtLink>
-      </div>
-
-      <!-- Vendor ledger groups -->
-      <div v-else class="space-y-10">
-        <section
-          v-for="(group, sellerId) in groupedCart"
-          :key="sellerId"
-          class="border border-farm-light"
-        >
-          <!-- Vendor header -->
-          <div class="flex items-center justify-between gap-4 px-4 md:px-6 py-4 bg-farm-light/30 border-b border-farm-light">
-            <label class="flex items-center gap-3 cursor-pointer min-w-0">
-              <input
-                type="checkbox"
-                :checked="isSellerAllChecked(String(sellerId))"
-                class="w-4 h-4 border-farm-light text-farm-deep focus:ring-farm-leaf rounded-none accent-farm-deep"
-                @change="toggleSellerSelection(String(sellerId))"
-              >
-              <Icon name="heroicons:building-storefront" class="w-5 h-5 text-farm-dark/50 flex-shrink-0" />
-              <span class="text-base md:text-lg font-bold text-farm-dark truncate">{{ group.sellerName }}</span>
-            </label>
-            <NuxtLink
-              :to="`/buyer/shop/${sellerId}`"
-              class="text-[10px] font-bold tracking-[0.12em] uppercase text-farm-leaf hover:text-farm-deep flex-shrink-0 border border-farm-leaf px-2 py-1"
-            >
-              Visit shop
-            </NuxtLink>
-          </div>
-
-          <!-- Line items -->
-          <ul class="divide-y divide-farm-light">
-            <li
-              v-for="item in group.items"
-              :key="item.id"
-              class="px-4 md:px-6 py-5"
-            >
-              <template v-if="item.products">
-                <div class="flex gap-4 md:gap-6">
-                  <input
-                    type="checkbox"
-                    v-model="checkedItemIds"
-                    :value="item.id"
-                    class="mt-1 w-4 h-4 border-farm-light text-farm-deep accent-farm-deep rounded-none flex-shrink-0"
-                  >
-
-                  <NuxtLink
-                    :to="`/buyer/product/${item.products.id}`"
-                    class="w-20 h-20 md:w-24 md:h-24 flex-shrink-0 bg-farm-light border border-farm-light overflow-hidden flex items-center justify-center"
-                  >
-                    <img v-if="item.products.image_url" :src="item.products.image_url" class="w-full h-full object-cover">
-                    <div v-else class="text-3xl text-farm-dark/20">
-                      {{ getCategoryEmoji(item.products.category) }}
-                    </div>
-                  </NuxtLink>
-
-                  <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:justify-between gap-4">
-                    <div class="min-w-0 flex flex-col items-start">
-                      <NuxtLink :to="`/buyer/product/${item.products.id}`">
-                        <h3 class="text-base md:text-lg font-bold text-farm-dark hover:text-farm-deep transition-colors truncate">
-                          {{ item.products.name }}
-                        </h3>
-                      </NuxtLink>
-                      <div class="mt-1 flex items-center gap-2">
-                        <span 
-                          class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 border"
-                          :class="isStreetFood(item.products.category) ? 'text-market-orange border-market-orange/30 bg-market-orange/5' : 'text-farm-leaf border-farm-leaf/30 bg-farm-leaf/5'"
-                        >
-                          {{ isStreetFood(item.products.category) ? 'Street Food & Eats' : 'Fresh Farm Produce' }}
-                        </span>
-                      </div>
-                      <p class="mt-auto pt-2 text-base md:text-lg font-black text-farm-dark">
-                        ₱{{ formatPrice(item.products.price) }}
-                      </p>
-                    </div>
-
-                    <div class="flex items-center gap-4 flex-shrink-0">
-                      <div class="inline-flex border border-farm-light">
-                        <button
-                          type="button"
-                          class="w-9 h-9 flex items-center justify-center text-farm-dark hover:bg-farm-light border-r border-farm-light disabled:opacity-30"
-                          :disabled="item.quantity <= 1"
-                          @click="updateQty(item, item.quantity - 1)"
-                        >
-                          <Icon name="heroicons:minus" class="w-3.5 h-3.5" />
-                        </button>
-                        <span class="w-10 h-9 flex items-center justify-center text-sm font-medium tabular-nums text-farm-dark">
-                          {{ item.quantity }}
-                        </span>
-                        <button
-                          type="button"
-                          class="w-9 h-9 flex items-center justify-center text-farm-dark hover:bg-farm-light border-l border-farm-light disabled:opacity-30"
-                          :disabled="item.quantity >= (item.products.stock ?? 99)"
-                          @click="updateQty(item, item.quantity + 1)"
-                        >
-                          <Icon name="heroicons:plus" class="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <button
-                        type="button"
-                        class="p-2 text-farm-dark/30 hover:text-red-600 transition-colors"
-                        aria-label="Remove"
-                        @click="deleteItem(item)"
-                      >
-                        <Icon name="heroicons:trash" class="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </li>
-          </ul>
-        </section>
-      </div>
+      <NuxtLink v-if="cartItems.length" to="/" class="text-sm font-semibold text-farm-leaf hover:text-farm-deep">Keep shopping</NuxtLink>
     </div>
 
-    <!-- Checkout sheet -->
-    <div
-      v-if="cartItems.length > 0"
-      class="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 bg-white border-t border-farm-light shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
-    >
-      <div class="max-w-page mx-auto w-full">
-        <!-- Address banner removed, moved to checkout.vue -->
+    <p v-if="pending && !cartData" class="py-24 text-center text-sm text-gray-400">Loading…</p>
 
-        <div class="px-4 md:px-8 py-4 md:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <label class="flex items-center gap-2 cursor-pointer">
+    <!-- Empty -->
+    <div v-else-if="!cartItems.length" class="mt-6 rounded-lg bg-shop-mint px-6 py-14 text-center">
+      <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-farm-leaf">
+        <Icon name="heroicons:shopping-cart" class="h-7 w-7" />
+      </span>
+      <p class="mt-4 text-base font-semibold text-shop-ink">Your cart is empty</p>
+      <p class="mt-1 text-sm text-gray-500">Fresh produce from local farmers is waiting.</p>
+      <NuxtLink to="/" class="mt-5 inline-flex min-h-[44px] items-center rounded bg-farm-leaf px-6 text-sm font-semibold text-white hover:bg-farm-deep">
+        Browse products
+      </NuxtLink>
+    </div>
+
+    <div v-else class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
+      <!-- Shops -->
+      <div class="space-y-4">
+        <section
+          v-for="group in groups"
+          :key="group.sellerId"
+          class="overflow-hidden rounded-lg border border-gray-100"
+        >
+          <!-- Shop header -->
+          <div class="flex items-center gap-3 bg-shop-mint px-4 py-3">
             <input
               type="checkbox"
-              :checked="isAllChecked"
-              class="w-5 h-5 accent-farm-deep rounded-none border-2"
-              @click.stop="toggleSelectAll"
+              class="check"
+              :checked="isGroupChecked(group)"
+              :disabled="!group.items.some(isBuyable)"
+              :aria-label="`Select all from ${group.shopName}`"
+              @change="toggleGroup(group)"
             >
-            <span class="text-[11px] font-bold tracking-[0.12em] uppercase text-farm-dark">Select all</span>
-          </label>
-
-          <div class="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
-            <div class="text-right">
-              <p class="text-[10px] font-bold tracking-[0.16em] uppercase text-farm-dark/60">Total Payment</p>
-              <p class="text-2xl md:text-3xl font-black text-market-orange tabular-nums">
-                ₱{{ totalCheckoutPrice.toFixed(2) }}
-              </p>
-            </div>
-            <button
-              type="button"
-              :disabled="submittingCheckout || checkedItemIds.length === 0"
-              class="px-8 py-4 bg-market-orange text-white text-xs md:text-sm font-black tracking-[0.14em] uppercase hover:bg-[#D35400] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:hover:scale-100 min-w-[160px] flex-shrink-0 shadow-lg shadow-market-orange/20"
-              @click="checkout"
+            <AccountAvatar :name="group.shopName" :url="group.shopAvatar" class="h-8 w-8 rounded-full bg-farm-leaf text-xs text-white" />
+            <NuxtLink
+              :to="`/buyer/shop/${group.sellerId}`"
+              class="min-w-0 flex-1 truncate text-sm font-semibold text-shop-ink hover:text-farm-leaf"
             >
-              <span v-if="submittingCheckout" class="flex items-center justify-center gap-2">
-                <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
-                Processing
-              </span>
-              <span v-else>Check Out ({{ checkedItemIds.length }})</span>
-            </button>
+              {{ group.shopName }}
+            </NuxtLink>
+            <Icon name="heroicons:chevron-right" class="h-4 w-4 flex-shrink-0 text-gray-400" />
           </div>
+
+          <!-- Items -->
+          <ul class="divide-y divide-gray-100">
+            <li v-for="item in group.items" :key="item.id" class="flex gap-3 px-4 py-4" :class="{ 'bg-gray-50/60': !isBuyable(item) }">
+              <input
+                v-model="checkedItemIds"
+                type="checkbox"
+                class="check mt-7"
+                :value="item.id"
+                :disabled="!isBuyable(item)"
+                :aria-label="`Select ${item.products!.name}`"
+              >
+
+              <NuxtLink :to="`/buyer/product/${item.products!.id}`" class="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded bg-shop-cream md:h-24 md:w-24">
+                <img
+                  :src="item.products!.image_url || fallbackProductImage(item.products!.category)"
+                  :alt="item.products!.name"
+                  loading="lazy"
+                  class="h-full w-full object-cover"
+                  :class="{ 'opacity-50': !isBuyable(item) }"
+                >
+              </NuxtLink>
+
+              <div class="flex min-w-0 flex-1 flex-col">
+                <div class="flex items-start justify-between gap-2">
+                  <NuxtLink :to="`/buyer/product/${item.products!.id}`" class="min-w-0">
+                    <h3 class="line-clamp-2 text-sm font-medium text-shop-ink hover:text-farm-leaf">{{ item.products!.name }}</h3>
+                  </NuxtLink>
+                  <button
+                    type="button"
+                    class="-mr-2 -mt-2 flex h-10 w-10 flex-shrink-0 items-center justify-center text-gray-400 hover:text-red-600"
+                    :aria-label="`Remove ${item.products!.name}`"
+                    :disabled="busyId === item.id"
+                    @click="deleteItem(item)"
+                  >
+                    <Icon name="heroicons:trash" class="h-[18px] w-[18px]" />
+                  </button>
+                </div>
+
+                <p class="text-sm tabular-nums">
+                  <span class="font-semibold text-farm-leaf">{{ formatPeso(item.products!.price) }}</span>
+                  <span class="text-xs text-gray-400"> / {{ unitOf(item) }}</span>
+                </p>
+
+                <p v-if="stockOf(item) <= 0" class="mt-1 text-xs font-medium text-red-600">Sold out. Remove it to continue.</p>
+                <p v-else-if="item.quantity > stockOf(item)" class="mt-1 text-xs font-medium text-market-orange">
+                  Only {{ stockOf(item) }} left. Lower the quantity.
+                </p>
+                <p v-else-if="stockOf(item) <= 5" class="mt-1 text-xs text-market-orange">Only {{ stockOf(item) }} left</p>
+
+                <div class="mt-auto flex items-center justify-between gap-2 pt-2">
+                  <div v-if="stockOf(item) > 0" class="qty">
+                    <button
+                      type="button"
+                      class="qty-btn"
+                      aria-label="Decrease quantity"
+                      :disabled="item.quantity <= 1 || busyId === item.id"
+                      @click="updateQty(item, item.quantity - 1)"
+                    >
+                      <Icon name="heroicons:minus" class="h-4 w-4" />
+                    </button>
+                    <span class="qty-value">{{ item.quantity }}</span>
+                    <button
+                      type="button"
+                      class="qty-btn"
+                      aria-label="Increase quantity"
+                      :disabled="item.quantity >= stockOf(item) || busyId === item.id"
+                      @click="updateQty(item, item.quantity + 1)"
+                    >
+                      <Icon name="heroicons:plus" class="h-4 w-4" />
+                    </button>
+                  </div>
+                  <span v-else />
+                  <span class="text-sm font-semibold tabular-nums text-shop-ink">{{ formatPeso(lineTotal(item)) }}</span>
+                </div>
+              </div>
+            </li>
+          </ul>
+
+          <div class="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-sm">
+            <span class="text-gray-500">Shop subtotal</span>
+            <span class="font-semibold tabular-nums text-shop-ink">{{ formatPeso(groupSubtotal(group)) }}</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- Desktop summary -->
+      <aside class="hidden rounded-lg bg-shop-cream p-5 lg:sticky lg:top-6 lg:block">
+        <h2 class="text-base font-semibold text-shop-ink">Order summary</h2>
+        <label class="mt-4 flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+          <input type="checkbox" class="check" :checked="isAllChecked" :disabled="!buyableItems.length" @change="toggleSelectAll">
+          Select all ({{ buyableItems.length }})
+        </label>
+        <dl class="mt-4 space-y-2 border-t border-black/5 pt-4 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-gray-500">Items selected</dt>
+            <dd class="tabular-nums text-shop-ink">{{ selectedCount }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-gray-500">Subtotal</dt>
+            <dd class="tabular-nums text-shop-ink">{{ formatPeso(totalCheckoutPrice) }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-gray-500">Delivery</dt>
+            <dd class="text-gray-500">At checkout</dd>
+          </div>
+        </dl>
+        <div class="mt-4 flex items-baseline justify-between border-t border-black/5 pt-4">
+          <span class="text-sm font-semibold text-shop-ink">Total</span>
+          <span class="text-2xl font-bold tabular-nums text-farm-leaf">{{ formatPeso(totalCheckoutPrice) }}</span>
         </div>
+        <button type="button" class="btn-checkout mt-4 w-full" :disabled="!canCheckout" @click="checkout">
+          {{ submittingCheckout ? 'Please wait…' : `Check out (${selectedCount})` }}
+        </button>
+        <p class="mt-3 flex items-start gap-2 text-xs text-gray-500">
+          <Icon name="heroicons:banknotes" class="h-4 w-4 flex-shrink-0 text-farm-leaf" />
+          Cash on delivery. The delivery fee is based on distance and shown at checkout.
+        </p>
+      </aside>
+    </div>
+
+    <!-- Phones: total + checkout, above the tab bar -->
+    <div v-if="cartItems.length" class="checkout-bar lg:hidden">
+      <div class="mx-auto flex max-w-page items-center gap-3 px-4 py-2.5">
+        <label class="flex flex-shrink-0 cursor-pointer flex-col items-center text-[11px] text-gray-500">
+          <input type="checkbox" class="check" :checked="isAllChecked" :disabled="!buyableItems.length" aria-label="Select all" @change="toggleSelectAll">
+          All
+        </label>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs text-gray-500">Total · delivery at checkout</p>
+          <p class="truncate text-lg font-bold tabular-nums text-farm-leaf">{{ formatPeso(totalCheckoutPrice) }}</p>
+        </div>
+        <button type="button" class="btn-checkout flex-shrink-0" :disabled="!canCheckout" @click="checkout">
+          Check out ({{ selectedCount }})
+        </button>
       </div>
     </div>
 
-    <BuyerToast
-      :show="toast.show"
-      :message="toast.message"
-      :type="toast.type"
-      @close="toast.show = false"
-    />
+    <BuyerToast :show="toast.show" :message="toast.message" :type="toast.type" @close="toast.show = false" />
+  </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'buyer' })
 
-const router = useRouter()
-const api = useApiFetch()
-const { requireAddressOrRedirect } = useShippingAddressGuard()
-
-const refreshCartCount = inject<(() => void) | undefined>('refreshCartCount')
-
-const checkedItemIds = ref<string[]>([])
-const submittingCheckout = ref(false)
-
-const { data: cartData, pending, refresh } = await useAsyncData(
-  'buyer:cart-items',
-  () => api<{ cart_items?: CartLineItem[] } | CartLineItem[]>('/api/cart'),
-  { server: false },
-)
-
 interface CartProduct {
   id: string
   name: string
   price: string | number
-  image_url?: string
+  image_url?: string | null
   category?: string
   stock?: number
-  users?: { id?: string; full_name?: string }
+  unit_type?: string | null
+  users?: { id?: string; full_name?: string; shop_name?: string | null; shop_avatar_url?: string | null }
 }
 
 interface CartLineItem {
@@ -223,125 +213,161 @@ interface CartLineItem {
   products?: CartProduct
 }
 
+interface ShopGroup {
+  sellerId: string
+  shopName: string
+  shopAvatar?: string | null
+  items: CartLineItem[]
+}
+
+const api = useApiFetch()
+const { requireAddressOrRedirect } = useShippingAddressGuard()
+const refreshCartCount = inject<(() => void) | undefined>('refreshCartCount')
+
+const checkedItemIds = ref<string[]>([])
+const submittingCheckout = ref(false)
+const busyId = ref<string | null>(null)
+
+const { data: cartData, pending, refresh } = await useAsyncData(
+  'buyer:cart-items',
+  () => api<{ cart_items?: CartLineItem[] } | CartLineItem[]>('/api/cart'),
+  { server: false },
+)
+
 const cartItems = computed<CartLineItem[]>(() => {
   const data = cartData.value
-  if (!data) return []
-  if (Array.isArray(data)) return data
-  return data.cart_items ?? []
+  const list = !data ? [] : Array.isArray(data) ? data : data.cart_items ?? []
+  return list.filter(item => item?.products?.id)
 })
 
-const groupedCart = computed(() => {
-  const groups: Record<string, { sellerName: string; items: CartLineItem[] }> = {}
+const stockOf = (item: CartLineItem) => Number(item.products?.stock ?? 0)
+const unitOf = (item: CartLineItem) => item.products?.unit_type || 'pc'
+const isBuyable = (item: CartLineItem) => stockOf(item) > 0 && item.quantity <= stockOf(item)
+const lineTotal = (item: CartLineItem) => Number(item.products?.price ?? 0) * (item.quantity ?? 1)
+
+const groups = computed<ShopGroup[]>(() => {
+  const map = new Map<string, ShopGroup>()
   for (const item of cartItems.value) {
-    const product = item?.products
-    if (!product?.id) continue
-    const seller = product.users
-    const sellerId = seller?.id ?? 'unknown_seller'
-    const sellerName = seller?.full_name ?? 'Independent Farmer'
-    if (!groups[sellerId]) groups[sellerId] = { sellerName, items: [] }
-    groups[sellerId].items.push(item)
-  }
-  return groups
-})
-
-const categoryEmojis: Record<string, string> = {
-  Vegetables: '🥬', Fruits: '🍎', Organic: '🌱', Herbs: '🌿', Dairy: '🥛', Grains: '🌾',
-}
-
-function getCategoryEmoji(category?: string) {
-  return categoryEmojis[category ?? ''] ?? '🌱'
-}
-
-function isStreetFood(category?: string) {
-  return (category || '').startsWith('street_food_')
-}
-
-function formatPrice(price: string | number) {
-  return parseFloat(String(price ?? 0)).toFixed(2)
-}
-
-const isAllChecked = computed(() => {
-  if (cartItems.value.length === 0) return false
-  return checkedItemIds.value.length === cartItems.value.length
-})
-
-function isSellerAllChecked(sellerId: string): boolean {
-  const sellerItems = groupedCart.value[sellerId]?.items ?? []
-  if (sellerItems.length === 0) return false
-  return sellerItems.every(item => checkedItemIds.value.includes(item.id))
-}
-
-function toggleSellerSelection(sellerId: string) {
-  const sellerItems = groupedCart.value[sellerId]?.items ?? []
-  const allChecked = isSellerAllChecked(sellerId)
-  if (allChecked) {
-    const itemIds = sellerItems.map(i => i.id)
-    checkedItemIds.value = checkedItemIds.value.filter(id => !itemIds.includes(id))
-  }
-  else {
-    for (const item of sellerItems) {
-      if (!checkedItemIds.value.includes(item.id)) checkedItemIds.value.push(item.id)
+    const seller = item.products?.users
+    const sellerId = seller?.id ?? 'unknown'
+    if (!map.has(sellerId)) {
+      map.set(sellerId, {
+        sellerId,
+        shopName: seller?.shop_name || seller?.full_name || 'Local seller',
+        shopAvatar: seller?.shop_avatar_url,
+        items: [],
+      })
     }
+    map.get(sellerId)!.items.push(item)
   }
-}
+  return [...map.values()]
+})
+
+const itemCount = computed(() => cartItems.value.length)
+const shopCount = computed(() => groups.value.length)
+const buyableItems = computed(() => cartItems.value.filter(isBuyable))
+
+// Select everything that can be bought when the cart first loads, and drop
+// selections for items that were removed or became unavailable.
+let initialised = false
+watch(cartItems, (items) => {
+  const buyable = new Set(items.filter(isBuyable).map(i => i.id))
+  if (!initialised && items.length) {
+    checkedItemIds.value = [...buyable]
+    initialised = true
+    return
+  }
+  checkedItemIds.value = checkedItemIds.value.filter(id => buyable.has(id))
+}, { immediate: true })
+
+const selectedItems = computed(() => cartItems.value.filter(i => checkedItemIds.value.includes(i.id)))
+const selectedCount = computed(() => selectedItems.value.length)
+const totalCheckoutPrice = computed(() => selectedItems.value.reduce((sum, i) => sum + lineTotal(i), 0))
+const canCheckout = computed(() => selectedCount.value > 0 && !submittingCheckout.value)
+
+const isAllChecked = computed(() =>
+  buyableItems.value.length > 0 && buyableItems.value.every(i => checkedItemIds.value.includes(i.id)),
+)
 
 function toggleSelectAll() {
-  checkedItemIds.value = isAllChecked.value ? [] : cartItems.value.map(item => item.id)
+  checkedItemIds.value = isAllChecked.value ? [] : buyableItems.value.map(i => i.id)
 }
 
-const totalCheckoutPrice = computed(() => {
-  let total = 0
-  for (const item of cartItems.value) {
-    if (!checkedItemIds.value.includes(item.id)) continue
-    const price = item.products?.price
-    if (price == null) continue
-    total += parseFloat(String(price)) * (item.quantity ?? 1)
+function isGroupChecked(group: ShopGroup) {
+  const buyable = group.items.filter(isBuyable)
+  return buyable.length > 0 && buyable.every(i => checkedItemIds.value.includes(i.id))
+}
+
+function toggleGroup(group: ShopGroup) {
+  const ids = group.items.filter(isBuyable).map(i => i.id)
+  if (isGroupChecked(group)) {
+    checkedItemIds.value = checkedItemIds.value.filter(id => !ids.includes(id))
   }
-  return total
-})
+  else {
+    checkedItemIds.value = [...new Set([...checkedItemIds.value, ...ids])]
+  }
+}
+
+function groupSubtotal(group: ShopGroup) {
+  return group.items.filter(i => checkedItemIds.value.includes(i.id)).reduce((sum, i) => sum + lineTotal(i), 0)
+}
+
+function errorMessage(err: unknown, fallback: string) {
+  return (err as { data?: { statusMessage?: string } }).data?.statusMessage || fallback
+}
 
 async function updateQty(item: CartLineItem, newQty: number) {
   const productId = item.products?.id
   if (!productId || newQty < 1) return
+  busyId.value = item.id
   try {
     await api('/api/cart/add', {
       method: 'POST',
       body: { product_id: productId, quantity: newQty, is_update: true },
     })
-    refresh()
+    await refresh()
   }
   catch (err: unknown) {
-    const e = err as { data?: { statusMessage?: string } }
-    triggerToast(e.data?.statusMessage || 'Failed to update quantity', 'error')
+    triggerToast(errorMessage(err, 'Failed to update quantity'), 'error')
+  }
+  finally {
+    busyId.value = null
   }
 }
 
 async function deleteItem(item: CartLineItem) {
+  busyId.value = item.id
   try {
     await api(`/api/cart/${item.id}`, { method: 'DELETE' })
-    triggerToast('Item removed.')
-    checkedItemIds.value = checkedItemIds.value.filter(id => id !== item.id)
-    refresh()
+    triggerToast(`${item.products?.name ?? 'Item'} removed.`)
+    await refresh()
     refreshCartCount?.()
   }
   catch (err: unknown) {
-    const e = err as { data?: { statusMessage?: string } }
-    triggerToast(e.data?.statusMessage || 'Failed to remove item', 'error')
+    triggerToast(errorMessage(err, 'Failed to remove item'), 'error')
+  }
+  finally {
+    busyId.value = null
   }
 }
 
 async function checkout() {
-  if (checkedItemIds.value.length === 0) return
+  if (!canCheckout.value) return
+  submittingCheckout.value = true
+  try {
+    const canProceed = await requireAddressOrRedirect((message) => {
+      triggerToast(message, 'error')
+    })
+    if (!canProceed) return
 
-  const canProceed = await requireAddressOrRedirect((message) => {
-    triggerToast(message, 'error')
-  })
-  if (!canProceed) return
-
-  navigateTo({
-    path: '/buyer/checkout',
-    query: { items: checkedItemIds.value.join(',') }
-  })
+    await navigateTo({
+      path: '/buyer/checkout',
+      query: { items: checkedItemIds.value.join(',') },
+    })
+  }
+  finally {
+    submittingCheckout.value = false
+  }
 }
 
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'error' })
@@ -351,5 +377,39 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   setTimeout(() => { toast.value.show = false }, 4000)
 }
 
-useHead({ title: 'Cart — Senoro Green Farm' })
+useHead({ title: 'Cart — NFWM' })
 </script>
+
+<style scoped>
+.check {
+  @apply h-5 w-5 flex-shrink-0 cursor-pointer rounded border-gray-300 accent-farm-leaf disabled:cursor-not-allowed disabled:opacity-40;
+}
+.qty {
+  @apply inline-flex items-center rounded border border-gray-200;
+}
+.qty-btn {
+  @apply flex h-10 w-10 items-center justify-center text-gray-600 transition-colors hover:text-farm-leaf disabled:text-gray-300;
+}
+.qty-value {
+  @apply w-8 text-center text-sm font-semibold tabular-nums text-shop-ink;
+}
+.btn-checkout {
+  @apply inline-flex min-h-[44px] items-center justify-center rounded bg-market-orange px-5 text-sm font-semibold text-white transition-colors hover:bg-[#cf6d17] disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+/* Sits right above the buyer tab bar on phones (same as the product page) */
+.checkout-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  background: #ffffff;
+  border-top: 1px solid #f3f4f6;
+}
+@media (min-width: 768px) {
+  .checkout-bar {
+    bottom: 0;
+  }
+}
+</style>

@@ -1,264 +1,155 @@
 <template>
-  <PageContainer class="space-y-12 py-8 md:py-12">
-      <header class="border-b border-farm-light pb-8">
-        <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-farm-dark/45 mb-2">
-          Seller analytics
-        </p>
-        <h1 class="text-2xl md:text-3xl font-light text-farm-dark tracking-tight">
-          {{ user?.full_name ?? 'Seller workspace' }}
-        </h1>
-      </header>
+  <div class="mx-auto w-full max-w-page space-y-8 py-6 md:space-y-10 md:py-8">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-xl font-semibold text-farm-deep">Hello, {{ firstName }}</h2>
+        <p class="text-sm text-gray-500">Here is how your shop is doing.</p>
+      </div>
+      <NuxtLink to="/seller/inventory" class="ui-btn-accent w-full sm:w-auto">
+        <Icon name="heroicons:plus" class="h-4 w-4" />
+        Add product
+      </NuxtLink>
+    </div>
 
-      <!-- Executive metrics matrix -->
-      <section class="grid grid-cols-1 md:grid-cols-3 border border-farm-light divide-y md:divide-y-0 md:divide-x divide-farm-light">
-        <div class="p-6 md:p-8 bg-white">
-          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-farm-dark/45 mb-2">Total revenue</p>
-          <p class="text-3xl font-light text-farm-dark tabular-nums">
-            ₱{{ (metrics?.totalRevenue ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-          </p>
-          <p class="text-[11px] text-farm-leaf mt-2">Lifetime store earnings</p>
+    <!-- Numbers -->
+    <section class="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+      <UiStatCard
+        v-for="stat in stats"
+        :key="stat.label"
+        :label="stat.label"
+        :value="stat.value"
+        :caption="stat.caption"
+        :icon="stat.icon"
+        :tone="stat.tone"
+      />
+    </section>
+
+    <!-- Revenue chart -->
+    <section class="ui-card overflow-hidden">
+      <div class="ui-card-head">
+        <div>
+          <h2 class="text-base font-semibold text-farm-deep">Revenue</h2>
+          <p class="text-xs text-gray-500">Last 6 months</p>
         </div>
-        <div class="p-6 md:p-8 bg-white">
-          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-farm-dark/45 mb-2">Orders fulfilled</p>
-          <p class="text-3xl font-light text-farm-dark tabular-nums">
-            {{ metrics?.totalOrders ?? 0 }}
-          </p>
-          <p class="text-[11px] text-farm-dark/40 mt-2">Unique checkout events</p>
+      </div>
+      <div class="p-4 md:p-5">
+        <FarmChart :options="chartOptions" :height="240" />
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-4">
+      <!-- Recent sales -->
+      <section class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-semibold text-farm-deep">Recent sales</h2>
+          <NuxtLink to="/seller/orders" class="ui-link">Orders</NuxtLink>
         </div>
-        <div class="p-6 md:p-8 bg-white">
-          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-farm-dark/45 mb-2">Active listings</p>
-          <p class="text-3xl font-light text-farm-dark tabular-nums">
-            {{ productsData?.products?.length ?? 0 }}
-          </p>
-          <p class="text-[11px] text-farm-dark/40 mt-2">Products in catalog</p>
+        <div class="ui-card">
+          <p v-if="metricsPending" class="py-10 text-center text-sm text-gray-400">Loading…</p>
+          <p v-else-if="!recentSales.length" class="py-10 text-center text-sm text-gray-400">No sales yet.</p>
+          <ul v-else class="divide-y divide-farm-leaf/10">
+            <li v-for="(item, idx) in recentSales" :key="idx" class="flex items-center justify-between gap-3 px-4 py-3">
+              <div class="min-w-0">
+                <p class="text-sm text-shop-ink">{{ item.quantity }} {{ item.quantity === 1 ? 'unit' : 'units' }} sold</p>
+                <p class="text-xs text-gray-400">{{ formatDate(item.created_at) }}</p>
+              </div>
+              <p class="flex-shrink-0 text-sm font-medium tabular-nums text-farm-leaf">{{ peso(item.price * item.quantity) }}</p>
+            </li>
+          </ul>
         </div>
       </section>
 
-      <section class="border border-farm-light bg-white">
-        <div class="px-5 py-4 border-b border-farm-light flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-farm-dark/45 mb-2">Store taxonomy</p>
-            <h2 class="text-lg font-light text-farm-dark tracking-tight">Shop categories</h2>
-            <p class="text-xs text-farm-dark/45 mt-1">Create custom categories that appear in your storefront.</p>
-          </div>
-          <form class="flex w-full gap-2 md:w-auto" @submit.prevent="createCategory">
-            <input
-              v-model="newCategoryName"
-              type="text"
-              maxlength="120"
-              placeholder="e.g. Sizzling Meals"
-              class="min-w-0 flex-1 md:w-64 border border-farm-light px-3 py-2 text-sm outline-none focus:border-farm-deep"
-            >
-            <button
-              type="submit"
-              :disabled="savingCategory || !newCategoryName.trim()"
-              class="px-4 py-2 bg-farm-deep text-white text-[10px] font-medium tracking-[0.14em] uppercase hover:bg-farm-dark transition-colors disabled:opacity-50"
-            >
-              Add
-            </button>
-          </form>
+      <!-- Stock -->
+      <section class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-semibold text-farm-deep">Stock</h2>
+          <NuxtLink to="/seller/inventory" class="ui-link">Inventory</NuxtLink>
         </div>
-
-        <div v-if="categoriesPending" class="p-8 text-center text-xs text-farm-dark/40">Loading categories...</div>
-        <div v-else-if="!categories.length" class="p-8 text-center text-xs text-farm-dark/40">
-          No shop categories yet. Add one before publishing products.
-        </div>
-        <div v-else class="divide-y divide-farm-light">
-          <form
-            v-for="category in categories"
-            :key="category.id"
-            class="flex items-center gap-3 px-5 py-4"
-            @submit.prevent="updateCategory(category)"
+        <nav class="flex gap-5 overflow-x-auto border-b border-farm-leaf/15" aria-label="Filter stock">
+          <button
+            v-for="f in stockFilters"
+            :key="f.value"
+            type="button"
+            class="ui-tab"
+            :class="statusFilter === f.value ? 'ui-tab--active' : ''"
+            @click="statusFilter = f.value"
           >
-            <Icon name="heroicons:tag" class="w-4 h-4 text-farm-leaf flex-shrink-0" />
-            <input
-              v-model="category.name"
-              type="text"
-              maxlength="120"
-              class="min-w-0 flex-1 border border-transparent bg-farm-light/30 px-3 py-2 text-sm text-farm-dark outline-none focus:border-farm-deep focus:bg-white"
-            >
-            <button
-              type="submit"
-              class="px-3 py-2 border border-farm-light text-[10px] font-medium tracking-[0.12em] uppercase text-farm-deep hover:border-farm-deep"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              class="p-2 border border-farm-light text-farm-dark/45 hover:border-red-200 hover:text-red-600"
-              title="Delete category"
-              @click="deleteCategory(category)"
-            >
-              <Icon name="heroicons:trash" class="w-4 h-4" />
-            </button>
-          </form>
+            {{ f.label }}
+          </button>
+        </nav>
+        <div class="ui-card">
+          <p v-if="productsPending" class="py-10 text-center text-sm text-gray-400">Loading…</p>
+          <p v-else-if="!filteredProducts.length" class="py-10 text-center text-sm text-gray-400">No products here.</p>
+          <ul v-else class="divide-y divide-farm-leaf/10">
+            <li v-for="product in filteredProducts.slice(0, 6)" :key="product.id">
+              <NuxtLink to="/seller/inventory" class="flex items-center justify-between gap-3 px-4 py-3">
+                <div class="min-w-0">
+                  <p class="truncate text-sm text-shop-ink">{{ product.name }}</p>
+                  <p class="truncate text-xs text-gray-400">{{ peso(Number(product.price)) }} · {{ product.category || 'Uncategorized' }}</p>
+                </div>
+                <span class="flex-shrink-0 tabular-nums" :class="stockClass(product.stock)">
+                  {{ product.stock === 0 ? 'Sold out' : `${product.stock} left` }}
+                </span>
+              </NuxtLink>
+            </li>
+          </ul>
         </div>
       </section>
+    </div>
 
-      <!-- Revenue chart -->
-      <section class="border border-farm-light p-6 md:p-8">
-        <div class="flex items-end justify-between mb-6">
-          <div>
-            <h2 class="text-lg font-light text-farm-dark tracking-tight">
-              Monthly store revenue
-            </h2>
-            <p class="text-xs text-farm-dark/45 mt-1">Trailing six-month performance</p>
-          </div>
-        </div>
-        <ClientOnly>
-          <FarmChart
-            v-if="sellerChartOptions"
-            :options="sellerChartOptions"
-            :height="300"
-          />
-          <template #fallback>
-            <div class="h-[300px] flex items-center justify-center border border-farm-light bg-farm-light/20">
-              <span class="text-[11px] text-farm-dark/40 tracking-wide">Loading chart…</span>
-            </div>
-          </template>
-        </ClientOnly>
-      </section>
-
-      <!-- Quick navigation -->
-      <section class="grid grid-cols-3 gap-px bg-farm-light border border-farm-light">
-        <button
-          v-for="link in quickLinks"
-          :key="link.path"
-          type="button"
-          class="bg-white py-6 px-4 text-center hover:bg-farm-light/40 transition-colors"
-          @click="router.push(link.path)"
-        >
-          <Icon :name="link.icon" class="w-5 h-5 text-farm-deep mx-auto mb-2 stroke-[1.5]" />
-          <span class="text-[10px] font-medium tracking-[0.14em] uppercase text-farm-dark">{{ link.label }}</span>
-        </button>
-      </section>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <!-- Order ledger -->
-        <section class="border border-farm-light">
-          <div class="px-5 py-4 border-b border-farm-light flex items-center justify-between">
-            <h2 class="text-sm font-medium text-farm-dark tracking-tight">Recent sales</h2>
-            <span class="text-[10px] text-farm-dark/40 uppercase tracking-wider">
-              {{ metrics?.items?.length ?? 0 }} line items
-            </span>
-          </div>
-
-          <div v-if="metricsPending" class="p-8 text-center text-xs text-farm-dark/40">Loading…</div>
-          <div v-else-if="!recentSales.length" class="p-8 text-center text-xs text-farm-dark/40">
-            No sales recorded yet.
-          </div>
-          <table v-else class="w-full text-left">
-            <thead>
-              <tr class="border-b border-farm-light text-[10px] uppercase tracking-wider text-farm-dark/40">
-                <th class="px-5 py-3 font-medium">Order</th>
-                <th class="px-5 py-3 font-medium">Date</th>
-                <th class="px-5 py-3 font-medium text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-farm-light">
-              <tr
-                v-for="(item, idx) in recentSales"
-                :key="idx"
-                class="hover:bg-farm-light/50 transition-colors"
-              >
-                <td class="px-5 py-4">
-                  <p class="text-sm text-farm-dark font-medium">{{ item.quantity }} units sold</p>
-                  <span
-                    class="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full border border-farm-light text-farm-leaf"
-                  >
-                    fulfilled
-                  </span>
-                </td>
-                <td class="px-5 py-4 text-xs text-farm-dark/50 tabular-nums">
-                  {{ formatDate(item.created_at) }}
-                </td>
-                <td class="px-5 py-4 text-sm text-farm-leaf font-medium text-right tabular-nums">
-                  ₱{{ (item.price * item.quantity).toFixed(2) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        <!-- Product inventory table -->
-        <section class="border border-farm-light">
-          <div class="px-5 py-4 border-b border-farm-light flex items-center justify-between gap-3">
-            <h2 class="text-sm font-medium text-farm-dark tracking-tight">Inventory snapshot</h2>
-            <select
-              v-model="statusFilter"
-              class="text-[10px] uppercase tracking-wider border border-farm-light px-2 py-1 text-farm-dark/60 bg-white outline-none focus:border-farm-deep"
-            >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="low">Low stock</option>
-              <option value="outofstock">Out of stock</option>
-            </select>
-          </div>
-
-          <div v-if="productsPending" class="p-8 text-center text-xs text-farm-dark/40">Loading…</div>
-          <div v-else-if="!filteredProducts.length" class="p-8 text-center text-xs text-farm-dark/40">
-            No products found.
-          </div>
-          <table v-else class="w-full text-left">
-            <thead>
-              <tr class="border-b border-farm-light text-[10px] uppercase tracking-wider text-farm-dark/40">
-                <th class="px-5 py-3 font-medium">Product</th>
-                <th class="px-5 py-3 font-medium text-right">Price</th>
-                <th class="px-5 py-3 font-medium text-right">Stock</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-farm-light">
-              <tr
-                v-for="product in filteredProducts.slice(0, 6)"
-                :key="product.id"
-                class="hover:bg-farm-light/50 transition-colors cursor-pointer"
-                @click="router.push('/seller/inventory')"
-              >
-                <td class="px-5 py-4">
-                  <p class="text-sm text-farm-dark font-medium truncate max-w-[160px]">{{ product.name }}</p>
-                  <p class="text-[10px] text-farm-dark/40 mt-0.5">{{ product.category }}</p>
-                </td>
-                <td class="px-5 py-4 text-sm text-farm-leaf text-right tabular-nums">
-                  ₱{{ parseFloat(product.price).toFixed(2) }}
-                </td>
-                <td class="px-5 py-4 text-right">
-                  <span
-                    class="text-[10px] px-2 py-0.5 rounded-full border"
-                    :class="stockChipClass(product.stock)"
-                  >
-                    {{ product.stock }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+    <!-- Categories -->
+    <section class="space-y-3">
+      <div>
+        <h2 class="text-base font-semibold text-farm-deep">Shop categories</h2>
+        <p class="mt-0.5 text-xs text-gray-400">Buyers see these on your shop page. Add one before publishing products.</p>
       </div>
 
-      <div class="flex justify-end pt-4">
-        <button
-          type="button"
-          class="px-6 py-3 bg-farm-deep text-white text-[10px] font-medium tracking-[0.14em] uppercase hover:bg-farm-dark transition-colors"
-          @click="router.push('/seller/inventory')"
+      <form class="flex gap-2" @submit.prevent="createCategory">
+        <input
+          v-model="newCategoryName"
+          type="text"
+          maxlength="120"
+          placeholder="New category, e.g. Leafy greens"
+          aria-label="New category name"
+          class="ui-input min-w-0 flex-1 md:max-w-sm"
         >
-          Manage inventory
-        </button>
+        <button type="submit" class="ui-btn" :disabled="savingCategory || !newCategoryName.trim()">Add</button>
+      </form>
+
+      <div class="ui-card">
+        <p v-if="categoriesPending" class="py-10 text-center text-sm text-gray-400">Loading…</p>
+        <p v-else-if="!categories.length" class="py-10 text-center text-sm text-gray-400">No categories yet.</p>
+        <ul v-else class="divide-y divide-farm-leaf/10">
+          <li v-for="category in categories" :key="category.id">
+            <form class="flex items-center gap-2 px-3 py-2.5 md:px-4" @submit.prevent="updateCategory(category)">
+              <input
+                v-model="category.name"
+                type="text"
+                maxlength="120"
+                :aria-label="`Category name`"
+                class="min-w-0 flex-1 rounded border border-transparent bg-transparent px-2 py-2 text-sm text-shop-ink outline-none focus:border-farm-leaf/40"
+              >
+              <button type="submit" class="ui-link px-2">Save</button>
+              <button type="button" class="ui-icon-btn" title="Delete category" aria-label="Delete category" @click="deleteCategory(category)">
+                <Icon name="heroicons:trash" class="h-4 w-4" />
+              </button>
+            </form>
+          </li>
+        </ul>
       </div>
-  </PageContainer>
+    </section>
+  </div>
 </template>
 
 <script setup lang="ts">
-import type { Options } from 'highcharts'
-import PageContainer from '~/components/ui/PageContainer.vue'
+import type { Options, SeriesOptionsType } from 'highcharts'
 import FarmChart from '~/components/ui/FarmChart.vue'
 
 definePageMeta({ layout: 'seller' })
 
 const { user } = useAuth()
-const router = useRouter()
-const statusFilter = ref('all')
 const api = useApiFetch()
-const { sellerDualAxisOptions } = useFarmChartTheme()
+const { baseChart, FARM } = useFarmChartTheme()
 
 interface MetricItem {
   price: number
@@ -304,48 +195,92 @@ const {
   { server: false },
 )
 
-const newCategoryName = ref('')
-const savingCategory = ref(false)
-const categories = computed(() => categoriesData.value?.categories ?? [])
+const firstName = computed(() => user.value?.full_name?.trim().split(/\s+/)[0] ?? 'there')
 
-const recentSales = computed(() => (metrics.value?.items ?? []).slice(0, 8))
+const peso = (n: number) => `₱${(Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-const sellerChartOptions = computed<Options>(() => {
-  const chart = metrics.value?.chart
-  const categories = chart?.categories ?? []
-  const revenue = chart?.revenue ?? []
-  const orderCount = chart?.orderCount ?? []
+const products = computed(() => productsData.value?.products ?? [])
 
-  return sellerDualAxisOptions(categories, revenue, orderCount)
+const stats = computed(() => {
+  const lowStock = products.value.filter(p => p.stock < 10).length
+  return [
+    { label: 'Revenue', value: metrics.value ? peso(metrics.value.totalRevenue ?? 0) : '—', caption: 'All time', icon: 'heroicons:banknotes', tone: 'primary' as const },
+    { label: 'Orders', value: metrics.value ? metrics.value.totalOrders ?? 0 : '—', caption: 'All time', icon: 'heroicons:shopping-bag', tone: 'default' as const },
+    { label: 'Products', value: productsData.value ? products.value.length : '—', caption: 'Listed in your shop', icon: 'heroicons:archive-box', tone: 'default' as const },
+    { label: 'Low stock', value: productsData.value ? lowStock : '—', caption: 'Under 10 left', icon: 'heroicons:exclamation-triangle', tone: lowStock > 0 ? 'accent' as const : 'default' as const },
+  ]
 })
 
+const recentSales = computed(() => (metrics.value?.items ?? []).slice(0, 6))
+
+// Flat chart: revenue bars, no gradients, no animation.
+const chartOptions = computed<Options>(() => {
+  const chart = metrics.value?.chart
+  return {
+    ...baseChart,
+    chart: { ...baseChart.chart, type: 'column', height: 240 },
+    legend: { enabled: false },
+    xAxis: { ...baseChart.xAxis, categories: chart?.categories ?? [] },
+    yAxis: {
+      ...baseChart.yAxis,
+      gridLineColor: '#F3F4F6',
+      labels: {
+        style: { color: '#9CA3AF', fontSize: '10px' },
+        formatter() {
+          const v = Number(this.value)
+          return v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`
+        },
+      },
+    },
+    tooltip: {
+      ...baseChart.tooltip,
+      borderColor: '#E5E7EB',
+      pointFormatter() {
+        return `Revenue: <b>${peso(Number(this.y))}</b>`
+      },
+    },
+    plotOptions: {
+      series: { animation: false },
+      column: { borderWidth: 0, borderRadius: 2, pointPadding: 0.2, groupPadding: 0.1 },
+    },
+    series: [
+      { type: 'column', name: 'Revenue', data: chart?.revenue ?? [], color: FARM.leaf },
+    ] as SeriesOptionsType[],
+  }
+})
+
+const statusFilter = ref<'all' | 'active' | 'low' | 'outofstock'>('all')
+const stockFilters = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'In stock' },
+  { value: 'low', label: 'Low' },
+  { value: 'outofstock', label: 'Sold out' },
+] as const
+
 const filteredProducts = computed(() => {
-  const list = productsData.value?.products ?? []
-  if (statusFilter.value === 'all') return list
+  const list = products.value
   if (statusFilter.value === 'low') return list.filter(p => p.stock > 0 && p.stock < 10)
   if (statusFilter.value === 'outofstock') return list.filter(p => p.stock === 0)
   if (statusFilter.value === 'active') return list.filter(p => p.stock > 0)
   return list
 })
 
-const quickLinks = [
-  { label: 'Inventory', path: '/seller/inventory', icon: 'heroicons:archive-box' },
-  { label: 'Reviews', path: '/seller/reviews', icon: 'heroicons:star' },
-  { label: 'Profile', path: '/seller/profile', icon: 'heroicons:user' },
-]
-
-function stockChipClass(stock: number) {
-  if (stock === 0) return 'border-red-200 text-red-600'
-  if (stock < 10) return 'border-farm-yellow/50 text-farm-dark'
-  return 'border-farm-light text-farm-leaf'
+function stockClass(stock: number) {
+  if (stock === 0) return 'ui-pill ui-pill-red'
+  if (stock < 10) return 'ui-pill ui-pill-orange'
+  return 'ui-pill ui-pill-green'
 }
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  return new Date(dateStr).toLocaleDateString('en-PH', {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
+
+const newCategoryName = ref('')
+const savingCategory = ref(false)
+const categories = computed(() => categoriesData.value?.categories ?? [])
 
 async function createCategory() {
   const name = newCategoryName.value.trim()
@@ -386,5 +321,5 @@ async function deleteCategory(category: SellerCategory) {
   await refreshCategories()
 }
 
-useHead({ title: 'Seller Dashboard — Senoro Green Farm' })
+useHead({ title: 'Dashboard — NFWM Seller' })
 </script>

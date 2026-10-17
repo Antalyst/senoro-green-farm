@@ -3,7 +3,7 @@
   "appName": "Negros Farmers Weekend Market",
   "webDir": ".output/public",
     "server": {
-    "url": "https://nfwm.vercel.app",
+    "url": "https://Negros Farmers Weekend Market.vercel.app",
     "cleartext": true
   },
   "plugins": {

@@ -1,185 +1,294 @@
 <template>
-  <div class="py-8 md:py-12 space-y-10 pb-44 md:pb-36">
-    <header class="border-b-4 border-farm-dark pb-8">
-      <p class="text-[10px] font-bold tracking-[0.2em] uppercase text-market-orange mb-2">
-        Checkout
-      </p>
-      <h1 class="text-3xl md:text-4xl font-black text-farm-dark tracking-tight">
-        Place Your Order
-      </h1>
-    </header>
+  <div class="pb-40 pt-4 md:pt-8 lg:pb-12">
+    <h1 class="text-2xl font-bold text-shop-ink md:text-3xl">Checkout</h1>
+    <p class="mt-1 text-sm text-gray-500">Check your address and items, then place your order.</p>
 
-    <div v-if="pendingCart || pendingAddresses" class="py-24 text-center">
-      <Icon name="heroicons:arrow-path" class="w-6 h-6 text-market-orange animate-spin mx-auto" />
-      <p class="mt-3 text-xs font-bold text-farm-dark/60 uppercase tracking-widest">Loading checkout…</p>
-    </div>
+    <p v-if="(pendingCart && !cartData) || (pendingAddresses && !addressesData)" class="py-24 text-center text-sm text-gray-400">
+      Loading…
+    </p>
 
-    <div v-else-if="checkedCartItems.length === 0" class="py-24 text-center border-2 border-farm-dark bg-white">
-      <p class="text-lg font-bold text-farm-dark">No items selected</p>
-      <NuxtLink
-        to="/buyer/cart"
-        class="inline-block mt-6 px-6 py-3 bg-farm-dark text-white text-[10px] font-bold tracking-[0.15em] uppercase hover:bg-market-orange transition-colors"
-      >
-        Return to Cart
+    <!-- Nothing to check out -->
+    <div v-else-if="!checkedCartItems.length" class="mt-6 rounded-lg bg-shop-mint px-6 py-14 text-center">
+      <p class="text-base font-semibold text-shop-ink">No items to check out</p>
+      <p class="mt-1 text-sm text-gray-500">They may have been ordered already or removed from your cart.</p>
+      <NuxtLink to="/buyer/cart" class="mt-5 inline-flex min-h-[44px] items-center rounded bg-farm-leaf px-6 text-sm font-semibold text-white hover:bg-farm-deep">
+        Back to cart
       </NuxtLink>
     </div>
 
-    <div v-else class="space-y-10">
-      <!-- Shopee-Style Address Picker Section -->
-      <section class="border-t-[4px] border-t-market-orange bg-white shadow-sm border-2 border-farm-dark border-t-0 p-6 md:p-8">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2 text-farm-dark">
-            <Icon name="heroicons:map-pin-solid" class="w-6 h-6 text-market-orange" />
-            <h2 class="text-lg font-black tracking-wide">Delivery Address</h2>
+    <div v-else class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
+      <div class="space-y-4">
+        <!-- 1. Delivery address -->
+        <section class="overflow-hidden rounded-lg border border-gray-100">
+          <div class="step-head">
+            <span class="step-num">1</span>
+            <h2 class="flex-1 text-sm font-semibold text-shop-ink">Deliver to</h2>
+            <button v-if="addresses.length" type="button" class="text-sm font-semibold text-farm-leaf hover:text-farm-deep" @click="showAddressSheet = true">
+              Change
+            </button>
           </div>
-          <button 
-            type="button" 
-            @click="showAddressSwitcher = !showAddressSwitcher" 
-            class="text-xs font-bold text-farm-leaf uppercase tracking-wider hover:underline"
-          >
-            {{ showAddressSwitcher ? 'Close' : 'Change Address' }}
-          </button>
-        </div>
-        
-        <div v-if="activeAddress">
-          <p class="text-base font-black text-farm-dark">
-            {{ activeAddress.full_name }} 
-            <span class="font-bold text-farm-dark/70 ml-2">{{ activeAddress.phone_number }}</span>
-          </p>
-          <p class="text-sm font-medium text-farm-dark mt-1">
-            {{ activeAddress.detailed_address }}, {{ activeAddress.barangay }}, {{ activeAddress.city }}
-          </p>
-        </div>
-        <div v-else>
-          <p class="text-sm text-red-600 font-bold">No delivery address selected or available.</p>
-        </div>
 
-        <!-- Inline Address Switcher Sheet -->
-        <div v-if="showAddressSwitcher" class="mt-6 border-t-2 border-farm-dark pt-6 space-y-4">
-          <label 
-            v-for="addr in addresses" 
-            :key="addr.id" 
-            class="flex items-start gap-4 cursor-pointer p-4 hover:bg-farm-light/30 border-2 border-transparent hover:border-farm-dark transition-colors"
-            :class="{ 'border-farm-leaf bg-farm-leaf/5': selectedAddressId === addr.id }"
-          >
-            <input 
-              type="radio" 
-              :value="addr.id" 
-              v-model="selectedAddressId" 
-              class="mt-1 w-5 h-5 text-market-orange accent-market-orange border-2"
-            >
-            <div>
-              <p class="text-base font-bold text-farm-dark">
-                {{ addr.full_name }} 
-                <span class="font-medium text-farm-dark/70 ml-2">{{ addr.phone_number }}</span>
-                <span v-if="addr.is_default" class="ml-3 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 border border-market-orange text-market-orange bg-market-orange/10">Default</span>
+          <div v-if="activeAddress" class="flex gap-3 px-4 py-4">
+            <Icon name="heroicons:map-pin-solid" class="mt-0.5 h-5 w-5 flex-shrink-0 text-market-orange" />
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-shop-ink">
+                {{ activeAddress.full_name }}
+                <span class="font-normal text-gray-500">· {{ activeAddress.phone_number }}</span>
               </p>
-              <p class="text-sm font-medium text-farm-dark mt-1">
-                {{ addr.detailed_address }}, {{ addr.barangay }}, {{ addr.city }}
+              <p class="mt-0.5 text-sm leading-snug text-gray-600">
+                {{ activeAddress.detailed_address }}, Brgy. {{ activeAddress.barangay }}, {{ activeAddress.city }}
               </p>
             </div>
-          </label>
-        </div>
-      </section>
+          </div>
+          <div v-else class="px-4 py-5 text-center">
+            <p class="text-sm text-gray-600">You don't have a delivery address yet.</p>
+            <NuxtLink :to="addAddressLink" class="mt-3 inline-flex min-h-[44px] items-center rounded bg-farm-leaf px-5 text-sm font-semibold text-white hover:bg-farm-deep">
+              Add address
+            </NuxtLink>
+          </div>
+        </section>
 
-      <!-- Line Items Review Box -->
-      <section
-        v-for="(group, sellerId) in groupedCart"
-        :key="sellerId"
-        class="border-2 border-farm-dark bg-white shadow-sm"
-      >
-        <div class="flex items-center gap-3 px-4 md:px-6 py-4 bg-farm-light/50 border-b-2 border-farm-dark">
-          <Icon name="heroicons:building-storefront" class="w-6 h-6 text-farm-dark/80" />
-          <span class="text-base md:text-lg font-black text-farm-dark uppercase tracking-widest">{{ group.sellerName }}</span>
-        </div>
+        <!-- 2. Items, one card per shop -->
+        <section class="overflow-hidden rounded-lg border border-gray-100">
+          <div class="step-head">
+            <span class="step-num">2</span>
+            <h2 class="flex-1 text-sm font-semibold text-shop-ink">Your items</h2>
+            <NuxtLink to="/buyer/cart" class="text-sm font-semibold text-farm-leaf hover:text-farm-deep">Edit</NuxtLink>
+          </div>
 
-        <ul class="divide-y-2 divide-farm-dark">
-          <li
-            v-for="item in group.items"
-            :key="item.id"
-            class="px-4 md:px-6 py-6"
-          >
-            <template v-if="item.products">
-              <div class="flex gap-4 md:gap-6">
-                <div class="w-20 h-20 md:w-24 md:h-24 flex-shrink-0 bg-farm-light border-2 border-farm-dark overflow-hidden flex items-center justify-center">
-                  <img v-if="item.products.image_url" :src="item.products.image_url" class="w-full h-full object-cover">
-                  <div v-else class="text-3xl text-farm-dark/20">
-                    {{ getCategoryEmoji(item.products.category) }}
-                  </div>
+          <div v-for="group in groups" :key="group.sellerId" class="border-t border-gray-100 first:border-t-0">
+            <div class="flex items-center gap-2 px-4 pb-1 pt-3">
+              <AccountAvatar :name="group.shopName" :url="group.shopAvatar" class="h-6 w-6 rounded-full bg-farm-leaf text-[10px] text-white" />
+              <p class="min-w-0 flex-1 truncate text-sm font-semibold text-shop-ink">{{ group.shopName }}</p>
+            </div>
+
+            <ul class="divide-y divide-gray-50">
+              <li v-for="item in group.items" :key="item.id" class="flex items-center gap-3 px-4 py-3">
+                <img
+                  :src="item.products!.image_url || fallbackProductImage(item.products!.category)"
+                  :alt="item.products!.name"
+                  loading="lazy"
+                  class="h-14 w-14 flex-shrink-0 rounded bg-shop-cream object-cover"
+                >
+                <div class="min-w-0 flex-1">
+                  <p class="line-clamp-2 text-sm text-shop-ink">{{ item.products!.name }}</p>
+                  <p class="text-xs tabular-nums text-gray-500">
+                    {{ item.quantity }} × {{ formatPeso(item.products!.price) }} / {{ item.products!.unit_type || 'pc' }}
+                  </p>
                 </div>
+                <p class="flex-shrink-0 text-sm font-semibold tabular-nums text-shop-ink">{{ formatPeso(lineTotal(item)) }}</p>
+              </li>
+            </ul>
+          </div>
+        </section>
 
-                <div class="flex-1 min-w-0 flex flex-col justify-between">
-                  <div>
-                    <h3 class="text-base md:text-lg font-bold text-farm-dark truncate">
-                      {{ item.products.name }}
-                    </h3>
-                    <div class="mt-2 flex items-center gap-2">
-                      <span 
-                        class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 border"
-                        :class="isStreetFood(item.products.category) ? 'text-market-orange border-market-orange/30 bg-market-orange/5' : 'text-farm-leaf border-farm-leaf/30 bg-farm-leaf/5'"
-                      >
-                        {{ isStreetFood(item.products.category) ? 'Street Food & Eats' : 'Fresh Farm Produce' }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="flex justify-between items-end mt-4">
-                    <span class="text-sm font-bold text-farm-dark/60 uppercase tracking-widest">Qty: {{ item.quantity }}</span>
-                    <p class="text-base md:text-xl font-black text-farm-dark">
-                      ₱{{ formatPrice(item.products.price) }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </li>
-        </ul>
-      </section>
+        <!-- 3. Payment -->
+        <section class="overflow-hidden rounded-lg border border-gray-100">
+          <div class="step-head">
+            <span class="step-num">3</span>
+            <h2 class="flex-1 text-sm font-semibold text-shop-ink">Payment</h2>
+          </div>
+          <div class="flex items-center gap-3 px-4 py-4">
+            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-shop-mint text-farm-leaf">
+              <Icon name="heroicons:banknotes" class="h-5 w-5" />
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-shop-ink">Cash on delivery</p>
+              <p class="text-xs text-gray-500">Pay the rider when your order arrives.</p>
+            </div>
+            <Icon name="heroicons:check-circle-solid" class="h-6 w-6 flex-shrink-0 text-farm-leaf" />
+          </div>
+        </section>
+      </div>
+
+      <!-- Summary: in the page on phones, sticky on the right on desktop -->
+      <!-- Receipt-style summary: everything the buyer pays, and how delivery is calculated -->
+      <aside class="overflow-hidden rounded-lg border border-gray-100 lg:sticky lg:top-6">
+        <div class="bg-farm-deep px-4 py-3 text-white md:px-5">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-base font-semibold">Order summary</h2>
+            <span class="text-xs text-white/70">{{ today }}</span>
+          </div>
+          <p class="mt-0.5 text-xs text-white/70">Cash on delivery · {{ totalUnits }} {{ totalUnits === 1 ? 'item' : 'items' }} · {{ shopCount }} {{ shopCount === 1 ? 'shop' : 'shops' }}</p>
+        </div>
+
+        <div class="space-y-4 bg-white px-4 py-4 md:px-5">
+          <!-- Deliver to -->
+          <div v-if="activeAddress" class="text-xs leading-snug">
+            <p class="font-semibold uppercase tracking-wide text-gray-400">Deliver to</p>
+            <p class="mt-1 text-sm text-shop-ink">{{ activeAddress.full_name }} · {{ activeAddress.phone_number }}</p>
+            <p class="text-gray-500">{{ activeAddress.detailed_address }}, Brgy. {{ activeAddress.barangay }}, {{ activeAddress.city }}</p>
+          </div>
+
+          <!-- Delivery rate -->
+          <div class="flex items-center justify-between gap-3 rounded bg-shop-mint px-3 py-2 text-sm">
+            <span class="flex items-center gap-2 text-farm-deep">
+              <Icon name="heroicons:truck" class="h-4 w-4" />
+              Delivery rate
+            </span>
+            <span class="font-semibold tabular-nums text-farm-deep">
+              {{ deliveryQuote ? `${formatPeso(deliveryQuote.rate_per_km)} / km` : quotingDelivery ? 'Loading…' : '—' }}
+            </span>
+          </div>
+
+          <!-- Per shop -->
+          <div v-for="group in groups" :key="group.sellerId" class="border-t border-dashed border-gray-200 pt-3 text-sm">
+            <p class="font-semibold text-shop-ink">{{ group.shopName }}</p>
+            <ul class="mt-1.5 space-y-1">
+              <li v-for="item in group.items" :key="item.id" class="flex justify-between gap-3">
+                <span class="min-w-0 text-gray-600">
+                  <span class="tabular-nums">{{ item.quantity }}×</span> {{ item.products!.name }}
+                </span>
+                <span class="flex-shrink-0 tabular-nums text-shop-ink">{{ formatPeso(lineTotal(item)) }}</span>
+              </li>
+            </ul>
+            <div class="mt-1.5 flex justify-between gap-3 text-gray-500">
+              <span>Shop subtotal</span>
+              <span class="tabular-nums">{{ formatPeso(groupSubtotal(group)) }}</span>
+            </div>
+            <div class="mt-1 flex justify-between gap-3">
+              <span class="min-w-0 text-gray-500">
+                Delivery
+                <span class="block text-xs tabular-nums" :class="shopDelivery(group.sellerId)?.flat_reason ? 'text-market-orange' : 'text-gray-400'">
+                  {{ deliveryMath(group.sellerId) }}
+                </span>
+              </span>
+              <span class="flex-shrink-0 tabular-nums text-shop-ink">
+                {{ shopDelivery(group.sellerId) ? formatPeso(shopDelivery(group.sellerId)!.fee) : '—' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Totals -->
+          <dl class="space-y-1.5 border-t border-dashed border-gray-200 pt-3 text-sm">
+            <div class="flex justify-between gap-3">
+              <dt class="text-gray-500">Items subtotal</dt>
+              <dd class="tabular-nums text-shop-ink">{{ formatPeso(itemsSubtotal) }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="text-gray-500">Delivery fee{{ shopCount > 1 ? ` (${shopCount} shops)` : '' }}</dt>
+              <dd class="tabular-nums text-shop-ink">{{ deliveryLabel }}</dd>
+            </div>
+          </dl>
+          <div class="flex items-baseline justify-between gap-3 border-t border-gray-200 pt-3">
+            <span class="text-sm font-semibold text-shop-ink">Total to pay</span>
+            <span class="text-2xl font-bold tabular-nums text-farm-leaf">{{ formatPeso(totalCheckoutPrice) }}</span>
+          </div>
+
+          <p v-if="quoteFailed" class="rounded bg-market-orange/10 px-3 py-2 text-xs text-market-orange">
+            We couldn't calculate the delivery fee right now. It will be added when you place the order.
+          </p>
+          <p v-else class="text-xs leading-relaxed text-gray-400">
+            Delivery = rate per km × straight-line distance from each shop to your pinned address.
+            <template v-if="shopCount > 1">Each shop is a separate pickup, so each has its own fee.</template>
+            <template v-if="hasFlatFee"> Without a map pin, a flat {{ deliveryQuote ? formatPeso(deliveryQuote.fallback_fee) : '' }} fee is used.</template>
+          </p>
+
+          <button type="button" class="btn-place hidden w-full lg:inline-flex" :disabled="!canPlaceOrder" @click="checkout">
+            {{ placeLabel }}
+          </button>
+        </div>
+      </aside>
     </div>
 
-    <!-- Sticky Order Placement Ledger Footer -->
-    <div
-      v-if="checkedCartItems.length > 0"
-      class="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 bg-white border-t-2 border-farm-dark shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
-    >
-      <div class="max-w-page mx-auto w-full px-4 md:px-8 py-4 md:py-5 flex items-center justify-end gap-6">
-        <div class="text-right">
-          <div class="mb-2 flex flex-col gap-1 items-end text-[10px] font-bold text-farm-dark/60 uppercase tracking-widest">
-            <p>Subtotal: <span class="tabular-nums ml-2 text-farm-dark">₱{{ itemsSubtotal.toFixed(2) }}</span></p>
-            <p>Delivery Fee: <span class="tabular-nums ml-2 text-farm-dark">₱50.00</span></p>
-          </div>
-          <p class="text-[10px] font-bold tracking-[0.16em] uppercase text-farm-dark/60">Total Payment</p>
-          <p class="text-2xl md:text-3xl font-black text-market-orange tabular-nums">
-            ₱{{ totalCheckoutPrice.toFixed(2) }}
-          </p>
+    <!-- Phones: total + place order, above the tab bar -->
+    <div v-if="checkedCartItems.length" class="place-bar lg:hidden">
+      <div class="mx-auto flex max-w-page items-center gap-3 px-4 py-2.5">
+        <div class="min-w-0 flex-1">
+          <p class="text-xs text-gray-500">Total · cash on delivery</p>
+          <p class="truncate text-lg font-bold tabular-nums text-farm-leaf">{{ formatPeso(totalCheckoutPrice) }}</p>
         </div>
-        <button
-          type="button"
-          :disabled="submittingCheckout || !selectedAddressId || checkedCartItems.length === 0"
-          class="px-8 py-4 bg-market-orange text-white text-xs md:text-sm font-black tracking-[0.15em] uppercase hover:bg-[#D35400] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:hover:scale-100 min-w-[160px] flex-shrink-0 shadow-lg shadow-market-orange/20"
-          @click="checkout"
-        >
-          <span v-if="submittingCheckout" class="flex items-center justify-center gap-2">
-            <Icon name="heroicons:arrow-path" class="w-5 h-5 animate-spin" />
-            Processing
-          </span>
-          <span v-else>Place Order</span>
+        <button type="button" class="btn-place flex-shrink-0" :disabled="!canPlaceOrder" @click="checkout">
+          {{ placeLabel }}
         </button>
       </div>
     </div>
 
-    <BuyerToast
-      :show="toast.show"
-      :message="toast.message"
-      :type="toast.type"
-      @close="toast.show = false"
-    />
+    <!-- Address picker: bottom sheet on phones, dialog on desktop -->
+    <UiSheet :open="showAddressSheet" title="Choose address" @close="showAddressSheet = false">
+      <ul class="space-y-2">
+        <li v-for="addr in addresses" :key="addr.id">
+          <label
+            class="flex cursor-pointer items-start gap-3 rounded-md border p-3"
+            :class="selectedAddressId === addr.id ? 'border-farm-leaf bg-shop-mint' : 'border-gray-200'"
+          >
+            <input v-model="selectedAddressId" type="radio" name="address" :value="addr.id" class="mt-0.5 h-5 w-5 flex-shrink-0 accent-farm-leaf">
+            <span class="min-w-0">
+              <span class="flex flex-wrap items-center gap-2 text-sm font-semibold text-shop-ink">
+                {{ addr.full_name }}
+                <span v-if="addr.is_default" class="rounded-full bg-market-orange/10 px-2 py-0.5 text-[11px] font-medium text-market-orange">Default</span>
+              </span>
+              <span class="block text-sm text-gray-500">{{ addr.phone_number }}</span>
+              <span class="mt-0.5 block text-sm leading-snug text-gray-600">
+                {{ addr.detailed_address }}, Brgy. {{ addr.barangay }}, {{ addr.city }}
+              </span>
+            </span>
+          </label>
+        </li>
+      </ul>
+      <template #footer>
+        <div class="flex gap-2">
+          <NuxtLink :to="addAddressLink" class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded border border-farm-leaf text-sm font-semibold text-farm-leaf hover:bg-shop-mint">
+            Add new address
+          </NuxtLink>
+          <button type="button" class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded bg-farm-leaf text-sm font-semibold text-white hover:bg-farm-deep" @click="showAddressSheet = false">
+            Use this address
+          </button>
+        </div>
+      </template>
+    </UiSheet>
+
+    <BuyerToast :show="toast.show" :message="toast.message" :type="toast.type" @close="toast.show = false" />
   </div>
 </template>
 
 <script setup lang="ts">
-import BuyerToast from '~/components/buyer/BuyerToast.vue'
-
 definePageMeta({ layout: 'buyer' })
+
+interface Address {
+  id: string
+  full_name: string
+  phone_number: string
+  city: string
+  barangay: string
+  detailed_address: string
+  is_default: boolean
+}
+
+interface CartProduct {
+  id: string
+  name: string
+  price: string | number
+  image_url?: string | null
+  category?: string
+  unit_type?: string | null
+  users?: { id?: string; full_name?: string; shop_name?: string | null; shop_avatar_url?: string | null }
+}
+
+interface CartLineItem {
+  id: string
+  quantity: number
+  products?: CartProduct
+}
+
+interface ShopGroup {
+  sellerId: string
+  shopName: string
+  shopAvatar?: string | null
+  items: CartLineItem[]
+}
+
+interface DeliveryQuote {
+  rate_per_km: number
+  fallback_fee: number
+  fee: number
+  shops: {
+    seller_id: string
+    distance_km: number | null
+    fee: number
+    flat_reason?: 'no_buyer_pin' | 'no_shop_pin' | null
+  }[]
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -192,142 +301,173 @@ const checkedItemIds = computed(() => {
   return String(items).split(',').filter(Boolean)
 })
 
+// Come back here after adding an address.
+const addAddressLink = computed(() => ({ path: '/buyer/profile/addresses', query: { redirect: route.fullPath } }))
+
 const submittingCheckout = ref(false)
-const showAddressSwitcher = ref(false)
+const orderPlaced = ref(false)
+const showAddressSheet = ref(false)
 const selectedAddressId = ref<string | null>(null)
 
-interface Address {
-  id: string
-  full_name: string
-  phone_number: string
-  city: string
-  barangay: string
-  detailed_address: string
-  is_default: boolean
-}
-
-// Fetch addresses
+// Addresses
 const { data: addressesData, pending: pendingAddresses } = await useAsyncData(
   'buyer:addresses-checkout',
-  () => api<Address[]>('/api/buyer/addresses'),
-  { server: false }
+  () => api<Address[] | { addresses: Address[] }>('/api/buyer/addresses'),
+  { server: false },
 )
 
 const addresses = computed<Address[]>(() => {
   const raw = addressesData.value
   if (!raw) return []
-  if (Array.isArray(raw)) return raw
-  if (raw && typeof raw === 'object' && 'addresses' in raw) return (raw as { addresses: Address[] }).addresses ?? []
-  return []
+  return Array.isArray(raw) ? raw : raw.addresses ?? []
 })
-const activeAddress = computed(() => addresses.value.find((a: Address) => a.id === selectedAddressId.value) || null)
+const activeAddress = computed(() => addresses.value.find(a => a.id === selectedAddressId.value) ?? null)
 
 watchEffect(() => {
   if (!selectedAddressId.value && addresses.value.length > 0) {
     const defaultAddr = addresses.value.find(a => a.is_default)
-    selectedAddressId.value = defaultAddr ? defaultAddr.id : addresses.value[0].id
+    selectedAddressId.value = defaultAddr ? defaultAddr.id : addresses.value[0]!.id
   }
 })
 
-// Fetch cart items
-interface CartProduct {
-  id: string
-  name: string
-  price: string | number
-  image_url?: string
-  category?: string
-  users?: { id?: string; full_name?: string }
-}
-
-interface CartLineItem {
-  id: string
-  quantity: number
-  products?: CartProduct
-}
-
+// Cart items picked on the cart page
 const { data: cartData, pending: pendingCart, refresh } = await useAsyncData(
   'buyer:cart-items-checkout',
   () => api<{ cart_items?: CartLineItem[] } | CartLineItem[]>('/api/cart'),
-  { server: false }
+  { server: false },
 )
 
 const cartItems = computed<CartLineItem[]>(() => {
   const data = cartData.value
-  if (!data) return []
-  if (Array.isArray(data)) return data
-  return data.cart_items ?? []
+  const list = !data ? [] : Array.isArray(data) ? data : data.cart_items ?? []
+  return list.filter(item => item?.products?.id)
 })
 
-const checkedCartItems = computed(() => {
-  return cartItems.value.filter(item => checkedItemIds.value.includes(item.id))
-})
+const checkedCartItems = computed(() => cartItems.value.filter(item => checkedItemIds.value.includes(item.id)))
 
-const groupedCart = computed(() => {
-  const groups: Record<string, { sellerName: string; items: CartLineItem[] }> = {}
+const groups = computed<ShopGroup[]>(() => {
+  const map = new Map<string, ShopGroup>()
   for (const item of checkedCartItems.value) {
-    const product = item?.products
-    if (!product?.id) continue
-    const seller = product.users
-    const sellerId = seller?.id ?? 'unknown_seller'
-    const sellerName = seller?.full_name ?? 'Independent Farmer'
-    if (!groups[sellerId]) groups[sellerId] = { sellerName, items: [] }
-    groups[sellerId].items.push(item)
+    const seller = item.products?.users
+    const sellerId = seller?.id ?? 'unknown'
+    if (!map.has(sellerId)) {
+      map.set(sellerId, {
+        sellerId,
+        shopName: seller?.shop_name || seller?.full_name || 'Local seller',
+        shopAvatar: seller?.shop_avatar_url,
+        items: [],
+      })
+    }
+    map.get(sellerId)!.items.push(item)
   }
-  return groups
+  return [...map.values()]
 })
 
-const categoryEmojis: Record<string, string> = {
-  Vegetables: '🥬', Fruits: '🍎', Organic: '🌱', Herbs: '🌿', Dairy: '🥛', Grains: '🌾',
-}
+const shopCount = computed(() => groups.value.length)
+const lineTotal = (item: CartLineItem) => Number(item.products?.price ?? 0) * (item.quantity ?? 1)
+const itemsSubtotal = computed(() => checkedCartItems.value.reduce((sum, i) => sum + lineTotal(i), 0))
+const totalUnits = computed(() => checkedCartItems.value.reduce((sum, i) => sum + (i.quantity ?? 1), 0))
 
-function getCategoryEmoji(category?: string) {
-  return categoryEmojis[category ?? ''] ?? '🌱'
-}
+// Rate per km (set by admin) × distance from each shop to the selected address.
+// The server recalculates this at checkout; this is the preview.
+const deliveryQuote = ref<DeliveryQuote | null>(null)
+const quotingDelivery = ref(false)
+const quoteFailed = ref(false)
 
-function isStreetFood(category?: string) {
-  return (category || '').startsWith('street_food_')
-}
+watch(
+  [selectedAddressId, () => checkedCartItems.value.map(i => i.id).join(',')],
+  async ([addressId, itemIds]) => {
+    quoteFailed.value = false
+    if (!addressId || !itemIds) {
+      deliveryQuote.value = null
+      return
+    }
+    quotingDelivery.value = true
+    try {
+      deliveryQuote.value = await api<DeliveryQuote>('/api/cart/delivery-quote', {
+        method: 'POST',
+        body: { cart_item_ids: itemIds.split(','), address_id: addressId },
+      })
+    }
+    catch {
+      deliveryQuote.value = null
+      quoteFailed.value = true
+    }
+    finally {
+      quotingDelivery.value = false
+    }
+  },
+  { immediate: true },
+)
 
-function formatPrice(price: string | number) {
-  return parseFloat(String(price ?? 0)).toFixed(2)
-}
+const deliveryFee = computed(() => deliveryQuote.value?.fee ?? 0)
+const totalCheckoutPrice = computed(() => itemsSubtotal.value + deliveryFee.value)
 
-const itemsSubtotal = computed(() => {
-  let total = 0
-  for (const item of checkedCartItems.value) {
-    const price = item.products?.price
-    if (price == null) continue
-    total += parseFloat(String(price)) * (item.quantity ?? 1)
-  }
-  return total
+const deliveryLabel = computed(() => {
+  if (quotingDelivery.value) return 'Calculating…'
+  if (!deliveryQuote.value) return '—'
+  return formatPeso(deliveryFee.value)
 })
 
-const deliveryFee = 50
+function shopDelivery(sellerId: string) {
+  return deliveryQuote.value?.shops.find(s => s.seller_id === sellerId) ?? null
+}
 
-const totalCheckoutPrice = computed(() => {
-  return itemsSubtotal.value + deliveryFee
+/** The calculation shown under each shop's delivery line, e.g. "3.2 km × ₱15.00/km". */
+function deliveryMath(sellerId: string) {
+  if (quotingDelivery.value) return 'Calculating…'
+  const shop = shopDelivery(sellerId)
+  const quote = deliveryQuote.value
+  if (!shop || !quote) return 'Not calculated yet'
+  if (shop.flat_reason === 'no_buyer_pin') return 'Flat fee: your address has no map pin'
+  if (shop.flat_reason === 'no_shop_pin' || shop.distance_km == null) return 'Flat fee: shop has no map pin'
+  return `${shop.distance_km} km × ${formatPeso(quote.rate_per_km)}/km`
+}
+
+const hasFlatFee = computed(() => (deliveryQuote.value?.shops ?? []).some(s => s.distance_km == null))
+
+function groupSubtotal(group: ShopGroup) {
+  return group.items.reduce((sum, i) => sum + lineTotal(i), 0)
+}
+
+const today = new Date().toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+
+const canPlaceOrder = computed(() =>
+  !!selectedAddressId.value
+  && checkedCartItems.value.length > 0
+  && !quotingDelivery.value
+  && !submittingCheckout.value
+  && !orderPlaced.value,
+)
+
+const placeLabel = computed(() => {
+  if (orderPlaced.value) return 'Order placed'
+  if (submittingCheckout.value) return 'Placing order…'
+  if (!selectedAddressId.value) return 'Add an address'
+  return 'Place order'
 })
 
 async function checkout() {
-  if (checkedItemIds.value.length === 0 || !selectedAddressId.value) return
+  if (!canPlaceOrder.value) return
 
   submittingCheckout.value = true
   try {
     const data = await api<{ success: boolean; total_amount: number }>('/api/cart/checkout', {
       method: 'POST',
-      body: { 
+      body: {
         cart_item_ids: checkedItemIds.value,
-        address_id: selectedAddressId.value
+        address_id: selectedAddressId.value,
       },
     })
-    triggerToast(`Order placed successfully — ₱${data.total_amount.toFixed(2)}`)
-    refresh()
+    orderPlaced.value = true
+    triggerToast(`Order placed. Total ${formatPeso(data.total_amount)}, cash on delivery.`)
     refreshCartCount?.()
     setTimeout(() => router.push('/buyer/orders'), 1500)
   }
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
     triggerToast(e.data?.statusMessage || 'Checkout failed', 'error')
+    refresh()
   }
   finally {
     submittingCheckout.value = false
@@ -341,5 +481,33 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   setTimeout(() => { toast.value.show = false }, 4000)
 }
 
-useHead({ title: 'Checkout — Senoro Green Farm' })
+useHead({ title: 'Checkout — NFWM' })
 </script>
+
+<style scoped>
+.step-head {
+  @apply flex items-center gap-3 bg-shop-mint px-4 py-3;
+}
+.step-num {
+  @apply flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-farm-leaf text-xs font-semibold text-white;
+}
+.btn-place {
+  @apply inline-flex min-h-[48px] items-center justify-center rounded bg-market-orange px-6 text-sm font-semibold text-white transition-colors hover:bg-[#cf6d17] disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+/* Sits right above the buyer tab bar on phones (same as cart and product pages) */
+.place-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  background: #ffffff;
+  border-top: 1px solid #f3f4f6;
+}
+@media (min-width: 768px) {
+  .place-bar {
+    bottom: 0;
+  }
+}
+</style>
