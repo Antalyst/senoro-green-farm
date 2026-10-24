@@ -1,13 +1,13 @@
 <template>
-  <div class="grid min-h-screen grid-cols-1 gap-6 bg-white p-0 lg:grid-cols-2 lg:p-6">
+  <div class="grid min-h-screen grid-cols-1 gap-6 bg-white p-0 lg:grid-cols-2 lg:p-6 lg:h-screen lg:overflow-hidden">
     <AuthShowcase
       title="Join Negros' online farmers' market"
       text="Shop fresh food from local farmers, open your own stall, or deliver orders in your area."
       image="/images/campaign/street-food-hero.png"
-      class="lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]"
+      class="hidden lg:block lg:h-full"
     />
 
-    <main class="flex flex-col px-6 py-8 sm:px-10 lg:px-16">
+    <main class="flex flex-col px-6 py-8 sm:px-10 lg:px-16 lg:h-full lg:overflow-y-auto">
       <!-- Top bar -->
       <div class="flex items-center justify-between">
         <NuxtLink to="/" class="inline-flex items-center gap-1.5 text-sm text-gray-500 transition hover:text-shop-ink">
@@ -194,7 +194,7 @@
         </form>
       </div>
 
-      <p class="text-center text-xs text-gray-400">© {{ year }} NFWM · Negros Farmers Weekend Market</p>
+      <p class="pb-4 text-center text-xs text-gray-400">© {{ year }} NFWM · Negros Farmers Weekend Market</p>
     </main>
   </div>
 </template>
