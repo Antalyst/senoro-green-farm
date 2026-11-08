@@ -1,6 +1,6 @@
-# System Overview — NFWM
+# System Overview — Farmers to Market
 Read this first. It explains how the whole system works in short, simple English.
-Brand name in UI: **Negros Farmers Weekend Market (NFWM)**. Repo name: `senoro-green-farm`.
+Brand name in UI: **Negros Farmers Weekend Market (Farmers to Market)**. Repo name: `senoro-green-farm`.
 
 ---
 
@@ -125,8 +125,8 @@ Buyer: browse → add to cart → checkout
 
 QR handoff (needs migration 012, `order_items.picked_up_at`):
 - Codes are HMACs of the order (+ seller) with `NUXT_JWT_SECRET` (`server/utils/handoffCodes.ts`), so they cannot be forged.
-- Pickup QR text: `NFWM:P:<orderId>:<sellerId>:<code>`, printed on each shop's receipt (`/seller/receipt/:id`).
-- Delivery QR text: `NFWM:D:<orderId>:<code>`, shown to the buyer on `/buyer/orders/:id` only while `out_for_delivery`.
+- Pickup QR text: `Farmers to Market:P:<orderId>:<sellerId>:<code>`, printed on each shop's receipt (`/seller/receipt/:id`).
+- Delivery QR text: `Farmers to Market:D:<orderId>:<code>`, shown to the buyer on `/buyer/orders/:id` only while `out_for_delivery`.
 - Every QR also shows an 8-character code (`ABCD-2345`) the rider can type in if the camera fails.
 
 Step details:
@@ -320,7 +320,7 @@ Notes:
 
 ## 14. Known issues and risks (fix these)
 
-1. **Broken mobile API URL (uncommitted change).** `nuxt.config.ts` `apiBaseUrl` and `capacitor.config.json` `server.url` were changed from `https://nfwm.vercel.app` to `https://Negros Farmers Weekend Market.vercel.app`. A URL cannot have spaces, so the mobile app cannot load. Revert to `https://nfwm.vercel.app`.
+1. **Broken mobile API URL (uncommitted change).** `nuxt.config.ts` `apiBaseUrl` and `capacitor.config.json` `server.url` were changed from `https://Farmers to Market.vercel.app` to `https://Negros Farmers Weekend Market.vercel.app`. A URL cannot have spaces, so the mobile app cannot load. Revert to `https://Farmers to Market.vercel.app`.
 2. **Default JWT secret.** If `NUXT_JWT_SECRET` is not set, the secret is the public string in `nuxt.config.ts`. Anyone can then make an admin token. The local test proved this works. Set a strong secret in Vercel.
 3. **Notifications break on mobile.** `useNotificationEngine` and the layouts use plain `$fetch`, not `useApiFetch`. On native this means no base URL and no Bearer token. Switch them to `useApiFetch`.
 4. **RLS on `notifications` and `messages` (confirmed 2026-10-17).** Migrations 006/007 use `auth.uid()` policies, but the app does not use Supabase Auth, so the anon key gets error 42501 on insert and sees no rows. Fix: run `supabase/011_notifications_messages_rls_off.sql`, which turns RLS off like the other tables. No service key is used. Notifications are best effort (`notify()` in `server/utils/notify.ts`), so they never fail checkout or a status change.

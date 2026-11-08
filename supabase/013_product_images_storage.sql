@@ -17,8 +17,8 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- The server uploads with the anon key (this app does not use Supabase Auth),
 -- so allow inserts into this bucket only.
-DROP POLICY IF EXISTS "NFWM uploads product images" ON storage.objects;
-CREATE POLICY "NFWM uploads product images"
+DROP POLICY IF EXISTS "Farmers to Market uploads product images" ON storage.objects;
+CREATE POLICY "Farmers to Market uploads product images"
   ON storage.objects FOR INSERT
   TO anon, authenticated
   WITH CHECK (bucket_id = 'product-images');

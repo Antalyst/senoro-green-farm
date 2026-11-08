@@ -18,7 +18,7 @@ Note: the original request list said 5 items, but only 4 were extracted. Check t
 **Do these fixes first** (from SYSTEM_OVERVIEW section 14):
 - **#3 Notifications use `$fetch`.** Switch to `useApiFetch`, or mobile users won't see any of the new notification features.
 - **#4 RLS may block notification inserts.** Check the live DB. If inserts fail, every new notification feature fails too.
-- **#1 Broken mobile URL.** Revert it to `https://nfwm.vercel.app`.
+- **#1 Broken mobile URL.** Revert it to `https://Farmers to Market.vercel.app`.
 
 ---
 

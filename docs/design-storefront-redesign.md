@@ -6,7 +6,7 @@
 > - The shops section (promo grid + "More local shops" row) comes **before** the products section, like the reference. "Meet our farmers" is merged into it.
 > - Category cards filter the home product grid (chips row) instead of linking to `/buyer/categories`. That page filters by fixed codes (`farm_vegetables`, …) that do not match seller-made category names, so it shows no products. **Follow-up: fix `/buyer/categories`.**
 
-Goal: restyle the **buyer storefront** (home page, header, footer, product cards) to match the reference design: a clean, light e-commerce template with mint/green accents. The reference sells furniture; this spec turns it into a **farm market** (NFWM).
+Goal: restyle the **buyer storefront** (home page, header, footer, product cards) to match the reference design: a clean, light e-commerce template with mint/green accents. The reference sells furniture; this spec turns it into a **farm market** (Farmers to Market).
 
 Read `SYSTEM_OVERVIEW.md` first for the system.
 
@@ -81,7 +81,7 @@ Other:
 
 Top to bottom. "Data" names the real source in this system.
 
-| # | Reference section | NFWM version | Data |
+| # | Reference section | Farmers to Market version | Data |
 |---|---|---|---|
 | 1 | Header (logo, menu, search, wishlist, cart) | Logo, menu, search, cart, bell, avatar | existing `buyer.vue` |
 | 2 | Hero: title, text, "Go To Shop", big photo, slide numbers 01–04 | "Fresh from the farm, straight to your table" + market photo, 2–4 slides | static content + `/images/campaign/*` |
@@ -100,7 +100,7 @@ Top to bottom. "Data" names the real source in this system.
 
 ### 4.1 Header (`buyer.vue`)
 - White bar, height 64 px, thin bottom border (`border-gray-100`), sticky.
-- Left: logo + "NFWM".
+- Left: logo + "Farmers to Market".
 - Center (desktop): `Home`, `Shop` (→ `/buyer/categories`), `Shops` (→ `#shops`), `My Orders`. Active link is green, others `gray-600`.
 - Right: search icon (opens the search input), cart with count badge, bell with unread badge, avatar.
 - No wishlist icon. The system has no wishlist.
@@ -140,7 +140,7 @@ When the distance-based fee (see `docs/feature-requests-analysis.md`) is built, 
 ### 4.5 Promo grid
 - Desktop: grid of 3 tiles. Left column has 2 stacked tiles (each ~180 px tall); the right tile is large (~370 px).
 - Each tile: background image (`object-cover`), text on top-left or top-right: small label, title, caption, optional "Shop now" link.
-- NFWM content: featured shops. Use `shop_banner_url` (fall back to a category photo), title = `shop_name`, caption = "N products", link → `/buyer/shop/<id>`.
+- Farmers to Market content: featured shops. Use `shop_banner_url` (fall back to a category photo), title = `shop_name`, caption = "N products", link → `/buyer/shop/<id>`.
 - Mobile: 1 column, each tile 180 px.
 
 ### 4.6 Best sellers + Fresh today
@@ -172,7 +172,7 @@ When the distance-based fee (see `docs/feature-requests-analysis.md`) is built, 
   3. **Account:** My orders, Addresses, Cart
   4. **Sell with us:** Become a seller (→ `/auth/register`), Become a rider
   5. **Contact:** location (Bacolod City), email/phone if available
-- Bottom row: "© 2026 NFWM", and on the right a "Cash on delivery" badge.
+- Bottom row: "© 2026 Farmers to Market", and on the right a "Cash on delivery" badge.
 - **Do not** show Visa / Mastercard / PayPal icons. There is no online payment.
 - **Do not** add a newsletter form unless an email list backend is added.
 - On mobile, add bottom padding so the tab bar does not cover the footer.

@@ -2,7 +2,7 @@
 
 ## 1. High-Level System Overview
 
-NFWM is a marketplace/e-commerce application for farm products. The system supports four operational roles:
+Farmers to Market is a marketplace/e-commerce application for farm products. The system supports four operational roles:
 
 - `buyer`: browses products, manages cart, shipping addresses, orders, and reviews.
 - `seller`: manages products, inventory, seller orders, metrics, and review replies.
