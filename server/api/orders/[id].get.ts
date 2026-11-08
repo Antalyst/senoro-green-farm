@@ -40,5 +40,26 @@ export default defineEventHandler(async (event) => {
     ? { payload: deliveryQrPayload(order.id), code: displayCode(deliveryCode(order.id)) }
     : null
 
-  return { order: { ...order, delivery_qr } }
+  // Payment per shop (online: account + status; cod: paid to the rider at the door).
+  const payments = (await fetchOrderPayments(supabase, [order.id])).get(order.id) ?? []
+
+  // Cancellation: whether the buyer can still cancel (no shop paid yet), and why not.
+  const cancel_block_reason = buyerCancelBlock(order, payments)
+  // Reason shown on a cancelled order (read separately: the column comes with migration 017).
+  let cancel_reason: string | null = null
+  if (order.status === 'cancelled') {
+    const { data } = await supabase.from('orders').select('cancel_reason').eq('id', order.id).maybeSingle()
+    cancel_reason = (data as { cancel_reason?: string | null } | null)?.cancel_reason ?? null
+  }
+
+  return {
+    order: {
+      ...order,
+      delivery_qr,
+      payments,
+      can_cancel: !cancel_block_reason,
+      cancel_block_reason: order.status === 'pending' ? cancel_block_reason : null,
+      cancel_reason,
+    },
+  }
 })

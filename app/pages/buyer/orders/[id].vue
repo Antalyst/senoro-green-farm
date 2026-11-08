@@ -34,6 +34,37 @@
         </div>
       </section>
 
+      <!-- Each shop: what to pay, payment status, and the shop chat -->
+      <section v-if="order.status !== 'cancelled'" class="card">
+        <h2 class="card-title">Pay &amp; chat with shops</h2>
+        <ul class="mt-3 divide-y divide-gray-100">
+          <li v-for="shop in shopRows" :key="shop.shopId" class="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-shop-ink">{{ shop.shopName }}</p>
+              <p class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <span class="tabular-nums">{{ formatPeso(shop.amount) }}</span>
+                <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="paymentBadgeClass(shop.payment)">
+                  {{ paymentStatusLabel(shop.payment) }}
+                </span>
+              </p>
+              <p v-if="shop.payment?.status === 'rejected'" class="mt-1 text-xs text-red-600">
+                Not accepted: {{ shop.payment.rejection_reason }}
+              </p>
+            </div>
+            <button
+              v-if="shop.shopId"
+              type="button"
+              class="inline-flex min-h-[40px] flex-shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold"
+              :class="buyerMustPay(shop.payment) ? 'bg-market-orange text-white' : 'border border-gray-200 text-shop-ink'"
+              @click="openShopChat(shop.shopId, shop.shopName)"
+            >
+              <Icon :name="buyerMustPay(shop.payment) ? 'heroicons:qr-code' : 'heroicons:chat-bubble-left-right'" class="h-4 w-4" />
+              {{ buyerMustPay(shop.payment) ? 'Pay now' : 'Chat' }}
+            </button>
+          </li>
+        </ul>
+      </section>
+
       <!-- Proof of delivery QR -->
       <section v-if="order.delivery_qr" class="rounded-2xl border-2 border-farm-leaf bg-white p-5 text-center md:p-6">
         <p class="text-base font-semibold text-shop-ink">Your delivery QR</p>
@@ -165,8 +196,8 @@
           <div class="flex items-center justify-between">
             <h2 class="card-title">Payment</h2>
             <span class="inline-flex items-center gap-1 rounded-full bg-shop-mint px-2.5 py-1 text-xs font-medium text-farm-leaf">
-              <Icon name="heroicons:banknotes" class="h-4 w-4" />
-              Cash on delivery
+              <Icon :name="paidOnline > 0 ? 'heroicons:qr-code' : 'heroicons:banknotes'" class="h-4 w-4" />
+              {{ paidOnline > 0 ? (payAtDoor > 0 ? 'Online + cash' : 'Online') : 'Cash on delivery' }}
             </span>
           </div>
           <dl class="mt-4 space-y-2 text-sm">
@@ -182,9 +213,54 @@
               <dt>{{ order.status === 'delivered' ? 'Total paid' : 'Total to pay' }}</dt>
               <dd class="text-farm-leaf tabular-nums">{{ formatPeso(order.total_amount) }}</dd>
             </div>
+            <template v-if="paidOnline > 0">
+              <div class="flex justify-between text-gray-600">
+                <dt>Paid online to shops</dt>
+                <dd class="tabular-nums">{{ formatPeso(paidOnline) }}</dd>
+              </div>
+              <div class="flex justify-between font-semibold text-shop-ink">
+                <dt>Cash for the rider</dt>
+                <dd class="tabular-nums">{{ formatPeso(payAtDoor) }}</dd>
+              </div>
+            </template>
           </dl>
         </section>
       </div>
+
+      <!-- Cancel: allowed while no shop has been paid yet -->
+      <section v-if="order.status === 'pending'" class="card">
+        <template v-if="order.can_cancel">
+          <div v-if="!confirmingCancel" class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-gray-600">Changed your mind? You can cancel until a shop is paid.</p>
+            <button type="button" class="btn-cancel" @click="confirmingCancel = true">
+              <Icon name="heroicons:x-circle" class="h-4 w-4" />
+              Cancel order
+            </button>
+          </div>
+          <form v-else class="space-y-3" @submit.prevent="cancelOrder">
+            <p class="text-sm font-semibold text-shop-ink">Cancel this order?</p>
+            <p class="text-xs text-gray-500">The shops and the rider will be told. This cannot be undone.</p>
+            <input
+              v-model="cancelReason"
+              type="text"
+              maxlength="200"
+              placeholder="Reason (optional), e.g. ordered by mistake"
+              class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-farm-leaf"
+            >
+            <p v-if="cancelError" class="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{{ cancelError }}</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" class="btn-outline" :disabled="cancelling" @click="confirmingCancel = false">Keep order</button>
+              <button type="submit" class="btn-cancel-solid" :disabled="cancelling">
+                {{ cancelling ? 'Cancelling…' : 'Yes, cancel order' }}
+              </button>
+            </div>
+          </form>
+        </template>
+        <p v-else-if="order.cancel_block_reason" class="flex items-start gap-2 text-xs text-gray-500">
+          <Icon name="heroicons:information-circle" class="h-4 w-4 flex-shrink-0" />
+          {{ order.cancel_block_reason }}
+        </p>
+      </section>
 
       <!-- Next steps -->
       <div class="flex flex-col gap-3 sm:flex-row">
@@ -206,6 +282,9 @@
 </template>
 
 <script setup lang="ts">
+import type { Ref } from 'vue'
+import type { OrderPayment } from '~/composables/useOrderChat'
+
 definePageMeta({ layout: 'buyer' })
 
 interface OrderItem {
@@ -232,6 +311,11 @@ interface BuyerOrderDetail {
     detailed_address: string
   } | null
   order_items?: OrderItem[]
+  delivery_fee?: number | string | null
+  payments?: OrderPayment[]
+  can_cancel?: boolean
+  cancel_block_reason?: string | null
+  cancel_reason?: string | null
 }
 
 const route = useRoute()
@@ -266,7 +350,9 @@ const statusInfo = computed(() => {
   const o = order.value
   switch (o?.status) {
     case 'pending':
-      return { icon: 'heroicons:clock', title: 'Waiting for the shop to accept', text: 'The shop will confirm your order soon. You pay in cash when it arrives.' }
+      return mustPayAny.value
+        ? { icon: 'heroicons:qr-code', title: 'Pay the shop to continue', text: 'Pay online, then send your receipt in the shop chat. The shop accepts your order after checking it.' }
+        : { icon: 'heroicons:clock', title: 'Waiting for the shop to accept', text: 'The shop will confirm your order soon.' }
     case 'processing':
       return { icon: 'heroicons:archive-box', title: 'The shop is preparing your order', text: 'Your items are being packed.' }
     case 'ready_for_pickup':
@@ -278,7 +364,11 @@ const statusInfo = computed(() => {
     case 'delivered':
       return { icon: 'heroicons:check-badge', title: 'Delivered', text: 'Enjoy your fresh farm items! You can rate them now.' }
     case 'cancelled':
-      return { icon: 'heroicons:x-circle', title: 'Order cancelled', text: 'This order was cancelled. Contact support if you have questions.' }
+      return {
+        icon: 'heroicons:x-circle',
+        title: 'Order cancelled',
+        text: o?.cancel_reason ? `Reason: ${o.cancel_reason}` :'This order was cancelled. Stock was returned to the shops.',
+      }
     default:
       return { icon: 'heroicons:clock', title: statusLabel.value, text: '' }
   }
@@ -295,8 +385,15 @@ const statusTheme = computed(() => {
 const items = computed(() => order.value?.order_items ?? [])
 const itemCount = computed(() => items.value.reduce((sum, i) => sum + Number(i.quantity), 0))
 const itemsSubtotal = computed(() => items.value.reduce((sum, i) => sum + Number(i.price) * Number(i.quantity), 0))
-// Total = items + delivery fee (set at checkout), so the fee is the difference.
-const deliveryFee = computed(() => Math.max(0, Number(order.value?.total_amount ?? 0) - itemsSubtotal.value))
+// Saved at checkout (migration 017); older orders: total = items + delivery fee, so the fee is the difference.
+const deliveryFee = computed(() => order.value?.delivery_fee != null
+  ? Number(order.value.delivery_fee)
+  : Math.max(0, Number(order.value?.total_amount ?? 0) - itemsSubtotal.value))
+
+const payments = computed(() => order.value?.payments ?? [])
+const paidOnline = computed(() => payments.value.filter(p => p.method === 'online').reduce((sum, p) => sum + Number(p.amount), 0))
+const payAtDoor = computed(() => Math.max(0, Number(order.value?.total_amount ?? 0) - paidOnline.value))
+const mustPayAny = computed(() => payments.value.some(p => buyerMustPay(p)))
 
 const itemGroups = computed(() => {
   const groups = new Map<string, { shopId: string; shopName: string; items: OrderItem[] }>()
@@ -313,14 +410,31 @@ const itemGroups = computed(() => {
   return [...groups.values()]
 })
 
+// One row per shop: amount, payment status and a chat button.
+const shopRows = computed(() => itemGroups.value.map(group => ({
+  shopId: group.shopId,
+  shopName: group.shopName,
+  amount: group.items.reduce((sum, i) => sum + Number(i.price) * Number(i.quantity), 0),
+  payment: payments.value.find(p => p.seller_id === group.shopId) ?? null,
+})))
+
+function openShopChat(shopId: string, shopName: string) {
+  if (!order.value) return
+  triggerChatModal?.(order.value.id, shopId, `Chat with ${shopName}`)
+}
+
+// Refresh when a payment changes inside the chat (receipt sent, shop confirmed or rejected).
+const chatPaymentVersion = inject<Ref<number> | null>('chatPaymentVersion', null)
+if (chatPaymentVersion) watch(chatPaymentVersion, () => loadOrder(true))
+
 // Shown as soon as a rider accepts the job (QR flow: accepted → picked up → delivered).
 const showRiderCard = computed(() =>
   !!order.value?.delivery_rider_id
-  && ['ready_for_pickup', 'out_for_delivery', 'delivered'].includes(order.value?.status ?? ''),
+  && ['pending', 'processing', 'ready_for_pickup', 'out_for_delivery', 'delivered'].includes(order.value?.status ?? ''),
 )
 
 const showChatLink = computed(() =>
-  ['ready_for_pickup', 'out_for_delivery'].includes(order.value?.status ?? '')
+  ['pending', 'processing', 'ready_for_pickup', 'out_for_delivery'].includes(order.value?.status ?? '')
   && !!order.value?.delivery_rider_id,
 )
 
@@ -328,6 +442,7 @@ const riderStatusText = computed(() => {
   const status = order.value?.status
   if (status === 'delivered') return 'Delivered your order'
   if (status === 'out_for_delivery') return 'On the way to you'
+  if (status === 'pending' || status === 'processing') return 'Will deliver your order once the shops have packed it'
   return 'Going to the shop to pick up your order'
 })
 
@@ -337,6 +452,32 @@ function openRiderChat() {
     ? `Chat with ${order.value.delivery_rider.full_name}`
     : 'Chat with your rider'
   triggerChatModal?.(order.value.id, order.value.delivery_rider_id ?? null, label)
+}
+
+// Buyer cancels while no shop has been paid yet (the server checks the same rule).
+const confirmingCancel = ref(false)
+const cancelReason = ref('')
+const cancelling = ref(false)
+const cancelError = ref<string | null>(null)
+
+async function cancelOrder() {
+  if (!order.value || cancelling.value) return
+  cancelling.value = true
+  cancelError.value = null
+  try {
+    await api(`/api/buyer/orders/${order.value.id}/cancel`, { method: 'POST', body: { reason: cancelReason.value } })
+    confirmingCancel.value = false
+    cancelReason.value = ''
+    await loadOrder(true)
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    cancelError.value = e.data?.statusMessage || 'Could not cancel the order. Try again.'
+    await loadOrder(true)
+  }
+  finally {
+    cancelling.value = false
+  }
 }
 
 async function loadOrder(silent = false) {
@@ -390,7 +531,7 @@ function formatDate(d: string) {
   })
 }
 
-useHead({ title: computed(() => (order.value ? `Order #${shortId.value} — NFWM` : 'Order — NFWM')) })
+useHead({ title: computed(() => (order.value ? `Order #${shortId.value} — Farmers to Market` : 'Order — Farmers to Market')) })
 </script>
 
 <style scoped>
@@ -402,6 +543,12 @@ useHead({ title: computed(() => (order.value ? `Order #${shortId.value} — NFWM
 }
 .btn-primary {
   @apply inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-farm-leaf px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-farm-deep;
+}
+.btn-cancel {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50;
+}
+.btn-cancel-solid {
+  @apply inline-flex flex-1 items-center justify-center rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60;
 }
 .btn-outline {
   @apply inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-shop-ink transition hover:border-farm-leaf hover:text-farm-leaf;

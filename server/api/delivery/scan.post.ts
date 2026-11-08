@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const typedCode = normalizeCode(body?.code)
 
   if (!orderId) throw createError({ statusCode: 400, statusMessage: 'order_id is required' })
-  if (body?.payload && !scan) throw createError({ statusCode: 400, statusMessage: 'This is not an NFWM order QR code.' })
+  if (body?.payload && !scan) throw createError({ statusCode: 400, statusMessage: 'This is not a Farmers to Market order QR code.' })
   if (!scan && typedCode.length !== 8) throw createError({ statusCode: 400, statusMessage: 'Enter the 8-character code.' })
   if (scan && scan.orderId !== orderId) throw createError({ statusCode: 400, statusMessage: 'This QR belongs to a different order.' })
 
@@ -60,6 +60,15 @@ export default defineEventHandler(async (event) => {
     const shopRow = items.find(i => i.seller_id === sellerId) as any
     const shopName = shopRow?.users?.shop_name || shopRow?.users?.full_name || 'Shop'
     const alreadyScanned = items.filter(i => i.seller_id === sellerId).every(i => i.picked_up_at)
+
+    // Cash on delivery: the rider pays the shop first, and the shop marks it in the app.
+    const payment = (await fetchOrderPayments(supabase, [orderId])).get(orderId)?.find(p => p.seller_id === sellerId)
+    if (!alreadyScanned && payment?.method === 'cod' && payment.status !== 'rider_paid') {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `Pay ${shopName} ${formatPesoServer(payment.amount)} first. The shop must tap "Rider paid me" before you scan.`,
+      })
+    }
 
     if (!alreadyScanned) {
       const { error } = await supabase
@@ -126,7 +135,7 @@ export default defineEventHandler(async (event) => {
         user_id: order.buyer_id,
         order_id: orderId,
         title: 'Order Delivered! 🎉',
-        message: 'Enjoy your fresh farm items! Thank you for ordering from NFWM.',
+        message: 'Enjoy your fresh farm items! Thank you for ordering from Farmers to Market.',
       }])
     }
 

@@ -191,5 +191,5 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-useHead({ title: 'Reviews — NFWM Seller' })
+useHead({ title: 'Reviews — Farmers to Market Seller' })
 </script>

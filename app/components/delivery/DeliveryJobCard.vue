@@ -9,10 +9,16 @@
         </p>
       </div>
       <div class="flex-shrink-0 text-right">
-        <p class="text-[10px] font-medium uppercase tracking-wide text-gray-400">Collect (COD)</p>
-        <p class="text-lg font-bold leading-tight text-farm-leaf tabular-nums">{{ formatPeso(order.total_amount) }}</p>
+        <p class="text-[10px] font-medium uppercase tracking-wide text-gray-400">Collect from buyer</p>
+        <p class="text-lg font-bold leading-tight text-farm-leaf tabular-nums">{{ formatPeso(collectAmount) }}</p>
       </div>
     </header>
+
+    <!-- Cash flow: what the rider pays out at the shops (COD) and gets back at the door -->
+    <p v-if="showPayBanner" class="mx-4 mt-3 flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2 text-xs text-market-orange">
+      <Icon name="heroicons:banknotes" class="h-4 w-4 flex-shrink-0" />
+      You pay {{ formatPeso(payShopsTotal) }} to the COD {{ codShopCount === 1 ? 'shop' : 'shops' }} first (online or cash at the shop), and collect it back from the buyer.
+    </p>
 
     <!-- Route: pickups → drop-off -->
     <ol class="mt-3 space-y-4 px-4 pb-4">
@@ -32,6 +38,31 @@
           <p class="text-xs leading-snug text-gray-500">
             {{ shop.shop_address || (hasPin(shop.shop_latitude, shop.shop_longitude) ? 'Pinned on map' : 'No pickup location set') }}
           </p>
+          <p v-if="shop.payment_method === 'online'" class="mt-0.5 text-xs font-medium text-farm-leaf">Paid online by buyer · nothing to pay</p>
+          <p v-else-if="shop.payment_method === 'cod'" class="mt-0.5 text-xs font-medium" :class="shop.rider_paid ? 'text-farm-leaf' : 'text-market-orange'">
+            {{ codLine(shop) }}
+          </p>
+          <p v-if="isMine && !shop.picked_up && order.status !== 'out_for_delivery'" class="text-[11px] text-gray-400">
+            {{ shop.ready ? 'Packed · ready for pickup' : 'Shop is preparing the order' }}
+          </p>
+          <button
+            v-if="mustPayShop(shop)"
+            type="button"
+            class="mt-1.5 inline-flex h-9 items-center gap-1.5 rounded-full bg-market-orange px-3.5 text-xs font-semibold text-white"
+            @click="openShopChat(shop)"
+          >
+            <Icon name="heroicons:qr-code" class="h-4 w-4" />
+            Pay shop
+          </button>
+          <button
+            v-else-if="isMine"
+            type="button"
+            class="mt-1.5 inline-flex h-8 items-center gap-1.5 text-xs font-semibold text-farm-leaf"
+            @click="openShopChat(shop)"
+          >
+            <Icon name="heroicons:chat-bubble-left-right" class="h-4 w-4" />
+            Chat with shop
+          </button>
         </div>
         <a
           v-if="hasPin(shop.shop_latitude, shop.shop_longitude)"
@@ -116,6 +147,14 @@ export interface DeliveryShop {
   shop_longitude?: number | null
   shop_address?: string | null
   picked_up?: boolean
+  /** 'online' = buyer paid the shop already; 'cod' = rider pays the shop at pickup. */
+  /** null = order from before online payment (no payment record). */
+  payment_method?: 'online' | 'cod' | null
+  pay_shop?: number
+  rider_paid?: boolean
+  payment_status?: string | null
+  /** The shop marked its items ready (packed + receipt printed). */
+  ready?: boolean
 }
 
 export interface DeliveryOrder {
@@ -137,11 +176,52 @@ export interface DeliveryOrder {
   users?: { full_name?: string } | null
   order_items?: { id: string; quantity: number; product_name?: string | null; products?: { name?: string } | null }[]
   shops?: DeliveryShop[]
+  /** Cash the rider pays out at COD shops. */
+  pay_shops_total?: number
+  /** Cash the rider collects at the door: COD items + delivery fee. */
+  collect_from_buyer?: number
 }
 
 const props = defineProps<{ order: DeliveryOrder }>()
+const { user } = useAuth()
+const triggerChatModal = inject<(orderId: string, partnerId?: string | null, label?: string) => Promise<void>>('triggerChatModal')
+
+/** This job belongs to the signed-in rider (not an open job in the queue). */
+const isMine = computed(() => !!props.order.delivery_rider_id && props.order.delivery_rider_id === user.value?.id)
+
+function codLine(shop: DeliveryShop) {
+  const amount = formatPeso(shop.pay_shop ?? 0)
+  if (shop.rider_paid) return `You paid ${amount} · shop confirmed`
+  if (shop.payment_status === 'submitted') return `Receipt sent for ${amount} · waiting for the shop`
+  if (shop.payment_status === 'rejected') return `Shop did not accept your receipt · pay ${amount} again`
+  return `Pay this shop ${amount} first (COD)`
+}
+
+/**
+ * "Pay shop" only for a real COD payment the rider still owes, on the rider's own job,
+ * before that shop is picked up. Online-paid shops and old orders (no payment record) never show it.
+ */
+function mustPayShop(shop: DeliveryShop) {
+  return isMine.value
+    && shop.payment_method === 'cod'
+    && !shop.rider_paid
+    && shop.payment_status !== 'submitted'
+    && !shop.picked_up
+    && props.order.status !== 'out_for_delivery'
+}
+
+function openShopChat(shop: DeliveryShop) {
+  triggerChatModal?.(props.order.id, shop.id, `Chat with ${shop.shop_name}`)
+}
 
 const shops = computed(() => props.order.shops ?? [])
+const collectAmount = computed(() => props.order.collect_from_buyer ?? Number(props.order.total_amount))
+const payShopsTotal = computed(() => props.order.pay_shops_total ?? 0)
+// Only while a COD shop still waits for the rider's money.
+const showPayBanner = computed(() => payShopsTotal.value > 0
+  && props.order.status !== 'out_for_delivery'
+  && shops.value.some(s => s.payment_method === 'cod' && !s.rider_paid && !s.picked_up))
+const codShopCount = computed(() => shops.value.filter(s => s.payment_method === 'cod').length)
 // Pickup ticks only matter once the rider owns the job (not in the open queue).
 const showPickupProgress = computed(() => props.order.status === 'out_for_delivery' || (props.order.status === 'ready_for_pickup' && !!props.order.delivery_rider_id))
 const items = computed(() => props.order.order_items ?? [])

@@ -23,7 +23,7 @@
       <div class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-10">
         <NuxtLink to="/" class="mb-8 flex items-center gap-2 lg:hidden">
           <img src="/logo2.png" alt="" class="h-10 w-10 object-contain">
-          <span class="text-lg font-bold text-shop-ink">NFWM</span>
+          <span class="text-lg font-bold text-shop-ink">Farmers to Market</span>
         </NuxtLink>
 
         <h1 class="text-3xl font-bold tracking-tight text-shop-ink">Create your account</h1>
@@ -194,7 +194,7 @@
         </form>
       </div>
 
-      <p class="pb-4 text-center text-xs text-gray-400">© {{ year }} NFWM · Negros Farmers Weekend Market</p>
+      <p class="pb-4 text-center text-xs text-gray-400">© {{ year }} Farmers to Market · Senoro Green Farm</p>
     </main>
   </div>
 </template>
@@ -281,7 +281,7 @@ async function handleRegister() {
   }
 }
 
-useHead({ title: 'Create account — NFWM' })
+useHead({ title: 'Create account — Farmers to Market' })
 </script>
 
 <style scoped>

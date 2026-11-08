@@ -22,7 +22,7 @@
       <div class="relative mt-5 grid grid-cols-2 gap-3">
         <button type="button" class="stat" @click="activeTab = 'pickup'">
           <span class="text-2xl font-bold tabular-nums">{{ pickupQueue.length }}</span>
-          <span class="text-xs text-white/75">Ready for pickup</span>
+          <span class="text-xs text-white/75">Open jobs</span>
         </button>
         <button type="button" class="stat" @click="activeTab = 'active'">
           <span class="text-2xl font-bold tabular-nums">{{ activeDeliveries.length }}</span>
@@ -75,7 +75,7 @@
           <Icon name="heroicons:inbox" class="h-8 w-8" />
         </span>
         <p class="mt-4 font-medium text-shop-ink">No jobs right now</p>
-        <p class="mt-1 max-w-xs text-sm text-gray-500">Orders show up here when all their shops have packed them. This list updates by itself.</p>
+        <p class="mt-1 max-w-xs text-sm text-gray-500">Cash on delivery orders show up right after checkout; online-paid orders when their shops have packed them. This list updates by itself.</p>
       </div>
       <div v-else class="space-y-4">
         <DeliveryJobCard v-for="order in pickupQueue" :key="order.id" :order="order">
@@ -112,7 +112,7 @@
               <Icon :name="stage(order).icon" class="h-4 w-4 flex-shrink-0" />
               {{ stage(order).label }}
             </p>
-            <div class="flex gap-2">
+            <div v-if="canScan(order)" class="flex gap-2">
               <button
                 type="button"
                 class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition hover:border-farm-leaf hover:text-farm-leaf"
@@ -140,6 +140,15 @@
                 Enter code
               </button>
             </div>
+            <button
+              v-else
+              type="button"
+              class="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700"
+              @click="openOrderChat(order)"
+            >
+              <Icon name="heroicons:chat-bubble-left-right" class="h-5 w-5" />
+              Message buyer
+            </button>
           </template>
         </DeliveryJobCard>
       </div>
@@ -221,10 +230,12 @@ function openOrderChat(order: DeliveryOrder) {
 async function acceptJob(orderId: string) {
   updatingId.value = orderId
   try {
-    await api(`/api/delivery/orders/${orderId}/accept`, { method: 'POST' })
+    const res = await api<{ status: string; pay_shops_first?: boolean }>(`/api/delivery/orders/${orderId}/accept`, { method: 'POST' })
     await refresh()
     activeTab.value = 'active'
-    showToast('Job accepted. Go to the shop and scan the receipt QR.')
+    showToast(res.status !== 'ready_for_pickup' && res.pay_shops_first
+      ? 'Job accepted. Pay the COD shop first (tap "Pay shop"), then wait until it is packed.'
+      : 'Job accepted. Go to the shop and scan the receipt QR.')
   }
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
@@ -236,7 +247,18 @@ async function acceptJob(orderId: string) {
   }
 }
 
+/** Scanning starts once every shop has packed the order. */
+function canScan(order: DeliveryOrder) {
+  return order.status === 'ready_for_pickup' || order.status === 'out_for_delivery'
+}
+
 function stage(order: DeliveryOrder) {
+  if (order.status === 'pending' || order.status === 'processing') {
+    const unpaid = (order.shops ?? []).filter(s => s.payment_method === 'cod' && !s.rider_paid).length
+    return unpaid
+      ? { icon: 'heroicons:banknotes', label: `Pay ${unpaid === 1 ? 'the COD shop' : `${unpaid} COD shops`} first — tap "Pay shop" above`, tone: 'text-market-orange' }
+      : { icon: 'heroicons:clock', label: 'Paid. Waiting for the shops to pack the order', tone: 'text-farm-deep' }
+  }
   if (order.status === 'out_for_delivery') {
     return { icon: 'heroicons:truck', label: 'All packages picked up — at the buyer, scan their QR or enter their code', tone: 'text-farm-deep' }
   }
@@ -337,7 +359,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisible)
 })
 
-useHead({ title: 'Rider — NFWM' })
+useHead({ title: 'Rider — Farmers to Market' })
 </script>
 
 <style scoped>

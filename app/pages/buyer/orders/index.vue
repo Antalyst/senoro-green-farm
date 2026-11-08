@@ -100,7 +100,7 @@
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm text-shop-ink">{{ itemSummary(order) }}</p>
               <p class="text-xs text-gray-500">
-                {{ unitCount(order) }} {{ unitCount(order) === 1 ? 'item' : 'items' }} · Cash on delivery
+                {{ unitCount(order) }} {{ unitCount(order) === 1 ? 'item' : 'items' }} · {{ paymentText(order) }}
               </p>
             </div>
             <Icon name="heroicons:chevron-right" class="h-5 w-5 flex-shrink-0 text-gray-300" />
@@ -122,8 +122,8 @@
             >
               Review
             </button>
-            <NuxtLink :to="`/buyer/orders/${order.id}`" :class="isActiveDelivery(order.status) ? 'btn-accent' : 'btn-outline'">
-              {{ isActiveDelivery(order.status) ? 'Track order' : 'Details' }}
+            <NuxtLink :to="`/buyer/orders/${order.id}`" :class="needsPayment(order) || isActiveDelivery(order.status) ? 'btn-accent' : 'btn-outline'">
+              {{ needsPayment(order) ? 'Pay now' : isActiveDelivery(order.status) ? 'Track order' : 'Details' }}
             </NuxtLink>
           </div>
         </div>
@@ -217,6 +217,7 @@ interface OrderRow {
   created_at: string
   delivery_rider?: { full_name?: string | null } | null
   order_items?: OrderItem[]
+  payments?: { method: string; status: string }[]
 }
 
 const api = useApiFetch()
@@ -275,12 +276,24 @@ function statusPillClass(status: string) {
 function statusHint(order: OrderRow) {
   const rider = order.delivery_rider?.full_name
   switch (order.status) {
-    case 'pending': return 'Waiting for the shop to accept your order.'
+    case 'pending': return needsPayment(order)
+      ? 'Pay the shop online and send your receipt in the shop chat.'
+      : 'Waiting for the shop to accept your order.'
     case 'processing': return 'The shop is preparing your items.'
     case 'ready_for_pickup': return rider ? `${rider} is picking up your order.` : 'Packed. Waiting for a rider.'
-    case 'out_for_delivery': return rider ? `${rider} is on the way. Have cash ready.` : 'Your order is on the way.'
+    case 'out_for_delivery': return rider ? `${rider} is on the way. Have the cash amount ready.` : 'Your order is on the way.'
     default: return ''
   }
+}
+
+const needsPayment = (order: OrderRow) =>
+  order.status !== 'cancelled' && (order.payments ?? []).some(p => buyerMustPay(p))
+
+function paymentText(order: OrderRow) {
+  const methods = new Set((order.payments ?? []).map(p => p.method))
+  if (methods.has('online') && methods.has('cod')) return 'Online + cash'
+  if (methods.has('online')) return 'Online payment'
+  return 'Cash on delivery'
 }
 
 const isActiveDelivery = (status: string) => status === 'ready_for_pickup' || status === 'out_for_delivery'
@@ -348,7 +361,7 @@ async function submitReview() {
   }
 }
 
-useHead({ title: 'My Orders — NFWM' })
+useHead({ title: 'My Orders — Farmers to Market' })
 </script>
 
 <style scoped>

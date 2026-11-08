@@ -3,9 +3,9 @@
     <ion-header class="delivery-header">
       <ion-toolbar>
         <div class="mx-auto flex h-14 w-full max-w-3xl items-center gap-3 px-4">
-          <img src="/logo2.png" alt="NFWM" class="h-8 w-8 flex-shrink-0 object-contain">
+          <img src="/logo2.png" alt="Farmers to Market" class="h-8 w-8 flex-shrink-0 object-contain">
           <div class="min-w-0 flex-1 leading-tight">
-            <p class="text-sm font-semibold text-shop-ink">NFWM Rider</p>
+            <p class="text-sm font-semibold text-shop-ink">Farmers to Market Rider</p>
             <p class="truncate text-[11px] text-gray-500">{{ user?.full_name }}</p>
           </div>
 
@@ -70,42 +70,17 @@
       @read-all="markAllAsRead"
     />
 
-    <OrderChatDrawer
-      :open="isChatModalOpen"
-      :label="chatLabel"
-      :messages="messages"
-      :is-pending="isPending"
-      :is-sending="isSending"
-      :is-chat-locked="isChatLocked"
-      :text-input="textInput"
-      :current-user-id="computedUserId"
-      :format-time="formatTime"
-      @close="closeChatModal"
-      @send="handleSend"
-      @update:text-input="textInput = $event"
-    />
+    <OrderChatDrawer :chat="chat" />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { IonPage, IonHeader, IonToolbar, IonContent } from '@ionic/vue'
 import OrderChatDrawer from '~/components/chat/OrderChatDrawer.vue'
 
-const {
-  isChatModalOpen,
-  chatLabel,
-  textInput,
-  computedUserId,
-  messages,
-  isPending,
-  isSending,
-  isChatLocked,
-  openChatModal,
-  closeChatModal,
-  handleSend,
-  formatTime,
-} = useLayoutChatDrawer()
+// Chat drawer for order chats (buyer <-> shop, buyer <-> rider). Pages open it via inject('triggerChatModal').
+const chat = reactive(useLayoutChatDrawer())
 
 const isNotificationModalOpen = ref(false)
 const { notifications, unreadCount, pending, fetchNotifications, markAllAsRead } = useNotificationEngine()
@@ -130,15 +105,16 @@ const handleNotificationAction = async (notification: MarketplaceNotification) =
     await markSingleAsRead(notification.id)
   }
 
-  const isChatAlert = notification.title.includes('Message')
-  if (isChatAlert && notification.order_id) {
-    isNotificationModalOpen.value = false
-    await openChatModal(notification.order_id, null, 'Buyer chat')
+  if (!notification.order_id) return
+  isNotificationModalOpen.value = false
+  if (notification.title.includes('Message from Buyer')) {
+    await chat.openChatModal(notification.order_id, null, 'Buyer chat')
   }
-  else if (notification.order_id) {
-    // Job alerts open the pickup queue; the dashboard refreshes when this query changes.
-    isNotificationModalOpen.value = false
-    await router.push({ path: '/delivery/dashboard', query: { tab: 'pickup', at: String(Date.now()) } })
+  else {
+    // New jobs open the queue; shop messages and payment updates open "My deliveries"
+    // (each shop there has its own chat button). The dashboard refreshes when this query changes.
+    const tab = /New Job|New COD Job/.test(notification.title) ? 'pickup' : 'active'
+    await router.push({ path: '/delivery/dashboard', query: { tab, at: String(Date.now()) } })
   }
 }
 

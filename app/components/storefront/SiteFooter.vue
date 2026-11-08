@@ -4,10 +4,10 @@
       <div class="col-span-2 lg:col-span-1">
         <NuxtLink to="/" class="flex items-center gap-2">
           <img src="/logo2.png" alt="" class="h-9 w-9 object-contain">
-          <span class="text-lg font-bold text-shop-ink">NFWM</span>
+          <span class="text-lg font-bold text-shop-ink">Farmers to Market</span>
         </NuxtLink>
         <p class="mt-3 max-w-xs text-sm leading-relaxed text-gray-600">
-          Negros Farmers Weekend Market — the local farmers' market of Negros, online.
+          Farmers to Market by Senoro Green Farm — the local farmers' market of Negros, online.
         </p>
       </div>
 
@@ -33,7 +33,7 @@
 
     <div class="border-t border-black/5">
       <div class="mx-auto flex max-w-page flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-gray-500 sm:flex-row md:px-8">
-        <p>© {{ year }} NFWM. All rights reserved.</p>
+        <p>© {{ year }} Farmers to Market · Senoro Green Farm. All rights reserved.</p>
         <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 font-medium text-shop-ink ring-1 ring-black/5">
           <Icon name="heroicons:banknotes" class="h-4 w-4 text-farm-leaf" />
           Cash on delivery

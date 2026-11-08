@@ -13,8 +13,8 @@
             <Icon name="heroicons:arrow-left" class="h-5 w-5" />
           </button>
           <NuxtLink v-else to="/" class="flex flex-shrink-0 items-center gap-2">
-            <img src="/logo2.png" class="h-9 w-9 object-contain" alt="NFWM">
-            <span class="hidden text-lg font-bold tracking-tight text-shop-ink sm:block">NFWM</span>
+            <img src="/logo2.png" class="h-9 w-9 object-contain" alt="Farmers to Market">
+            <span class="hidden text-lg font-bold tracking-tight text-shop-ink sm:block">Farmers to Market</span>
           </NuxtLink>
 
           <!-- Desktop navigation -->
@@ -138,43 +138,18 @@
       @read-all="markAllAsRead"
     />
 
-    <OrderChatDrawer
-      :open="isChatModalOpen"
-      :label="chatLabel"
-      :messages="messages"
-      :is-pending="isPending"
-      :is-sending="isSending"
-      :is-chat-locked="isChatLocked"
-      :text-input="textInput"
-      :current-user-id="computedUserId"
-      :format-time="formatTime"
-      @close="closeChatModal"
-      @send="handleSend"
-      @update:text-input="textInput = $event"
-    />
+    <OrderChatDrawer :chat="chat" />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { IonPage, IonHeader, IonToolbar, IonContent } from '@ionic/vue'
 import AppShell from '~/components/ui/AppShell.vue'
 import OrderChatDrawer from '~/components/chat/OrderChatDrawer.vue'
 
-const {
-  isChatModalOpen,
-  chatLabel,
-  textInput,
-  computedUserId,
-  messages,
-  isPending,
-  isSending,
-  isChatLocked,
-  openChatModal,
-  closeChatModal,
-  handleSend,
-  formatTime,
-} = useLayoutChatDrawer()
+// Chat drawer for order chats (buyer <-> shop, buyer <-> rider). Pages open it via inject('triggerChatModal').
+const chat = reactive(useLayoutChatDrawer())
 
 const isNotificationModalOpen = ref(false)
 const { notifications, unreadCount, pending, fetchNotifications, markAllAsRead } = useNotificationEngine()
@@ -200,10 +175,14 @@ const handleNotificationAction = async (notification: MarketplaceNotification) =
     await markSingleAsRead(notification.id)
   }
 
-  const isChatAlert = notification.title.includes('Message')
-  if (isChatAlert && notification.order_id) {
-    isNotificationModalOpen.value = false
-    await openChatModal(notification.order_id, null, 'Rider chat')
+  if (!notification.order_id) return
+  isNotificationModalOpen.value = false
+  if (notification.title.includes('Message from Rider')) {
+    await chat.openChatModal(notification.order_id, null, 'Rider chat')
+  }
+  else {
+    // Shop messages and payment updates: the order page lists each shop's chat and payment.
+    await router.push(`/buyer/orders/${notification.order_id}`)
   }
 }
 
@@ -243,7 +222,7 @@ const headerTitle = computed(() => {
     if (currentPath.value.startsWith('/buyer/orders/')) return subPageTitle.value || 'Order tracking'
     if (currentPath.value === '/buyer/profile/addresses') return 'Addresses'
     if (currentPath.value.startsWith('/buyer/shop/')) return subPageTitle.value || 'Shop'
-    return subPageTitle.value || 'NFWM'
+    return subPageTitle.value || 'Farmers to Market'
   }
   if (currentPath.value === '/buyer/cart') return 'Cart'
   if (currentPath.value === '/buyer/profile') return 'Profile'

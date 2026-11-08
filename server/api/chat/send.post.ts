@@ -1,91 +1,69 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { requireAuth } from '../../utils/auth'
 
-const ACTIVE_STATUSES = ['ready_for_pickup', 'out_for_delivery'] as const
-
+// Sends a chat message on an order to one other person (buyer <-> shop, or buyer <-> rider).
+// JSON body:      { order_id, receiver_id, message_text }
+// Multipart form: order_id, receiver_id, message_text (optional), image (JPG/PNG/WebP, max 5 MB)
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
   const supabase = await serverSupabaseClient(event)
 
-  const body = await readBody(event)
-  const { order_id, message_text, receiver_id } = body ?? {}
+  const isMultipart = (getHeader(event, 'content-type') || '').includes('multipart/form-data')
+  const parts = isMultipart ? await readMultipartFormData(event) : undefined
+  const body = isMultipart ? multipartFields(parts) : (await readBody(event)) ?? {}
 
-  if (!order_id || !message_text?.trim() || !receiver_id) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing required parameters.' })
+  const orderId = String(body.order_id ?? '')
+  const receiverId = String(body.receiver_id ?? '')
+  const text = String(body.message_text ?? '').trim()
+  const hasImage = !!parts?.some(p => p.name === 'image' && p.filename !== undefined)
+
+  if (!orderId || !receiverId || (!text && !hasImage)) {
+    throw createError({ statusCode: 400, statusMessage: 'Write a message or attach a photo.' })
   }
-
-  const trimmedText = message_text.trim()
-  if (trimmedText.length > 1000) {
+  if (text.length > 1000) {
     throw createError({ statusCode: 400, statusMessage: 'Message exceeds 1000 characters.' })
   }
 
-  const { data: order, error: orderErr } = await supabase
-    .from('orders')
-    .select('status, buyer_id, delivery_rider_id')
-    .eq('id', order_id)
-    .single()
-
-  if (orderErr || !order) {
-    throw createError({ statusCode: 404, statusMessage: 'Fulfillment order context not found.' })
+  const access = await loadOrderChatAccess(supabase, orderId, user.id)
+  const thread = assertChatPartner(access, receiverId)
+  const locked = chatOpenReason(thread, access.order)
+  if (locked) {
+    throw createError({ statusCode: 403, statusMessage: locked })
   }
 
-  if (!ACTIVE_STATUSES.includes(order.status as typeof ACTIVE_STATUSES[number])) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Chat thread is inactive. Conversations are closed unless items are ready or out for delivery.',
-    })
+  const image = hasImage ? readImagePart(parts, 'image', 'The photo') : null
+  const imagePath = image ? await storeChatImage(event, orderId, user.id, image) : null
+
+  const row: Record<string, unknown> = {
+    order_id: orderId,
+    sender_id: user.id,
+    receiver_id: receiverId,
+    message_text: text,
   }
+  if (imagePath) Object.assign(row, { image_path: imagePath, kind: 'image' })
 
-  if (!order.delivery_rider_id) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Chat is unavailable until a delivery rider is assigned.',
-    })
-  }
+  const { data: saved, error: msgErr } = await supabase.from('messages').insert(row).select().single()
 
-  const isBuyer = user.id === order.buyer_id
-  const isRider = user.id === order.delivery_rider_id
-
-  if (!isBuyer && !isRider) {
-    throw createError({ statusCode: 403, statusMessage: 'You are not a participant on this order.' })
-  }
-
-  const expectedReceiver = isBuyer ? order.delivery_rider_id : order.buyer_id
-  if (receiver_id !== expectedReceiver) {
-    throw createError({ statusCode: 403, statusMessage: 'Invalid message recipient for this order.' })
-  }
-
-  const { data: newMessage, error: msgErr } = await supabase
-    .from('messages')
-    .insert({
-      order_id,
-      sender_id: user.id,
-      receiver_id,
-      message_text: trimmedText,
-    })
-    .select()
-    .single()
-
-  if (msgErr) {
-    console.error('[chat] insert failed:', msgErr.code, msgErr.message)
+  if (msgErr || !saved) {
+    console.error('[chat] insert failed:', msgErr?.code, msgErr?.message)
+    await removeChatImages(event, [imagePath])
+    if (isMissingPaymentSchema(msgErr)) {
+      throw createError({ statusCode: 503, statusMessage: 'Photos in chat need a database update (migration 017).' })
+    }
     throw createError({ statusCode: 500, statusMessage: 'Failed to send message. Please try again.' })
   }
 
-  const isSenderRider = user.id === order.delivery_rider_id
-  const alertTitle = isSenderRider ? 'New Message from Rider! 🛵' : 'New Message from Buyer! 🌾'
+  const [message] = await withImageUrls(event, [saved])
 
-  await notify(event, [{
-    user_id: receiver_id,
-    order_id,
-    title: alertTitle,
-    message: trimmedText.length > 45 ? `${trimmedText.slice(0, 42)}...` : trimmedText,
-  }])
+  const titles: Record<string, string> = {
+    buyer: 'New Message from Buyer! 🌾',
+    seller: 'New Message from Shop! 🏪',
+    rider: 'New Message from Rider! 🛵',
+  }
+  const preview = text ? (text.length > 45 ? `${text.slice(0, 42)}...` : text) : '📷 Sent a photo'
+  await notify(event, [{ user_id: receiverId, order_id: orderId, title: titles[access.side]!, message: preview }])
 
-  await supabase.channel(`realtime-order-chat:${order_id}`).send({
-    type: 'broadcast',
-    event: 'message',
-    payload: newMessage,
-  })
+  await broadcastChatMessage(supabase, orderId, user.id, receiverId, message)
 
-  return { success: true, data: newMessage }
+  return { success: true, data: message }
 })

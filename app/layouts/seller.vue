@@ -4,8 +4,8 @@
       <!-- Desktop sidebar (md+). Phones use the bottom tab bar + "More" sheet instead. -->
       <aside class="hidden w-60 flex-shrink-0 flex-col bg-farm-deep text-white md:flex" aria-label="Seller navigation">
         <NuxtLink to="/seller/dashboard" class="flex h-16 items-center gap-2 border-b border-white/10 px-5">
-          <img src="/logo2.png" alt="NFWM" class="h-8 w-8 object-contain">
-          <span class="text-base font-bold tracking-tight text-white">NFWM</span>
+          <img src="/logo2.png" alt="Farmers to Market" class="h-8 w-8 object-contain">
+          <span class="text-base font-bold tracking-tight text-white">Farmers to Market</span>
           <span class="rounded bg-market-orange px-1.5 py-0.5 text-[11px] font-semibold text-white">Seller</span>
         </NuxtLink>
 
@@ -196,12 +196,15 @@
       @select="openNotification"
       @read-all="markAllAsRead"
     />
+
+    <OrderChatDrawer :chat="chat" />
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { IonPage, IonHeader, IonToolbar, IonContent } from '@ionic/vue'
 import AppShell from '~/components/ui/AppShell.vue'
+import OrderChatDrawer from '~/components/chat/OrderChatDrawer.vue'
 import type { MarketplaceNotification } from '~/composables/useNotificationEngine'
 
 interface NavItem {
@@ -224,6 +227,9 @@ const pendingOrderCount = ref(0)
 const shop = ref<{ shop_name?: string | null; shop_avatar_url?: string | null }>({})
 
 const { notifications, unreadCount, pending, fetchNotifications, markAllAsRead } = useNotificationEngine()
+
+// Buyer <-> shop chat (payment receipts arrive here). Pages open it via inject('triggerChatModal').
+const chat = reactive(useLayoutChatDrawer())
 
 const nav = {
   dashboard: { label: 'Dashboard', path: '/seller/dashboard', icon: 'heroicons:squares-2x2', iconActive: 'heroicons:squares-2x2-solid' },
@@ -300,11 +306,16 @@ async function markSingleAsRead(id: string) {
   await fetchNotifications()
 }
 
-// Seller notifications are about orders: open the Orders page.
+// Messages and receipts open the chat with the buyer; other order alerts open the Orders page.
 async function openNotification(notification: MarketplaceNotification) {
   if (!notification.is_read) await markSingleAsRead(notification.id)
-  if (notification.order_id) {
-    isNotificationModalOpen.value = false
+  if (!notification.order_id) return
+  isNotificationModalOpen.value = false
+  // Rider messages and rider receipts: the Orders page has a "Chat with rider" button per order.
+  if (/Message|receipt/i.test(notification.title) && !/Rider/.test(notification.title)) {
+    await chat.openChatModal(notification.order_id, null, 'Buyer chat')
+  }
+  else {
     await router.push('/seller/orders')
   }
 }

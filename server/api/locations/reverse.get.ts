@@ -4,7 +4,7 @@ import { requireAuth } from '../../utils/auth'
 // Usage policy: max 1 request/second, identify the app with a User-Agent, cache results.
 // https://operations.osmfoundation.org/policies/nominatim/
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/reverse'
-const USER_AGENT = 'NFWM-Marketplace/1.0 (+https://nfwm.vercel.app)'
+const USER_AGENT = 'FarmersToMarket/1.0 (+https://farmerstomarket.vercel.app)'
 
 interface NominatimResponse {
   display_name?: string

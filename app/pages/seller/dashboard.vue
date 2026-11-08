@@ -321,5 +321,5 @@ async function deleteCategory(category: SellerCategory) {
   await refreshCategories()
 }
 
-useHead({ title: 'Dashboard — NFWM Seller' })
+useHead({ title: 'Dashboard — Farmers to Market Seller' })
 </script>

@@ -497,7 +497,7 @@ watch(productId, () => {
   refreshProduct()
 })
 
-useHead({ title: computed(() => (product.value ? `${product.value.name} — NFWM` : 'Product — NFWM')) })
+useHead({ title: computed(() => (product.value ? `${product.value.name} — Farmers to Market` : 'Product — Farmers to Market')) })
 </script>
 
 <style scoped>

@@ -188,5 +188,5 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
-useHead({ title: 'Approvals — NFWM Admin' })
+useHead({ title: 'Approvals — Farmers to Market Admin' })
 </script>

@@ -108,6 +108,103 @@
       </template>
     </section>
 
+    <!-- Payment account: lets buyers pay this shop online (GCash / Maya / bank QR) -->
+    <section class="ui-card mt-5 space-y-4 p-4 md:mt-6 md:p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold text-farm-deep">Payment account</h2>
+          <p class="mt-0.5 text-xs text-gray-400">
+            With an account, buyers can pay you online and send the receipt in chat. Without one, your shop takes cash on delivery only.
+          </p>
+        </div>
+        <span
+          class="flex-shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+          :class="payoutSaved ? 'bg-farm-light text-farm-deep' : 'bg-gray-100 text-gray-600'"
+        >
+          {{ payoutSaved ? 'Online payment on' : 'COD only' }}
+        </span>
+      </div>
+
+      <p v-if="!payoutSupported" class="rounded bg-gray-50 px-3 py-2.5 text-sm text-gray-600">
+        Online payment is not available yet. The database needs an update (migration 017).
+      </p>
+
+      <form v-else class="space-y-4" @submit.prevent="savePayout">
+        <div>
+          <p class="ui-label">Type</p>
+          <div class="grid grid-cols-3 gap-2">
+            <button
+              v-for="option in payoutOptions"
+              :key="option.value"
+              type="button"
+              class="rounded-lg border px-2 py-2.5 text-sm font-semibold"
+              :class="payout.payout_method === option.value ? 'border-farm-leaf bg-farm-light text-farm-deep' : 'border-gray-200 text-gray-600'"
+              @click="payout.payout_method = option.value"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
+        <template v-if="payout.payout_method">
+          <div v-if="payout.payout_method === 'bank'">
+            <label for="payout-bank" class="ui-label">Bank name</label>
+            <input id="payout-bank" v-model="payout.payout_bank_name" type="text" maxlength="60" placeholder="e.g. BDO, BPI, Landbank" class="ui-input">
+          </div>
+          <div>
+            <label for="payout-name" class="ui-label">Account name</label>
+            <input id="payout-name" v-model="payout.payout_account_name" type="text" maxlength="60" placeholder="Name shown in the app, e.g. Juan D." class="ui-input">
+            <p class="mt-1.5 text-xs text-gray-400">Buyers check this name after scanning, so it must match your account.</p>
+          </div>
+          <div>
+            <label for="payout-number" class="ui-label">{{ payout.payout_method === 'bank' ? 'Account number' : 'Mobile number' }}</label>
+            <input
+              id="payout-number"
+              v-model="payout.payout_account_number"
+              type="text"
+              inputmode="numeric"
+              :maxlength="payout.payout_method === 'bank' ? 20 : 13"
+              :placeholder="payout.payout_method === 'bank' ? '10 to 16 digits' : '09XXXXXXXXX'"
+              class="ui-input font-mono"
+            >
+          </div>
+          <div>
+            <p class="ui-label">QR code {{ payout.payout_method === 'bank' ? '(optional)' : '' }}</p>
+            <div class="flex items-center gap-3">
+              <div class="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                <img v-if="payout.payout_qr_url" :src="payout.payout_qr_url" alt="Payment QR code" class="h-full w-full object-contain">
+                <Icon v-else name="heroicons:qr-code" class="h-8 w-8 text-gray-300" />
+              </div>
+              <div class="space-y-1.5">
+                <button type="button" class="ui-btn-outline" :disabled="uploadingQr" @click="qrInput?.click()">
+                  {{ uploadingQr ? 'Uploading…' : payout.payout_qr_url ? 'Change QR' : 'Upload QR' }}
+                </button>
+                <p class="text-xs text-gray-400">Screenshot of the QR from your {{ payoutLabel(payout.payout_method) }} app.</p>
+              </div>
+            </div>
+          </div>
+
+          <p v-if="payoutError" class="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{{ payoutError }}</p>
+
+          <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              v-if="payoutSaved"
+              type="button"
+              class="ui-btn-outline w-full text-red-600 sm:w-auto"
+              :disabled="savingPayout"
+              @click="removePayout"
+            >
+              Remove account
+            </button>
+            <button type="submit" class="ui-btn-accent w-full sm:w-auto" :disabled="savingPayout || uploadingQr">
+              {{ savingPayout ? 'Saving…' : 'Save payment account' }}
+            </button>
+          </div>
+        </template>
+      </form>
+    </section>
+
+    <input ref="qrInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="uploadQr">
     <input ref="avatarInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" @change="handleImageUpload($event, 'avatar')">
     <input ref="bannerInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" @change="handleImageUpload($event, 'banner')">
 
@@ -127,6 +224,14 @@ interface SellerProfile {
   shop_latitude?: number | null
   shop_longitude?: number | null
   shop_address?: string | null
+}
+
+interface PayoutForm {
+  payout_method: 'gcash' | 'maya' | 'bank' | null
+  payout_account_name: string
+  payout_account_number: string
+  payout_bank_name: string
+  payout_qr_url: string
 }
 
 definePageMeta({ layout: 'seller' })
@@ -158,6 +263,105 @@ const savedLocation = ref<{ pin: PinLocation | null; address: string }>({ pin: n
 const editingLocation = ref(false)
 const savingLocation = ref(false)
 
+// Payment account (migration 017)
+const payoutOptions = [
+  { value: 'gcash', label: 'GCash' },
+  { value: 'maya', label: 'Maya' },
+  { value: 'bank', label: 'Bank' },
+] as const
+const emptyPayout = (): PayoutForm => ({ payout_method: null, payout_account_name: '', payout_account_number: '', payout_bank_name: '', payout_qr_url: '' })
+const payout = ref<PayoutForm>(emptyPayout())
+const payoutSupported = ref(true)
+const payoutSaved = ref(false)
+const savingPayout = ref(false)
+const uploadingQr = ref(false)
+const payoutError = ref<string | null>(null)
+const qrInput = ref<HTMLInputElement | null>(null)
+
+function fillPayout(p: Partial<Record<keyof PayoutForm, string | null>> | null | undefined) {
+  payout.value = {
+    payout_method: (p?.payout_method as PayoutForm['payout_method']) ?? null,
+    payout_account_name: p?.payout_account_name ?? '',
+    payout_account_number: p?.payout_account_number ?? '',
+    payout_bank_name: p?.payout_bank_name ?? '',
+    payout_qr_url: p?.payout_qr_url ?? '',
+  }
+  payoutSaved.value = !!p?.payout_method
+}
+
+/** Same rules as the server (server/utils/payments.ts), so mistakes show before saving. */
+function checkPayout(p: PayoutForm): string | null {
+  const name = p.payout_account_name.trim()
+  const number = p.payout_account_number.replace(/[\s-]/g, '')
+  if (!p.payout_method) return 'Choose GCash, Maya or Bank.'
+  if (name.length < 2) return 'Enter the account name.'
+  if (p.payout_method === 'bank') {
+    if (p.payout_bank_name.trim().length < 2) return 'Enter the bank name.'
+    if (!/^\d{10,16}$/.test(number)) return 'Bank account number must be 10 to 16 digits.'
+    return null
+  }
+  if (!/^09\d{9}$/.test(number)) return 'Mobile number must be 11 digits starting with 09.'
+  if (!p.payout_qr_url) return 'Upload your QR code so buyers can scan it.'
+  return null
+}
+
+async function uploadQr(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  uploadingQr.value = true
+  payoutError.value = null
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+    const response = await api<{ url: string }>('/api/products/upload', { method: 'POST', body: formData })
+    payout.value.payout_qr_url = response.url
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    payoutError.value = e.data?.statusMessage || 'Failed to upload the QR image.'
+  }
+  finally {
+    uploadingQr.value = false
+  }
+}
+
+async function savePayout() {
+  payoutError.value = checkPayout(payout.value)
+  if (payoutError.value) return
+  savingPayout.value = true
+  try {
+    const res = await api<{ payout: PayoutForm }>('/api/seller/profile/payout', { method: 'PUT', body: payout.value })
+    fillPayout(res.payout)
+    triggerToast('Payment account saved. Buyers can now pay you online.')
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    payoutError.value = e.data?.statusMessage || 'Failed to save payment account.'
+  }
+  finally {
+    savingPayout.value = false
+  }
+}
+
+async function removePayout() {
+  savingPayout.value = true
+  payoutError.value = null
+  try {
+    await api('/api/seller/profile/payout', { method: 'PUT', body: { payout_method: null } })
+    fillPayout(null)
+    triggerToast('Payment account removed. Your shop now takes cash on delivery only.')
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    payoutError.value = e.data?.statusMessage || 'Failed to remove payment account.'
+  }
+  finally {
+    savingPayout.value = false
+  }
+}
+
 const fallbackInitials = computed(() => {
   const name = form.value.shop_name || form.value.full_name || 'Shop'
   return name.substring(0, 2)
@@ -171,7 +375,7 @@ onMounted(async () => {
     form.value.full_name = userState.value.full_name || ''
   }
   try {
-    const res = await api<{ seller: SellerProfile; location_supported?: boolean }>('/api/seller/profile')
+    const res = await api<{ seller: SellerProfile; location_supported?: boolean; payout?: any; payout_supported?: boolean }>('/api/seller/profile')
     const s = res.seller
     form.value.shop_name = s.shop_name || form.value.shop_name
     form.value.full_name = s.full_name || form.value.full_name
@@ -184,6 +388,8 @@ onMounted(async () => {
     locationSupported.value = res.location_supported !== false
     savedLocation.value = { pin: pin.value, address: form.value.shop_address }
     editingLocation.value = !pin.value
+    payoutSupported.value = res.payout_supported !== false
+    fillPayout(res.payout)
   }
   catch {
     triggerToast('Could not load your shop profile. Refresh the page before saving.', 'error')
@@ -309,5 +515,5 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   setTimeout(() => { toast.value.show = false }, 4000)
 }
 
-useHead({ title: 'Shop Settings — NFWM Seller' })
+useHead({ title: 'Shop Settings — Farmers to Market Seller' })
 </script>

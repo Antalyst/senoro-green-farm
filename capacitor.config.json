@@ -1,9 +1,9 @@
 {
   "appId": "com.example.app",
-  "appName": "Negros Farmers Weekend Market",
+  "appName": "Farmers to Market",
   "webDir": ".output/public",
     "server": {
-    "url": "https://Negros Farmers Weekend Market.vercel.app",
+    "url": "https://farmerstomarket.vercel.app",
     "cleartext": true
   },
   "plugins": {

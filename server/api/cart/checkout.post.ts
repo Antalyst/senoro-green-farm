@@ -1,6 +1,7 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { requireAuth } from '../../utils/auth'
 import { quoteDeliveryFee } from '../../utils/deliveryFee'
+import type { PaymentMethod } from '../../utils/payments'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -9,7 +10,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { cart_item_ids, address_id } = body ?? {}
+  const { cart_item_ids, address_id, payment_methods } = body ?? {}
 
   if (!cart_item_ids || !Array.isArray(cart_item_ids) || cart_item_ids.length === 0) {
     throw createError({ statusCode: 400, statusMessage: 'cart_item_ids array is required' })
@@ -80,20 +81,52 @@ export default defineEventHandler(async (event) => {
   // @ts-ignore Supabase relation typing is generated as object at runtime.
   const sellerIds: string[] = [...new Set(cartItems.map(item => item.products?.seller_id).filter(Boolean))]
 
+  // Each shop's share of the items (what the buyer pays that shop, online or through the rider).
+  const shopSubtotals = new Map<string, number>()
+  for (const item of cartItems) {
+    // @ts-ignore Supabase relation typing is generated as object at runtime.
+    const sellerId = item.products.seller_id as string
+    // @ts-ignore Supabase relation typing is generated as object at runtime.
+    const line = parseFloat(item.products.price) * item.quantity
+    shopSubtotals.set(sellerId, (shopSubtotals.get(sellerId) ?? 0) + line)
+  }
+
+  // Payment per shop: "online" only if that shop has a GCash / Maya / bank account, otherwise COD.
+  const requested = (payment_methods && typeof payment_methods === 'object') ? payment_methods as Record<string, unknown> : {}
+  const payouts = await fetchPayoutAccounts(supabase, sellerIds)
+  const methodBySeller = new Map<string, PaymentMethod>()
+  for (const sellerId of sellerIds) {
+    const wanted = requested[sellerId] === 'online' ? 'online' : 'cod'
+    if (wanted === 'online' && !hasOnlinePayout(payouts.get(sellerId))) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'One of the shops no longer accepts online payment. Choose cash on delivery for it.',
+      })
+    }
+    methodBySeller.set(sellerId, wanted)
+  }
+  const hasOnline = [...methodBySeller.values()].includes('online')
+
   // Rate per km (set by admin) × distance from each shop to the buyer.
   const { fee: deliveryFee } = await quoteDeliveryFee(supabase, sellerIds, address)
   const totalAmount = Math.round((itemsSubtotal + deliveryFee) * 100) / 100
 
-  const { data: newOrder, error: orderError } = await supabase
+  const orderRow = {
+    buyer_id: user.id,
+    total_amount: totalAmount,
+    address_id: resolvedAddressId,
+    status: 'pending',
+  }
+  let { data: newOrder, error: orderError } = await supabase
     .from('orders')
-    .insert({
-      buyer_id: user.id,
-      total_amount: totalAmount,
-      address_id: resolvedAddressId,
-      status: 'pending',
-    })
+    .insert({ ...orderRow, delivery_fee: deliveryFee })
     .select()
     .single()
+
+  // DB without migration 017: save the order without delivery_fee (COD only then).
+  if (orderError && isMissingPaymentSchema(orderError) && !hasOnline) {
+    ;({ data: newOrder, error: orderError } = await supabase.from('orders').insert(orderRow).select().single())
+  }
 
   if (orderError || !newOrder) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to create order' })
@@ -127,7 +160,35 @@ export default defineEventHandler(async (event) => {
   }
 
   if (itemsError) {
+    await supabase.from('orders').delete().eq('id', newOrder.id)
     throw createError({ statusCode: 500, statusMessage: 'Failed to create order items' })
+  }
+
+  // One payment row per shop, with a copy of the shop's account at this moment.
+  const paymentRows = sellerIds.map((sellerId) => {
+    const method = methodBySeller.get(sellerId)!
+    const payout = method === 'online' ? payouts.get(sellerId)! : null
+    return {
+      order_id: newOrder.id,
+      seller_id: sellerId,
+      method,
+      amount: Math.round((shopSubtotals.get(sellerId) ?? 0) * 100) / 100,
+      status: method === 'online' ? 'awaiting_payment' : 'cod_unpaid',
+      payout_method: payout?.payout_method ?? null,
+      payout_account_name: payout?.payout_account_name ?? null,
+      payout_account_number: payout?.payout_account_number ?? null,
+      payout_bank_name: payout?.payout_bank_name ?? null,
+      payout_qr_url: payout?.payout_qr_url ?? null,
+    }
+  })
+  const { error: paymentsError } = await supabase.from('order_payments').insert(paymentRows)
+
+  if (paymentsError && !(isMissingPaymentSchema(paymentsError) && !hasOnline)) {
+    // Without payment rows a seller could accept an unpaid online order, so undo the order.
+    console.error('[checkout] payment rows failed:', paymentsError.message)
+    await supabase.from('order_items').delete().eq('order_id', newOrder.id)
+    await supabase.from('orders').delete().eq('id', newOrder.id)
+    throw createError({ statusCode: 500, statusMessage: 'Failed to set up payment for this order' })
   }
 
   for (const item of cartItems) {
@@ -146,16 +207,43 @@ export default defineEventHandler(async (event) => {
 
   // Step 1: Notify each unique seller that a new order has been placed from their shop
   // The order is already saved, so a notification problem must not show the buyer an error.
-  await notify(event, sellerIds.map(sellerId => ({
-    user_id: sellerId as string,
-    order_id: newOrder.id,
-    title: 'New Order Received! 🌾',
-    message: 'A customer has checked out items from your shop. Please review and accept.',
-  })))
+  await notify(event, sellerIds.map((sellerId) => {
+    const amount = formatPesoServer(shopSubtotals.get(sellerId) ?? 0)
+    return {
+      user_id: sellerId,
+      order_id: newOrder.id,
+      title: 'New Order Received! 🌾',
+      message: methodBySeller.get(sellerId) === 'online'
+        ? `Online payment of ${amount}. Wait for the buyer's receipt in chat, check it, then accept.`
+        : `Cash on delivery: a rider will accept and pay you ${amount} first. Confirm the payment, then accept.`,
+    }
+  }))
+
+  // COD orders need a rider right away (the rider pays the COD shops before they accept).
+  // Only when the payment rows were saved (migration 017); older databases keep the old flow.
+  if (!paymentsError && [...methodBySeller.values()].includes('cod')) {
+    const { data: riders } = await supabase
+      .from('users')
+      .select('id')
+      .eq('role', 'delivery')
+      .eq('approval_status', 'approved')
+    const codTotal = paymentRows.filter(p => p.method === 'cod').reduce((sum, p) => sum + p.amount, 0)
+    await notify(event, (riders ?? []).map(rider => ({
+      user_id: rider.id,
+      order_id: newOrder.id,
+      title: 'New COD Job! 🛵',
+      message: `Pay ${formatPesoServer(codTotal)} to the shop first, then collect it from the buyer.`,
+    })))
+  }
+
+  const payNow = paymentRows.filter(p => p.method === 'online').reduce((sum, p) => sum + p.amount, 0)
 
   return {
     success: true,
     order_id: newOrder.id,
     total_amount: totalAmount,
+    delivery_fee: deliveryFee,
+    pay_online: Math.round(payNow * 100) / 100,
+    pay_at_door: Math.round((totalAmount - payNow) * 100) / 100,
   }
 })

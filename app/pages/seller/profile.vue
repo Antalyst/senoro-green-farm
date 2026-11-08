@@ -140,5 +140,5 @@ async function handleLogout() {
   }
 }
 
-useHead({ title: 'Profile — NFWM Seller' })
+useHead({ title: 'Profile — Farmers to Market Seller' })
 </script>

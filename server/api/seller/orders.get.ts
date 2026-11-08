@@ -42,6 +42,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Failed to fetch orders' })
   }
 
+  const payments = await fetchOrderPayments(supabase, (orders ?? []).map(o => o.id))
+
   const itemsByOrder = new Map<string, typeof sellerItems>()
   for (const item of sellerItems ?? []) {
     const list = itemsByOrder.get(item.order_id) ?? []
@@ -65,6 +67,8 @@ export default defineEventHandler(async (event) => {
       seller_subtotal,
       seller_confirmed,
       seller_picked_up,
+      // This shop's payment (null for orders from before migration 017, which were COD).
+      payment: payments.get(order.id)?.find(p => p.seller_id === user.id) ?? null,
       // Same code as on the printed receipt, so the seller can read it out if the receipt is damaged.
       pickup_code: seller_confirmed ? displayCode(pickupCode(order.id, user.id)) : null,
     }

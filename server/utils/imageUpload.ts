@@ -100,3 +100,60 @@ export async function signedVerificationUrls(event: H3Event, paths: string[], ex
   }
   return urls
 }
+
+// Chat photos and payment receipts: private bucket, service-role key only (migration 017).
+const CHAT_BUCKET = 'chat-images'
+
+function chatStorage(event: H3Event) {
+  try {
+    return serverSupabaseServiceRole(event).storage.from(CHAT_BUCKET)
+  }
+  catch (err) {
+    console.error('[chat-images] service role client unavailable:', err)
+    throw createError({ statusCode: 503, statusMessage: 'Chat photo storage is not configured (missing SUPABASE_SECRET_KEY).' })
+  }
+}
+
+/** Stores a chat photo as <orderId>/<senderId>-<time>-<random>.<ext> and returns its storage path. */
+export async function storeChatImage(event: H3Event, orderId: string, senderId: string, file: ImageFile) {
+  const path = `${orderId}/${senderId}-${Date.now()}-${randomUUID().slice(0, 8)}.${file.ext}`
+  const { error } = await chatStorage(event).upload(path, file.bytes, {
+    contentType: file.mime,
+    upsert: false,
+  })
+  if (error) {
+    console.error('[chat-images] upload failed:', error.message)
+    if (/bucket not found/i.test(error.message)) {
+      throw createError({ statusCode: 503, statusMessage: 'Chat photos need a database update (migration 017).' })
+    }
+    throw createError({ statusCode: 502, statusMessage: 'Could not upload the photo. Please try again.' })
+  }
+  return path
+}
+
+export async function removeChatImages(event: H3Event, paths: (string | null | undefined)[]) {
+  const list = paths.filter((p): p is string => !!p)
+  if (!list.length) return
+  try {
+    const { error } = await chatStorage(event).remove(list)
+    if (error) console.error('[chat-images] cleanup failed:', error.message)
+  }
+  catch (err) {
+    console.error('[chat-images] cleanup failed:', err)
+  }
+}
+
+/** Links that expire after 1 hour, only handed to people in that chat. */
+export async function signedChatImageUrls(event: H3Event, paths: string[], expiresInSeconds = 3600) {
+  const urls = new Map<string, string>()
+  if (!paths.length) return urls
+  const { data, error } = await chatStorage(event).createSignedUrls(paths, expiresInSeconds)
+  if (error) {
+    console.error('[chat-images] signing failed:', error.message)
+    return urls
+  }
+  for (const row of data ?? []) {
+    if (row.path && row.signedUrl) urls.set(row.path, row.signedUrl)
+  }
+  return urls
+}

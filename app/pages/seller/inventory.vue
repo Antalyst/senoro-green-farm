@@ -356,5 +356,5 @@ async function confirmDelete(product: SellerProduct) {
   }
 }
 
-useHead({ title: 'Inventory — NFWM Seller' })
+useHead({ title: 'Inventory — Farmers to Market Seller' })
 </script>

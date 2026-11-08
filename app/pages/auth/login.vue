@@ -18,11 +18,11 @@
       <div class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
         <NuxtLink to="/" class="mb-8 flex items-center gap-2 lg:hidden">
           <img src="/logo2.png" alt="" class="h-10 w-10 object-contain">
-          <span class="text-lg font-bold text-shop-ink">NFWM</span>
+          <span class="text-lg font-bold text-shop-ink">Farmers to Market</span>
         </NuxtLink>
 
         <h1 class="text-3xl font-bold tracking-tight text-shop-ink">Welcome back</h1>
-        <p class="mt-2 text-sm text-gray-500">Sign in to shop, sell or deliver with NFWM.</p>
+        <p class="mt-2 text-sm text-gray-500">Sign in to shop, sell or deliver with Farmers to Market.</p>
 
         <div
           v-if="errorMsg"
@@ -111,7 +111,7 @@
         </div>
       </div>
 
-      <p class="text-center text-xs text-gray-400">© {{ year }} NFWM · Negros Farmers Weekend Market</p>
+      <p class="text-center text-xs text-gray-400">© {{ year }} Farmers to Market · Senoro Green Farm</p>
     </main>
   </div>
 </template>
@@ -170,7 +170,7 @@ async function handleLogin() {
   }
 }
 
-useHead({ title: 'Sign in — NFWM' })
+useHead({ title: 'Sign in — Farmers to Market' })
 </script>
 
 <style scoped>

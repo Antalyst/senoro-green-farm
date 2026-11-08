@@ -27,5 +27,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Failed to fetch orders' })
   }
 
-  return { orders: orders ?? [] }
+  const payments = await fetchOrderPayments(supabase, (orders ?? []).map(o => o.id))
+
+  return {
+    orders: (orders ?? []).map(order => ({ ...order, payments: payments.get(order.id) ?? [] })),
+  }
 })

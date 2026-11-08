@@ -212,7 +212,7 @@ const showAll = ref(false)
 
 const heroSlides: HeroSlide[] = [
   {
-    kicker: 'Negros Farmers Weekend Market',
+    kicker: 'Farmers to Market',
     title: 'Fresh from the farm, straight to your table',
     text: 'Buy vegetables, fruits and local food from Negros farmers. Delivered in Bacolod City and nearby.',
     image: '/images/campaign/fresh-produce-basket.png',
@@ -422,7 +422,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
 
 onMounted(loadAll)
 
-useHead({ title: 'NFWM — Fresh from Negros farms' })
+useHead({ title: 'Farmers to Market — Fresh from Negros farms' })
 </script>
 
 <style scoped>

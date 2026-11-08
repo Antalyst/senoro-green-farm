@@ -66,6 +66,30 @@
             <span class="text-base font-semibold tabular-nums text-farm-leaf">₱{{ order.seller_subtotal.toFixed(2) }}</span>
           </div>
 
+          <!-- Payment for this shop -->
+          <div class="rounded border border-gray-100 px-3 py-2.5 text-sm">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-gray-500">Payment</span>
+              <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="paymentBadgeClass(order.payment)">
+                {{ paymentStatusLabel(order.payment) }}
+              </span>
+            </div>
+            <p class="mt-1 text-xs text-gray-500">{{ paymentHint(order) }}</p>
+
+            <!-- COD: the rider who accepted the job pays the shop before it accepts -->
+            <button
+              v-if="canMarkRiderPaid(order)"
+              type="button"
+              class="mt-2 w-full rounded border border-farm-leaf/40 px-3 py-2 text-xs font-semibold text-farm-deep hover:bg-farm-light disabled:opacity-50"
+              :disabled="updatingId === order.id"
+              @click="markRiderPaid(order)"
+            >
+              Rider paid me {{ formatPeso(order.payment!.amount) }} in cash
+            </button>
+          </div>
+
+          <p v-if="errors[order.id]" class="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{{ errors[order.id] }}</p>
+
           <!-- Packed: where the pickup stands -->
           <template v-if="order.seller_confirmed">
             <p class="flex items-center gap-2 rounded bg-farm-light px-3 py-2.5 text-sm text-farm-deep">
@@ -86,19 +110,37 @@
         <!-- Actions -->
         <div class="flex flex-col gap-2 border-t border-farm-leaf/15 px-4 py-3 sm:flex-row sm:justify-end md:px-5">
           <button
+            v-if="order.buyer?.id"
+            type="button"
+            class="ui-btn-outline w-full sm:w-auto"
+            @click="openBuyerChat(order)"
+          >
+            <Icon name="heroicons:chat-bubble-left-right" class="h-4 w-4" />
+            {{ order.payment?.method === 'online' && order.payment.status === 'submitted' ? 'Check receipt in chat' : 'Chat with buyer' }}
+          </button>
+          <button
+            v-if="order.delivery_rider_id"
+            type="button"
+            class="ui-btn-outline w-full sm:w-auto"
+            @click="openRiderChat(order)"
+          >
+            <Icon name="heroicons:truck" class="h-4 w-4" />
+            {{ order.payment?.method === 'cod' && order.payment.status === 'submitted' ? 'Check rider receipt' : 'Chat with rider' }}
+          </button>
+          <button
             v-if="order.status === 'pending'"
             type="button"
             class="ui-btn-accent w-full sm:w-auto"
-            :disabled="updatingId === order.id"
+            :disabled="updatingId === order.id || !paymentSettled(order)"
             @click="updateStatus(order.id, 'processing')"
           >
-            {{ updatingId === order.id ? 'Saving…' : 'Accept order' }}
+            {{ updatingId === order.id ? 'Saving…' : paymentSettled(order) ? 'Accept order' : waitingLabel(order) }}
           </button>
           <button
             v-else-if="order.status === 'processing' && !order.seller_confirmed"
             type="button"
             class="ui-btn w-full sm:w-auto"
-            :disabled="updatingId === order.id"
+            :disabled="updatingId === order.id || !paymentSettled(order)"
             @click="markReady(order.id)"
           >
             <Icon name="heroicons:printer" class="h-4 w-4" />
@@ -119,6 +161,9 @@
 </template>
 
 <script setup lang="ts">
+import type { Ref } from 'vue'
+import type { OrderPayment } from '~/composables/useOrderChat'
+
 definePageMeta({ layout: 'seller' })
 
 interface SellerOrder {
@@ -130,8 +175,11 @@ interface SellerOrder {
   seller_confirmed?: boolean
   seller_picked_up?: boolean
   pickup_code?: string | null
+  delivery_rider_id?: string | null
   delivery_rider?: { full_name?: string } | null
-  buyer?: { full_name?: string; email?: string }
+  buyer?: { id?: string; full_name?: string; email?: string }
+  /** This shop's payment; null on orders from before online payment (all COD). */
+  payment?: OrderPayment | null
   address?: {
     full_name: string
     phone_number: string
@@ -150,6 +198,8 @@ interface SellerOrder {
 const api = useApiFetch()
 const router = useRouter()
 const updatingId = ref<string | null>(null)
+const errors = ref<Record<string, string>>({})
+const triggerChatModal = inject<(orderId: string, partnerId?: string | null, label?: string) => Promise<void>>('triggerChatModal')
 
 const { data, pending, refresh } = await useAsyncData(
   'seller:fulfillment-orders',
@@ -158,6 +208,75 @@ const { data, pending, refresh } = await useAsyncData(
 )
 
 const orders = computed(() => data.value?.orders ?? [])
+
+// Refresh when the payment changes inside the chat (receipt confirmed or rejected).
+const chatPaymentVersion = inject<Ref<number> | null>('chatPaymentVersion', null)
+if (chatPaymentVersion) watch(chatPaymentVersion, () => refresh())
+
+/** The shop is paid (online: buyer's receipt confirmed; COD: rider paid) and can accept. */
+function paymentSettled(order: SellerOrder) {
+  return shopIsPaid(order.payment)
+}
+
+function waitingLabel(order: SellerOrder) {
+  const p = order.payment
+  if (p?.method === 'cod') return order.delivery_rider_id ? 'Waiting for rider payment' : 'Waiting for a rider'
+  return 'Waiting for payment'
+}
+
+function paymentHint(order: SellerOrder) {
+  const p = order.payment
+  if (!p) return `Cash on delivery: the rider pays you ${formatPeso(order.seller_subtotal)} at pickup.`
+  if (p.method === 'cod') {
+    const rider = order.delivery_rider?.full_name || 'The rider'
+    if (!order.delivery_rider_id) return `Cash on delivery: waiting for a rider to accept. The rider pays you ${formatPeso(p.amount)} before you accept.`
+    switch (p.status) {
+      case 'submitted': return `${rider} sent a receipt (Ref ${p.reference_number}). Check your ${payoutLabel(p.payout_method)} app, then confirm in the rider chat.`
+      case 'rejected': return `You did not accept the rider's receipt. Waiting for ${rider} to pay again.`
+      case 'rider_paid': return `${rider} paid you (${p.rider_paid_method}). Accept and pack the order.`
+      default: return `${rider} will pay you ${formatPeso(p.amount)}: online in the rider chat, or cash at your shop.`
+    }
+  }
+  switch (p.status) {
+    case 'awaiting_payment': return `Waiting for the buyer to pay ${formatPeso(p.amount)} to your ${payoutLabel(p.payout_method)}.`
+    case 'submitted': return `Receipt sent (Ref ${p.reference_number}). Check your ${payoutLabel(p.payout_method)} app, then confirm in chat.`
+    case 'rejected': return 'You did not accept the receipt. Waiting for the buyer to send it again.'
+    case 'confirmed': return `Paid ${formatPeso(p.amount)} online. You can accept the order.`
+    default: return ''
+  }
+}
+
+/** COD: once a rider accepted the job, the shop can record a cash payment from the rider. */
+function canMarkRiderPaid(order: SellerOrder) {
+  return riderMustPay(order.payment)
+    && !!order.delivery_rider_id
+    && !order.seller_picked_up
+}
+
+function openRiderChat(order: SellerOrder) {
+  triggerChatModal?.(order.id, order.delivery_rider_id ?? null, `Chat with ${order.delivery_rider?.full_name ?? 'rider'}`)
+}
+
+async function markRiderPaid(order: SellerOrder) {
+  if (!order.payment) return
+  updatingId.value = order.id
+  errors.value[order.id] = ''
+  try {
+    await api(`/api/payments/${order.payment.id}`, { method: 'PATCH', body: { action: 'rider_paid' } })
+    await refresh()
+  }
+  catch (err: unknown) {
+    const e = err as { data?: { statusMessage?: string } }
+    errors.value[order.id] = e.data?.statusMessage || 'Failed to save the rider payment.'
+  }
+  finally {
+    updatingId.value = null
+  }
+}
+
+function openBuyerChat(order: SellerOrder) {
+  triggerChatModal?.(order.id, order.buyer?.id ?? null, `Chat with ${order.buyer?.full_name ?? 'buyer'}`)
+}
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase()
@@ -194,13 +313,14 @@ function pickupState(order: SellerOrder) {
 // Marks this shop's items ready, then opens the receipt with its pickup QR for printing.
 async function markReady(orderId: string) {
   updatingId.value = orderId
+  errors.value[orderId] = ''
   try {
     await api(`/api/orders/${orderId}/status`, { method: 'PATCH', body: { status: 'ready_for_pickup' } })
     await router.push({ path: `/seller/receipt/${orderId}`, query: { print: '1' } })
   }
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
-    alert(e.data?.statusMessage || 'Failed to update order')
+    errors.value[orderId] = e.data?.statusMessage || 'Failed to update order'
   }
   finally {
     updatingId.value = null
@@ -209,18 +329,19 @@ async function markReady(orderId: string) {
 
 async function updateStatus(orderId: string, status: string) {
   updatingId.value = orderId
+  errors.value[orderId] = ''
   try {
     await api(`/api/orders/${orderId}/status`, { method: 'PATCH', body: { status } })
     await refresh()
   }
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
-    alert(e.data?.statusMessage || 'Failed to update order')
+    errors.value[orderId] = e.data?.statusMessage || 'Failed to update order'
   }
   finally {
     updatingId.value = null
   }
 }
 
-useHead({ title: 'Orders — NFWM Seller' })
+useHead({ title: 'Orders — Farmers to Market Seller' })
 </script>

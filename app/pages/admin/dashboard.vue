@@ -265,5 +265,5 @@ function statusClass(status?: string) {
   return 'ui-pill ui-pill-green'
 }
 
-useHead({ title: 'Dashboard — NFWM Admin' })
+useHead({ title: 'Dashboard — Farmers to Market Admin' })
 </script>

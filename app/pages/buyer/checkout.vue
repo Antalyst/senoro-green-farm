@@ -88,15 +88,49 @@
             <span class="step-num">3</span>
             <h2 class="flex-1 text-sm font-semibold text-shop-ink">Payment</h2>
           </div>
-          <div class="flex items-center gap-3 px-4 py-4">
-            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-shop-mint text-farm-leaf">
-              <Icon name="heroicons:banknotes" class="h-5 w-5" />
-            </span>
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-shop-ink">Cash on delivery</p>
-              <p class="text-xs text-gray-500">Pay the rider when your order arrives.</p>
+          <p class="px-4 pt-3 text-xs text-gray-500">
+            Choose how to pay each shop. The delivery fee is always paid to the rider when your order arrives.
+          </p>
+          <div v-for="group in groups" :key="group.sellerId" class="border-t border-gray-100 px-4 py-3 first-of-type:border-t-0">
+            <div class="flex items-center justify-between gap-3">
+              <p class="min-w-0 truncate text-sm font-semibold text-shop-ink">{{ group.shopName }}</p>
+              <p class="flex-shrink-0 text-sm font-semibold tabular-nums text-shop-ink">{{ formatPeso(groupSubtotal(group)) }}</p>
             </div>
-            <Icon name="heroicons:check-circle-solid" class="h-6 w-6 flex-shrink-0 text-farm-leaf" />
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                class="pay-option"
+                :class="methodFor(group.sellerId) === 'online' ? 'pay-option-on' : ''"
+                :disabled="!onlineAvailable(group.sellerId)"
+                @click="paymentChoice[group.sellerId] = 'online'"
+              >
+                <Icon name="heroicons:qr-code" class="h-5 w-5 flex-shrink-0" />
+                <span class="min-w-0 text-left">
+                  <span class="block font-semibold">Pay online</span>
+                  <span class="block truncate text-[11px] opacity-75">
+                    {{ onlineAvailable(group.sellerId) ? `${payoutLabel(shopQuote(group.sellerId)?.payout_method)} QR` : 'Not set up' }}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                class="pay-option"
+                :class="methodFor(group.sellerId) === 'cod' ? 'pay-option-on' : ''"
+                @click="paymentChoice[group.sellerId] = 'cod'"
+              >
+                <Icon name="heroicons:banknotes" class="h-5 w-5 flex-shrink-0" />
+                <span class="min-w-0 text-left">
+                  <span class="block font-semibold">Cash on delivery</span>
+                  <span class="block truncate text-[11px] opacity-75">Pay the rider</span>
+                </span>
+              </button>
+            </div>
+            <p v-if="deliveryQuote && !onlineAvailable(group.sellerId)" class="mt-1.5 text-xs text-gray-400">
+              This shop has not set up online payment yet, so cash on delivery only.
+            </p>
+            <p v-else-if="methodFor(group.sellerId) === 'online'" class="mt-1.5 text-xs text-gray-500">
+              After placing the order, scan the shop's QR, pay, and send the receipt in the shop chat.
+            </p>
           </div>
         </section>
       </div>
@@ -109,7 +143,7 @@
             <h2 class="text-base font-semibold">Order summary</h2>
             <span class="text-xs text-white/70">{{ today }}</span>
           </div>
-          <p class="mt-0.5 text-xs text-white/70">Cash on delivery · {{ totalUnits }} {{ totalUnits === 1 ? 'item' : 'items' }} · {{ shopCount }} {{ shopCount === 1 ? 'shop' : 'shops' }}</p>
+          <p class="mt-0.5 text-xs text-white/70">{{ paymentSummary }} · {{ totalUnits }} {{ totalUnits === 1 ? 'item' : 'items' }} · {{ shopCount }} {{ shopCount === 1 ? 'shop' : 'shops' }}</p>
         </div>
 
         <div class="space-y-4 bg-white px-4 py-4 md:px-5">
@@ -174,6 +208,16 @@
             <span class="text-sm font-semibold text-shop-ink">Total to pay</span>
             <span class="text-2xl font-bold tabular-nums text-farm-leaf">{{ formatPeso(totalCheckoutPrice) }}</span>
           </div>
+          <dl v-if="payOnlineTotal > 0" class="space-y-1 rounded bg-shop-mint px-3 py-2 text-sm">
+            <div class="flex justify-between gap-3">
+              <dt class="text-farm-deep">Pay online now (to shops)</dt>
+              <dd class="font-semibold tabular-nums text-farm-deep">{{ formatPeso(payOnlineTotal) }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="text-gray-600">Pay the rider at the door</dt>
+              <dd class="font-semibold tabular-nums text-shop-ink">{{ formatPeso(payAtDoorTotal) }}</dd>
+            </div>
+          </dl>
 
           <p v-if="quoteFailed" class="rounded bg-market-orange/10 px-3 py-2 text-xs text-market-orange">
             We couldn't calculate the delivery fee right now. It will be added when you place the order.
@@ -195,7 +239,7 @@
     <div v-if="checkedCartItems.length" class="place-bar lg:hidden">
       <div class="mx-auto flex max-w-page items-center gap-3 px-4 py-2.5">
         <div class="min-w-0 flex-1">
-          <p class="text-xs text-gray-500">Total · cash on delivery</p>
+          <p class="text-xs text-gray-500">Total · {{ paymentSummary.toLowerCase() }}</p>
           <p class="truncate text-lg font-bold tabular-nums text-farm-leaf">{{ formatPeso(totalCheckoutPrice) }}</p>
         </div>
         <button type="button" class="btn-place flex-shrink-0" :disabled="!canPlaceOrder" @click="checkout">
@@ -287,6 +331,9 @@ interface DeliveryQuote {
     distance_km: number | null
     fee: number
     flat_reason?: 'no_buyer_pin' | 'no_shop_pin' | null
+    /** True when the shop set up a GCash / Maya / bank account. */
+    online_payment?: boolean
+    payout_method?: 'gcash' | 'maya' | 'bank' | null
   }[]
 }
 
@@ -430,6 +477,26 @@ function groupSubtotal(group: ShopGroup) {
   return group.items.reduce((sum, i) => sum + lineTotal(i), 0)
 }
 
+// Payment per shop. "Online" only when the shop set up an account; it is the default then.
+// The server checks this again when the order is placed.
+const paymentChoice = ref<Record<string, 'online' | 'cod'>>({})
+const shopQuote = (sellerId: string) => shopDelivery(sellerId)
+const onlineAvailable = (sellerId: string) => !!shopQuote(sellerId)?.online_payment
+function methodFor(sellerId: string): 'online' | 'cod' {
+  if (!onlineAvailable(sellerId)) return 'cod'
+  return paymentChoice.value[sellerId] ?? 'online'
+}
+
+const payOnlineTotal = computed(() =>
+  groups.value.filter(g => methodFor(g.sellerId) === 'online').reduce((sum, g) => sum + groupSubtotal(g), 0))
+const payAtDoorTotal = computed(() => totalCheckoutPrice.value - payOnlineTotal.value)
+const paymentSummary = computed(() => {
+  if (payOnlineTotal.value <= 0) return 'Cash on delivery'
+  return payAtDoorTotal.value > 0 && groups.value.some(g => methodFor(g.sellerId) === 'cod')
+    ? 'Online + cash on delivery'
+    : 'Online payment'
+})
+
 const today = new Date().toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 
 const canPlaceOrder = computed(() =>
@@ -452,17 +519,26 @@ async function checkout() {
 
   submittingCheckout.value = true
   try {
-    const data = await api<{ success: boolean; total_amount: number }>('/api/cart/checkout', {
+    const payment_methods = Object.fromEntries(groups.value.map(g => [g.sellerId, methodFor(g.sellerId)]))
+    const data = await api<{ success: boolean; order_id: string; total_amount: number; pay_online?: number }>('/api/cart/checkout', {
       method: 'POST',
       body: {
         cart_item_ids: checkedItemIds.value,
         address_id: selectedAddressId.value,
+        payment_methods,
       },
     })
     orderPlaced.value = true
-    triggerToast(`Order placed. Total ${formatPeso(data.total_amount)}, cash on delivery.`)
     refreshCartCount?.()
-    setTimeout(() => router.push('/buyer/orders'), 1500)
+    if ((data.pay_online ?? 0) > 0) {
+      // Online payment: go to the order so the buyer can pay each shop and send the receipt.
+      triggerToast(`Order placed. Pay ${formatPeso(data.pay_online!)} online and send the receipt in the shop chat.`)
+      setTimeout(() => router.push(`/buyer/orders/${data.order_id}`), 1500)
+    }
+    else {
+      triggerToast(`Order placed. Total ${formatPeso(data.total_amount)}, cash on delivery.`)
+      setTimeout(() => router.push('/buyer/orders'), 1500)
+    }
   }
   catch (err: unknown) {
     const e = err as { data?: { statusMessage?: string } }
@@ -481,7 +557,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   setTimeout(() => { toast.value.show = false }, 4000)
 }
 
-useHead({ title: 'Checkout — NFWM' })
+useHead({ title: 'Checkout — Farmers to Market' })
 </script>
 
 <style scoped>
@@ -490,6 +566,12 @@ useHead({ title: 'Checkout — NFWM' })
 }
 .step-num {
   @apply flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-farm-leaf text-xs font-semibold text-white;
+}
+.pay-option {
+  @apply flex min-h-[52px] items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-40;
+}
+.pay-option-on {
+  @apply border-farm-leaf bg-shop-mint text-farm-deep;
 }
 .btn-place {
   @apply inline-flex min-h-[48px] items-center justify-center rounded bg-market-orange px-6 text-sm font-semibold text-white transition-colors hover:bg-[#cf6d17] disabled:cursor-not-allowed disabled:opacity-50;

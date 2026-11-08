@@ -42,5 +42,22 @@ export default defineEventHandler(async (event) => {
   // @ts-ignore Supabase relation typing is generated as object at runtime.
   const sellerIds: string[] = [...new Set((cartItems ?? []).map(item => item.products?.seller_id).filter(Boolean))]
 
-  return await quoteDeliveryFee(supabase, sellerIds, address)
+  const [quote, payouts] = await Promise.all([
+    quoteDeliveryFee(supabase, sellerIds, address),
+    fetchPayoutAccounts(supabase, sellerIds),
+  ])
+
+  // Which shops can take online payment (they set up a GCash / Maya / bank account).
+  return {
+    ...quote,
+    shops: quote.shops.map((shop) => {
+      const payout = payouts.get(shop.seller_id)
+      const online = hasOnlinePayout(payout)
+      return {
+        ...shop,
+        online_payment: online,
+        payout_method: online ? payout!.payout_method : null,
+      }
+    }),
+  }
 })

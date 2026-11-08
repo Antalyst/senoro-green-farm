@@ -31,5 +31,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Seller profile not found' })
   }
 
-  return { seller, location_supported: locationSupported }
+  // Payment account (migration 017). Read separately so the page still loads before that migration.
+  const { data: payout, error: payoutError } = await supabase
+    .from('users')
+    .select(PAYOUT_COLUMNS)
+    .eq('id', user.id)
+    .maybeSingle()
+  const payoutSupported = !payoutError
+  if (payoutError && !isMissingPaymentSchema(payoutError)) {
+    console.error('[seller/profile] payout read failed:', payoutError.message)
+  }
+
+  return {
+    seller,
+    location_supported: locationSupported,
+    payout: payoutSupported ? payout : null,
+    payout_supported: payoutSupported,
+  }
 })

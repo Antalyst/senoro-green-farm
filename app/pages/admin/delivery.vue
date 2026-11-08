@@ -137,5 +137,5 @@ async function save() {
   }
 }
 
-useHead({ title: 'Delivery Fee — NFWM Admin' })
+useHead({ title: 'Delivery Fee — Farmers to Market Admin' })
 </script>
