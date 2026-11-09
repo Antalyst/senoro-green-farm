@@ -7,7 +7,7 @@
           <span class="text-lg font-bold text-shop-ink">Farmers to Market</span>
         </NuxtLink>
         <p class="mt-3 max-w-xs text-sm leading-relaxed text-gray-600">
-          Farmers to Market by Senoro Green Farm — the local farmers' market of Negros, online.
+        
         </p>
       </div>
 
