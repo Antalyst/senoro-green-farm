@@ -1,17 +1,16 @@
 <template>
-  <div class="grid overflow-hidden rounded-lg bg-white ring-1 ring-gray-100 md:grid-cols-2">
-    <div class="flex flex-col items-center justify-center px-6 py-10 text-center md:px-12">
-      <p class="text-xs uppercase tracking-[0.18em] text-gray-400">What buyers say</p>
-      <UiStarRating :value="review.rating" size="md" class="mt-4" />
-      <blockquote class="mt-4 text-lg leading-relaxed text-shop-ink md:text-xl">
+  <div data-reveal class="grid items-center gap-8 md:grid-cols-[1.2fr_1fr] md:gap-14">
+    <div class="text-center md:text-left">
+      <UiStarRating :value="review.rating" size="md" />
+      <blockquote class="font-display mt-4 text-2xl font-semibold leading-snug text-shop-ink md:text-4xl">
         “{{ review.comment }}”
       </blockquote>
-      <p class="mt-5 text-sm font-semibold text-shop-ink">{{ review.buyer_name }}</p>
-      <NuxtLink :to="`/buyer/product/${review.product.id}`" class="text-xs text-farm-leaf hover:underline">
+      <p class="mt-5 text-base font-semibold text-shop-ink">{{ review.buyer_name }}</p>
+      <NuxtLink :to="`/buyer/product/${review.product.id}`" class="text-sm font-medium text-farm-deep underline-offset-4 hover:underline">
         on {{ review.product.name }}
       </NuxtLink>
     </div>
-    <NuxtLink :to="`/buyer/product/${review.product.id}`" class="block h-56 bg-shop-cream md:h-auto md:min-h-[300px]">
+    <NuxtLink :to="`/buyer/product/${review.product.id}`" class="mx-auto block aspect-[4/5] w-full max-w-[320px] overflow-hidden rounded-t-full bg-white">
       <img
         :src="review.product.image_url || fallbackProductImage(review.product.category)"
         :alt="review.product.name"

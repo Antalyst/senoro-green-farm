@@ -1,7 +1,7 @@
 <template>
-  <div class="pb-8">
+  <div ref="homeRoot" class="home-page" :class="isSearching ? 'pb-8' : ''">
     <!-- ============ SEARCH RESULTS (header search) ============ -->
-    <section v-if="isSearching" class="py-8 md:py-10">
+    <section v-if="isSearching" class="home-wrap py-8 md:py-10">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p class="text-xs text-gray-400">Search results</p>
@@ -50,54 +50,63 @@
     <template v-else>
       <!-- ============ HERO ============ -->
       <StorefrontHeroSlider :slides="heroSlides" @cta="scrollToSection" />
+      <StorefrontMarketTicker />
 
       <!-- ============ CATEGORIES ============ -->
       <section v-if="categoryTiles.length" id="categories" class="section">
-        <StorefrontSectionHeading label="01. Find your favourite" title="Shop By Categories" />
-        <StorefrontCategoryCarousel
-          class="mt-8"
-          :categories="categoryTiles"
-          :active="activeCategory"
-          @select="selectCategory"
-        />
+        <div class="home-wrap">
+          <StorefrontHomeHeading label="01. Find your favourite" title="Shop By Categories" />
+          <StorefrontCategoryCarousel
+            class="mt-8"
+            :categories="categoryTiles"
+            :active="activeCategory"
+            @select="selectCategory"
+          />
+        </div>
       </section>
 
       <!-- ============ SERVICE STRIP ============ -->
-      <section class="border-y border-gray-100 py-10">
-        <StorefrontServiceStrip />
+      <section class="bg-farm-light py-10 md:py-14">
+        <div class="home-wrap">
+          <StorefrontServiceStrip />
+        </div>
       </section>
 
       <!-- ============ LOCAL SHOPS ============ -->
       <section v-if="promoTiles.length" id="shops" class="section">
-        <StorefrontSectionHeading label="02. Meet the farmers" title="From Our Local Shops" />
-        <StorefrontPromoGrid class="mt-8" :tiles="promoTiles" />
+        <div class="home-wrap">
+          <StorefrontHomeHeading label="02. Meet the farmers" title="From Our Local Shops" />
+          <StorefrontPromoGrid class="mt-8" :tiles="promoTiles" />
 
-        <div v-if="moreShops.length" class="mt-10">
-          <p class="text-sm font-semibold text-shop-ink">More local shops</p>
-          <div class="no-scrollbar mt-4 flex snap-x gap-4 overflow-x-auto pb-2">
-            <StorefrontShopCard
-              v-for="shop in moreShops"
-              :key="shop.id"
-              :shop="shop"
-              class="w-60 flex-shrink-0 snap-start"
-            />
+          <div v-if="moreShops.length" class="mt-10">
+            <p class="font-display text-xl font-bold text-shop-ink">More local shops</p>
+            <div class="no-scrollbar mt-4 flex snap-x gap-4 overflow-x-auto pb-2">
+              <StorefrontShopCard
+                v-for="shop in moreShops"
+                :key="shop.id"
+                data-reveal
+                :shop="shop"
+                class="w-60 flex-shrink-0 snap-start"
+              />
+            </div>
           </div>
         </div>
       </section>
 
       <!-- ============ BEST SELLERS + PRODUCTS ============ -->
-      <section id="products" class="section">
-        <div class="grid gap-8" :class="bestSellers.length ? 'lg:grid-cols-[280px_1fr]' : ''">
+      <section id="products" class="section bg-shop-cream">
+        <div class="home-wrap grid gap-8" :class="bestSellers.length ? 'lg:grid-cols-[300px_1fr]' : ''">
           <StorefrontBestSellerList
             v-if="bestSellers.length"
             :products="bestSellers"
             :caption="hasSales ? 'Most ordered by buyers' : 'New arrivals this week'"
+            data-reveal
             class="order-2 self-start lg:order-1"
             @add-to-cart="handleAddToCart"
           />
 
           <div class="order-1 min-w-0 lg:order-2">
-            <StorefrontSectionHeading
+            <StorefrontHomeHeading
               align="left"
               label="03. Fresh picks"
               :title="activeCategory ? activeCategory : 'Fresh Products'"
@@ -111,7 +120,7 @@
               >
                 View all
               </button>
-            </StorefrontSectionHeading>
+            </StorefrontHomeHeading>
 
             <!-- Category filter chips -->
             <div v-if="categoryTiles.length > 1" class="no-scrollbar mt-5 flex gap-2 overflow-x-auto pb-1">
@@ -151,14 +160,30 @@
             </div>
 
             <template v-else>
-              <div class="product-grid mt-6" :class="bestSellers.length ? '' : 'lg:grid-cols-4'">
+              <div data-product-grid class="product-grid mt-6" :class="bestSellers.length ? '' : 'lg:grid-cols-4'">
                 <BuyerProductCard
                   v-for="product in visibleProducts"
                   :key="product.id"
+                  data-reveal
                   :product="product"
                   @add-to-cart="handleAddToCart"
                   @buy-now="handleBuyNow"
                 />
+                <!-- Fills the empty columns while a shop or category has only a few products -->
+                <div
+                  v-if="visibleProducts.length < 3"
+                  data-reveal
+                  class="harvest-tile"
+                  :class="visibleProducts.length === 1 ? 'col-span-1 sm:col-span-2' : 'col-span-2 sm:col-span-1'"
+                >
+                  <div class="flex items-center justify-center gap-1">
+                    <img src="/images/home/pechay.svg" alt="" class="h-14 w-14 sm:h-20 sm:w-20">
+                    <img src="/images/home/eggplant.svg" alt="" class="hidden h-14 w-14 sm:block sm:h-20 sm:w-20">
+                    <img src="/images/home/carrot.svg" alt="" class="h-14 w-14 sm:h-20 sm:w-20">
+                  </div>
+                  <p class="font-display mt-4 text-xl font-bold text-shop-ink sm:text-2xl">More harvest on the way</p>
+                  <p class="mt-1 text-[13px] text-gray-600 sm:text-sm">Local shops are adding new products.</p>
+                </div>
               </div>
               <div v-if="!showAll && categoryFiltered.length > PAGE_SIZE" class="mt-8 text-center">
                 <button type="button" class="btn-outline" @click="showAll = true">
@@ -170,11 +195,18 @@
         </div>
       </section>
 
+      <!-- ============ HOW IT WORKS ============ -->
+      <StorefrontJourney />
+
       <!-- ============ TESTIMONIAL (real review only) ============ -->
       <section v-if="featuredReview" class="section">
-        <StorefrontSectionHeading label="04. Reviews" title="Loved By Buyers" />
-        <StorefrontReviewSpotlight class="mt-8" :review="featuredReview" />
+        <div class="home-wrap">
+          <StorefrontHomeHeading label="04. Reviews" title="Loved By Buyers" />
+          <StorefrontReviewSpotlight class="mt-10" :review="featuredReview" />
+        </div>
       </section>
+
+      <StorefrontFarmScene class="-mb-8" @cta="scrollToSection" />
     </template>
   </div>
 
@@ -360,6 +392,13 @@ watch(() => route.hash, scrollToHash)
 watch(dataLoading, scrollToHash)
 watch(activeCategory, () => { showAll.value = false })
 
+// ---------- Motion (GSAP) ----------
+
+const homeRoot = ref<HTMLElement | null>(null)
+const motionReady = computed(() => !dataLoading.value && !isSearching.value)
+const { animateNewCards } = useHomeMotion(homeRoot, motionReady)
+watch(visibleProducts, animateNewCards, { flush: 'post' })
+
 // ---------- Data ----------
 
 async function loadAll() {
@@ -422,12 +461,21 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
 
 onMounted(loadAll)
 
-useHead({ title: 'Farmers to Market — Fresh from Negros farms' })
+useHead({
+  title: 'Farmers to Market — Fresh from Negros farms',
+  link: [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&display=swap' }],
+})
 </script>
+
+<style src="~/assets/css/home.css"></style>
 
 <style scoped>
 .section {
-  @apply scroll-mt-4 py-12 md:py-16;
+  @apply scroll-mt-4 py-14 md:py-20;
+}
+
+.harvest-tile {
+  @apply flex flex-col items-center justify-center rounded-md bg-shop-mint px-4 py-8 text-center;
 }
 
 .product-grid {
@@ -443,10 +491,10 @@ useHead({ title: 'Farmers to Market — Fresh from Negros farms' })
 }
 
 .chip {
-  @apply flex-shrink-0 rounded-full border border-gray-200 px-4 py-1.5 text-sm text-gray-600 transition hover:border-farm-leaf hover:text-farm-leaf;
+  @apply min-h-[40px] flex-shrink-0 rounded-full bg-white px-4 text-sm font-medium text-shop-ink transition-colors hover:bg-shop-mint;
 }
 .chip--active {
-  @apply border-farm-leaf bg-farm-leaf text-white hover:text-white;
+  @apply bg-market-orange font-bold text-farm-dark hover:bg-market-orange;
 }
 
 .btn-primary {

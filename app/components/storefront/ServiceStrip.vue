@@ -1,11 +1,16 @@
 <template>
-  <ul class="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4">
-    <li v-for="item in items" :key="item.label" class="flex flex-col items-center text-center">
-      <span class="flex h-14 w-14 items-center justify-center rounded-full bg-shop-mint text-farm-leaf">
-        <Icon :name="item.icon" class="h-7 w-7" />
+  <ul class="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
+    <li
+      v-for="item in items"
+      :key="item.label"
+      data-reveal
+      class="flex flex-col items-center rounded-lg bg-white px-3 py-6 text-center md:py-8"
+    >
+      <span class="flex h-20 w-20 items-center justify-center rounded-full bg-farm-light md:h-24 md:w-24">
+        <img :src="item.icon" alt="" loading="lazy" class="h-12 w-12 md:h-14 md:w-14">
       </span>
-      <p class="mt-3 text-sm font-semibold text-shop-ink">{{ item.label }}</p>
-      <p class="mt-0.5 text-xs text-gray-500">{{ item.caption }}</p>
+      <p class="font-display mt-4 text-lg font-bold text-shop-ink md:text-xl">{{ item.label }}</p>
+      <p class="mt-1 text-[13px] leading-snug text-gray-600 md:text-sm">{{ item.caption }}</p>
     </li>
   </ul>
 </template>
@@ -13,9 +18,9 @@
 <script setup lang="ts">
 // Only real promises of this system (see docs/design-storefront-redesign.md §4.4).
 const items = [
-  { icon: 'heroicons:truck', label: 'Local delivery', caption: 'Fee based on distance' },
-  { icon: 'heroicons:sparkles', label: 'Farm fresh', caption: 'Straight from local farmers' },
-  { icon: 'heroicons:banknotes', label: 'Cash on delivery', caption: 'Pay when it arrives' },
-  { icon: 'heroicons:chat-bubble-left-right', label: 'Chat with rider', caption: 'Message your rider live' },
+  { icon: '/images/home/scooter.svg', label: 'Local delivery', caption: 'Fee based on distance' },
+  { icon: '/images/home/basket.svg', label: 'Farm fresh', caption: 'Straight from local farmers' },
+  { icon: '/images/home/cash.svg', label: 'Cash on delivery', caption: 'Pay when it arrives' },
+  { icon: '/images/home/chat.svg', label: 'Chat with rider', caption: 'Message your rider live' },
 ]
 </script>

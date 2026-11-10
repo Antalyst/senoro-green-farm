@@ -20,15 +20,16 @@
         v-for="cat in categories"
         :key="cat.name"
         type="button"
-        class="group flex w-[140px] flex-shrink-0 snap-start flex-col items-center rounded-md bg-shop-cream px-3 pb-4 pt-5 text-center transition hover:shadow-sm sm:w-[156px]"
-        :class="cat.name === active ? 'ring-2 ring-farm-leaf' : ''"
+        data-reveal
+        class="group flex w-[150px] flex-shrink-0 snap-start flex-col items-center rounded-lg px-3 pb-4 pt-4 text-center transition-colors sm:w-[190px]"
+        :class="cat.name === active ? 'bg-market-orange' : 'bg-farm-light hover:bg-shop-mint'"
         @click="$emit('select', cat.name)"
       >
-        <span class="h-20 w-20 overflow-hidden rounded-full bg-white shadow-sm">
-          <img :src="cat.image" :alt="cat.name" loading="lazy" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110">
+        <span class="block aspect-[4/5] w-full overflow-hidden rounded-t-full bg-white">
+          <img :src="cat.image" :alt="cat.name" loading="lazy" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110">
         </span>
-        <span class="mt-3 line-clamp-1 text-sm font-medium text-shop-ink">{{ cat.name }}</span>
-        <span class="text-xs text-gray-400">{{ cat.count }} {{ cat.count === 1 ? 'Product' : 'Products' }}</span>
+        <span class="font-display mt-3 line-clamp-1 text-lg font-bold text-shop-ink">{{ cat.name }}</span>
+        <span class="text-[13px]" :class="cat.name === active ? 'text-farm-dark' : 'text-gray-600'">{{ cat.count }} {{ cat.count === 1 ? 'Product' : 'Products' }}</span>
       </button>
     </div>
 
@@ -77,7 +78,7 @@ watch(() => props.categories.length, () => nextTick(updateScrollState))
 
 <style scoped>
 .arrow-btn {
-  @apply absolute top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-gray-500 shadow-md ring-1 ring-black/5 transition hover:text-farm-leaf md:flex;
+  @apply absolute top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-farm-deep text-white transition-colors hover:bg-market-orange hover:text-farm-dark md:flex;
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
