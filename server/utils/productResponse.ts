@@ -65,3 +65,10 @@ export async function attachRatings<T extends { id: string }>(
     }
   })
 }
+
+export const PRODUCT_UNITS = ['pc', 'kg', 'g', 'bundle', 'serving'] as const
+
+/** The selling unit if it is one the database allows, otherwise null. */
+export function parseProductUnit(value: unknown): (typeof PRODUCT_UNITS)[number] | null {
+  return PRODUCT_UNITS.find(unit => unit === value) ?? null
+}

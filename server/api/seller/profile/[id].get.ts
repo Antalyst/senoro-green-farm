@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
 
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, description, price, stock, category, category_id, image_url, categories!category_id(id, name)')
+    .select('id, name, description, price, stock, category, category_id, image_url, unit_type, categories!category_id(id, name)')
     .eq('seller_id', id)
     .order('created_at', { ascending: false })
 

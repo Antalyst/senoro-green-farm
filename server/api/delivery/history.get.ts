@@ -1,5 +1,6 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { requireAuth } from '../../utils/auth'
+import { buildSalesReports } from '../../utils/salesPeriods'
 
 // Rider's order history: finished jobs (delivered or cancelled) this rider accepted, newest first.
 // orders(*) includes delivery_fee / delivered_at / cancelled_at once migrations 017 and 018 are run,
@@ -11,6 +12,8 @@ const HISTORY_SELECT = `
 `
 
 const LIMIT = 200
+// The chart looks at more jobs than the list shows, so a year of work is not cut off.
+const CHART_LIMIT = 2000
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -50,6 +53,26 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // Chart numbers: for each day / week / month / year, the fees collected and the jobs delivered.
+  const { data: deliveredRows, error: chartError } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('delivery_rider_id', user.id)
+    .eq('status', 'delivered')
+    .order('created_at', { ascending: false })
+    .limit(CHART_LIMIT)
+
+  if (chartError) console.error('[delivery/history] chart', chartError.message)
+
+  const reports = buildSalesReports(
+    (deliveredRows ?? []).map((row: any) => ({
+      order_id: row.id as string,
+      // Orders delivered before migration 018 have no delivered time: use the order time.
+      created_at: (row.delivered_at ?? row.created_at) as string,
+      amount: Number(row.delivery_fee ?? 0),
+    })),
+  )
+
   const delivered = orders.filter(o => o.status === 'delivered')
   // Start of this month in Philippine time (UTC+8), whatever the server's time zone is.
   const PH_OFFSET_MS = 8 * 60 * 60 * 1000
@@ -66,5 +89,6 @@ export default defineEventHandler(async (event) => {
       fees_earned: Math.round(delivered.reduce((sum, o) => sum + (o.delivery_fee ?? 0), 0) * 100) / 100,
     },
     limited: orders.length === LIMIT,
+    reports,
   }
 })

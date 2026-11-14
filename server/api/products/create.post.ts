@@ -1,6 +1,6 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { requireAuth } from '../../utils/auth'
-import { normalizeProductCategory } from '../../utils/productResponse'
+import { normalizeProductCategory, parseProductUnit } from '../../utils/productResponse'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const { name, description, price, stock, category_id, image_url } = body ?? {}
+  const unit_type = parseProductUnit(body?.unit_type) ?? 'pc'
 
   if (!name || price === undefined || stock === undefined || !category_id) {
     throw createError({ statusCode: 400, statusMessage: 'Missing required product fields' })
@@ -38,9 +39,10 @@ export default defineEventHandler(async (event) => {
       stock,
       category_id,
       category: category.name,
-      image_url
+      image_url,
+      unit_type,
     })
-    .select('id, name, description, price, stock, category, category_id, image_url, created_at, categories!category_id(id, name)')
+    .select('id, name, description, price, stock, category, category_id, image_url, unit_type, created_at, categories!category_id(id, name)')
     .single()
 
   if (error) {
