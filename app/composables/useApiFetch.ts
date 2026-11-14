@@ -19,6 +19,21 @@ export function useApiFetch() {
           options.headers = headers
         }
       }
-    }
+    },
+    // The admin blocked or deleted this account: sign out here and go to the sign-in page.
+    onResponseError({ request, response }) {
+      if (!import.meta.client) return
+      const accountStatus = (response?._data as { data?: { account_status?: string } } | undefined)?.data?.account_status
+      if (accountStatus !== 'blocked' && accountStatus !== 'deleted') return
+      if (String(request).includes('/api/auth/login')) return // the sign-in page shows the message itself
+      try {
+        localStorage.removeItem('sgf_auth_token')
+        localStorage.removeItem('sgf_auth_user')
+      }
+      catch { /* storage blocked */ }
+      if (!window.location.pathname.startsWith('/auth/login')) {
+        window.location.assign(`/auth/login?account=${accountStatus}`)
+      }
+    },
   })
 }

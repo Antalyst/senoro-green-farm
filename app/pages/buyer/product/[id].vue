@@ -174,6 +174,7 @@
                     </div>
                     <UiStarRating :value="rev.rating" />
                     <p v-if="rev.comment" class="mt-2 text-sm leading-relaxed text-gray-600">{{ rev.comment }}</p>
+                    <ReviewPhotos :urls="rev.image_urls" class="mt-2" />
                     <div v-if="rev.seller_reply" class="mt-3 rounded bg-shop-mint px-3 py-2.5">
                       <p class="text-xs font-semibold text-farm-deep">Reply from {{ shopName }}</p>
                       <p class="mt-0.5 text-sm text-gray-600">{{ rev.seller_reply }}</p>
@@ -215,10 +216,39 @@
                 aria-label="Your review"
                 class="mt-2 w-full resize-none rounded border border-gray-200 px-3 py-2.5 text-sm text-shop-ink outline-none placeholder:text-gray-400 focus:border-farm-leaf"
               />
+
+              <!-- Photos (up to 3) -->
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                <div
+                  v-for="(photo, i) in reviewPhotos"
+                  :key="photo.url"
+                  class="relative h-16 w-16 overflow-hidden rounded border border-gray-200"
+                >
+                  <img :src="photo.url" alt="" class="h-full w-full object-cover">
+                  <button
+                    type="button"
+                    class="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-bl bg-black/60 text-white"
+                    :aria-label="`Remove photo ${i + 1}`"
+                    @click="removeReviewPhoto(i)"
+                  >
+                    <Icon name="heroicons:x-mark" class="h-4 w-4" />
+                  </button>
+                </div>
+                <label
+                  v-if="reviewPhotos.length < MAX_REVIEW_PHOTOS"
+                  class="flex h-16 w-16 cursor-pointer flex-col items-center justify-center rounded border border-dashed border-farm-leaf/40 text-farm-leaf hover:bg-farm-light"
+                >
+                  <Icon name="heroicons:camera" class="h-5 w-5" />
+                  <span class="text-[10px] font-medium">Add photo</span>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" multiple class="sr-only" @change="addReviewPhotos">
+                </label>
+                <span class="text-xs text-gray-400">{{ reviewPhotos.length }}/{{ MAX_REVIEW_PHOTOS }} photos · JPG, PNG or WebP, up to 5 MB</span>
+              </div>
+
               <button
                 type="button"
                 class="mt-3 inline-flex min-h-[40px] w-full items-center justify-center rounded bg-farm-leaf px-5 text-sm font-semibold text-white hover:bg-farm-deep disabled:opacity-50 sm:w-auto"
-                :disabled="submittingReview || !newReview.comment.trim()"
+                :disabled="submittingReview || (!newReview.comment.trim() && !reviewPhotos.length)"
                 @click="submitReview"
               >
                 {{ submittingReview ? 'Posting…' : 'Post review' }}
@@ -299,6 +329,7 @@ interface ReviewItem {
   comment: string | null
   seller_reply?: string | null
   created_at?: string
+  image_urls?: string[] | null
   users?: { full_name?: string }
 }
 
@@ -466,21 +497,61 @@ async function buyOther(item: BuyerProduct) {
   }
 }
 
+// Review photos picked by the buyer (sent with the review).
+const MAX_REVIEW_PHOTOS = 3
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const reviewPhotos = ref<{ file: File; url: string }[]>([])
+
+function addReviewPhotos(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  input.value = ''
+  for (const file of files) {
+    if (reviewPhotos.value.length >= MAX_REVIEW_PHOTOS) {
+      triggerToast(`You can add up to ${MAX_REVIEW_PHOTOS} photos.`, 'error')
+      break
+    }
+    if (!PHOTO_TYPES.includes(file.type)) {
+      triggerToast('Use a JPG, PNG or WebP photo.', 'error')
+      continue
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      triggerToast('Each photo must be 5 MB or smaller.', 'error')
+      continue
+    }
+    reviewPhotos.value.push({ file, url: URL.createObjectURL(file) })
+  }
+}
+
+function removeReviewPhoto(index: number) {
+  const [photo] = reviewPhotos.value.splice(index, 1)
+  if (photo) URL.revokeObjectURL(photo.url)
+}
+
+function clearReviewPhotos() {
+  for (const photo of reviewPhotos.value) URL.revokeObjectURL(photo.url)
+  reviewPhotos.value = []
+}
+
+onBeforeUnmount(clearReviewPhotos)
+
 async function submitReview() {
   const p = product.value
-  if (!p || !newReview.value.comment.trim()) return
+  const comment = newReview.value.comment.trim()
+  if (!p || (!comment && !reviewPhotos.value.length)) return
   submittingReview.value = true
   try {
-    await api('/api/products/review', {
-      method: 'POST',
-      body: {
-        product_id: p.id,
-        rating: newReview.value.rating,
-        comment: newReview.value.comment.trim(),
-      },
-    })
+    const form = new FormData()
+    form.append('product_id', p.id)
+    form.append('rating', String(newReview.value.rating))
+    form.append('comment', comment)
+    for (const photo of reviewPhotos.value) form.append('images', photo.file, photo.file.name)
+
+    await api('/api/products/review', { method: 'POST', body: form })
     triggerToast('Thanks! Your review is posted.')
     newReview.value = { rating: 5, comment: '' }
+    clearReviewPhotos()
     await refreshReviews()
   }
   catch (err: unknown) {
@@ -497,7 +568,7 @@ watch(productId, () => {
   refreshProduct()
 })
 
-useHead({ title: computed(() => (product.value ? `${product.value.name} — Farmers to Market` : 'Product — Farmers to Market')) })
+useHead({ title: computed(() => (product.value ? `${product.value.name} — NFWM Farmers to Market` : 'Product — NFWM Farmers to Market')) })
 </script>
 
 <style scoped>

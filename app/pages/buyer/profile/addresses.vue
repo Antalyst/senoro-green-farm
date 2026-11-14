@@ -602,7 +602,7 @@ onBeforeUnmount(() => {
   document.body.style.overflow = ''
 })
 
-useHead({ title: 'My Addresses — Farmers to Market' })
+useHead({ title: 'My Addresses — NFWM Farmers to Market' })
 </script>
 
 <style scoped>

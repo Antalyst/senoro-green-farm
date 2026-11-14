@@ -20,6 +20,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Seller not found' })
   }
 
+  // Shops blocked or deleted by the admin are hidden.
+  await assertSellerVisible(supabase, seller.id, 'Seller not found')
+
   const { data: products } = await supabase
     .from('products')
     .select('id, name, description, price, stock, category, category_id, image_url, categories!category_id(id, name)')

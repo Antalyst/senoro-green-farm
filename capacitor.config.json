@@ -1,6 +1,6 @@
 {
   "appId": "com.example.app",
-  "appName": "Farmers to Market",
+  "appName": "NFWM Farmers to Market",
   "webDir": ".output/public",
     "server": {
     "url": "https://farmerstomarket.vercel.app",

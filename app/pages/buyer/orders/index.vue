@@ -361,7 +361,7 @@ async function submitReview() {
   }
 }
 
-useHead({ title: 'My Orders — Farmers to Market' })
+useHead({ title: 'My Orders — NFWM Farmers to Market' })
 </script>
 
 <style scoped>

@@ -82,10 +82,19 @@ export function useAuth() {
       persistToLocal(data.user)
       storeToken(data.token)
     }
-    catch {
-      // Server call failed — try localStorage fallback (native Capacitor context)
-      const local = restoreFromLocal()
-      user.value = local
+    catch (err: unknown) {
+      const status = (err as { statusCode?: number; response?: { status?: number } })?.statusCode
+        ?? (err as { response?: { status?: number } })?.response?.status
+      if (status === 401 || status === 403) {
+        // The server said no (signed out, expired, or blocked / deleted by the admin): clear the session.
+        user.value = null
+        persistToLocal(null)
+        if (import.meta.client) localStorage.removeItem(TOKEN_KEY)
+      }
+      else {
+        // Server could not be reached — try localStorage fallback (native Capacitor context)
+        user.value = restoreFromLocal()
+      }
     }
     finally {
       loading.value = false

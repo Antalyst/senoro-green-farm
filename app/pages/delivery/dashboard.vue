@@ -33,19 +33,20 @@
 
     <!-- Tabs (stick to the top while scrolling) -->
     <div class="sticky top-0 z-10 -mx-4 bg-[#f6f7f6] px-4 py-3">
-      <div class="grid grid-cols-2 gap-1 rounded-full bg-white p-1 shadow-sm ring-1 ring-black/5" role="tablist">
+      <div class="grid grid-cols-3 gap-1 rounded-full bg-white p-1 shadow-sm ring-1 ring-black/5" role="tablist">
         <button
           v-for="tab in tabs"
           :key="tab.key"
           type="button"
           role="tab"
           :aria-selected="activeTab === tab.key"
-          class="flex items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition"
+          class="flex min-w-0 items-center justify-center gap-1.5 rounded-full px-1 py-2.5 text-sm font-medium transition"
           :class="activeTab === tab.key ? 'bg-farm-leaf text-white shadow-sm' : 'text-gray-500'"
           @click="activeTab = tab.key"
         >
-          {{ tab.label }}
+          <span class="truncate">{{ tab.label }}</span>
           <span
+            v-if="tab.key !== 'history'"
             class="min-w-[22px] rounded-full px-1.5 text-xs tabular-nums"
             :class="activeTab === tab.key ? 'bg-white/20' : 'bg-gray-100'"
           >
@@ -55,8 +56,11 @@
       </div>
     </div>
 
+    <!-- Order history (finished jobs) -->
+    <DeliveryHistoryList v-if="activeTab === 'history'" />
+
     <!-- Loading -->
-    <div v-if="pending && !data" class="space-y-4">
+    <div v-else-if="pending && !data" class="space-y-4">
       <div v-for="n in 2" :key="n" class="h-64 animate-pulse rounded-2xl bg-white ring-1 ring-black/5" />
     </div>
 
@@ -176,7 +180,7 @@ import type { DeliveryOrder } from '~/components/delivery/DeliveryJobCard.vue'
 
 definePageMeta({ layout: 'delivery' })
 
-type TabKey = 'pickup' | 'active'
+type TabKey = 'pickup' | 'active' | 'history'
 
 const { user } = useAuth()
 const api = useApiFetch()
@@ -184,11 +188,13 @@ const route = useRoute()
 const triggerChatModal = inject<(orderId: string, receiverId?: string | null, label?: string) => Promise<void>>('triggerChatModal')
 
 const tabs: { key: TabKey; label: string }[] = [
-  { key: 'pickup', label: 'Pickup queue' },
-  { key: 'active', label: 'My deliveries' },
+  { key: 'pickup', label: 'Open jobs' },
+  { key: 'active', label: 'My jobs' },
+  { key: 'history', label: 'History' },
 ]
 
-const activeTab = ref<TabKey>(route.query.tab === 'active' ? 'active' : 'pickup')
+const TAB_KEYS: TabKey[] = ['pickup', 'active', 'history']
+const activeTab = ref<TabKey>(TAB_KEYS.includes(route.query.tab as TabKey) ? route.query.tab as TabKey : 'pickup')
 const updatingId = ref<string | null>(null)
 const lastUpdated = ref<number | null>(null)
 const now = ref(Date.now())
@@ -340,7 +346,7 @@ function onVisible() {
 
 // Notification taps link here with ?tab=pickup&at=<time>.
 watch(() => route.query.at, () => {
-  if (route.query.tab === 'pickup' || route.query.tab === 'active') activeTab.value = route.query.tab
+  if (TAB_KEYS.includes(route.query.tab as TabKey)) activeTab.value = route.query.tab as TabKey
   refresh()
 })
 
@@ -359,7 +365,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisible)
 })
 
-useHead({ title: 'Rider — Farmers to Market' })
+useHead({ title: 'Rider — NFWM Farmers to Market' })
 </script>
 
 <style scoped>

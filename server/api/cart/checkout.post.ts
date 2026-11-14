@@ -81,6 +81,15 @@ export default defineEventHandler(async (event) => {
   // @ts-ignore Supabase relation typing is generated as object at runtime.
   const sellerIds: string[] = [...new Set(cartItems.map(item => item.products?.seller_id).filter(Boolean))]
 
+  // A shop blocked or deleted by the admin cannot take new orders.
+  const hiddenSellers = await hiddenSellerIds(supabase)
+  if (sellerIds.some(id => hiddenSellers.has(id))) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'A shop in your cart is not available right now. Remove its items and try again.',
+    })
+  }
+
   // Each shop's share of the items (what the buyer pays that shop, online or through the rider).
   const shopSubtotals = new Map<string, number>()
   for (const item of cartItems) {

@@ -11,7 +11,7 @@
     <div class="relative flex h-full flex-col justify-between p-10 text-white">
       <NuxtLink to="/" class="flex items-center gap-2.5 self-start rounded-full bg-white/10 py-1.5 pl-1.5 pr-4 ring-1 ring-white/20 backdrop-blur-sm transition hover:bg-white/20">
         <img src="/logo2.png" alt="" class="h-8 w-8 rounded-full object-contain">
-        <span class="text-sm font-semibold">Farmers to Market</span>
+        <span class="text-sm font-semibold">NFWM Farmers to Market</span>
       </NuxtLink>
 
       <div>

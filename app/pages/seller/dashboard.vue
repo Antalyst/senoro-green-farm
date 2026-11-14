@@ -24,18 +24,8 @@
       />
     </section>
 
-    <!-- Revenue chart -->
-    <section class="ui-card overflow-hidden">
-      <div class="ui-card-head">
-        <div>
-          <h2 class="text-base font-semibold text-farm-deep">Revenue</h2>
-          <p class="text-xs text-gray-500">Last 6 months</p>
-        </div>
-      </div>
-      <div class="p-4 md:p-5">
-        <FarmChart :options="chartOptions" :height="240" />
-      </div>
-    </section>
+    <!-- Sales report: Day / Week / Month / Year switch -->
+    <SellerSalesReport :reports="metrics?.reports" :pending="metricsPending" />
 
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-4">
       <!-- Recent sales -->
@@ -142,14 +132,12 @@
 </template>
 
 <script setup lang="ts">
-import type { Options, SeriesOptionsType } from 'highcharts'
-import FarmChart from '~/components/ui/FarmChart.vue'
+import type { PeriodReport, SalesPeriod } from '~/components/seller/SalesReport.vue'
 
 definePageMeta({ layout: 'seller' })
 
 const { user } = useAuth()
 const api = useApiFetch()
-const { baseChart, FARM } = useFarmChartTheme()
 
 interface MetricItem {
   price: number
@@ -166,6 +154,7 @@ interface MetricsPayload {
     revenue: number[]
     orderCount: number[]
   }
+  reports?: Record<SalesPeriod, PeriodReport>
 }
 
 interface SellerCategory {
@@ -212,42 +201,6 @@ const stats = computed(() => {
 })
 
 const recentSales = computed(() => (metrics.value?.items ?? []).slice(0, 6))
-
-// Flat chart: revenue bars, no gradients, no animation.
-const chartOptions = computed<Options>(() => {
-  const chart = metrics.value?.chart
-  return {
-    ...baseChart,
-    chart: { ...baseChart.chart, type: 'column', height: 240 },
-    legend: { enabled: false },
-    xAxis: { ...baseChart.xAxis, categories: chart?.categories ?? [] },
-    yAxis: {
-      ...baseChart.yAxis,
-      gridLineColor: '#F3F4F6',
-      labels: {
-        style: { color: '#9CA3AF', fontSize: '10px' },
-        formatter() {
-          const v = Number(this.value)
-          return v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`
-        },
-      },
-    },
-    tooltip: {
-      ...baseChart.tooltip,
-      borderColor: '#E5E7EB',
-      pointFormatter() {
-        return `Revenue: <b>${peso(Number(this.y))}</b>`
-      },
-    },
-    plotOptions: {
-      series: { animation: false },
-      column: { borderWidth: 0, borderRadius: 2, pointPadding: 0.2, groupPadding: 0.1 },
-    },
-    series: [
-      { type: 'column', name: 'Revenue', data: chart?.revenue ?? [], color: FARM.leaf },
-    ] as SeriesOptionsType[],
-  }
-})
 
 const statusFilter = ref<'all' | 'active' | 'low' | 'outofstock'>('all')
 const stockFilters = [
@@ -321,5 +274,5 @@ async function deleteCategory(category: SellerCategory) {
   await refreshCategories()
 }
 
-useHead({ title: 'Dashboard — Farmers to Market Seller' })
+useHead({ title: 'Dashboard — NFWM Farmers to Market Seller' })
 </script>

@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const typedCode = normalizeCode(body?.code)
 
   if (!orderId) throw createError({ statusCode: 400, statusMessage: 'order_id is required' })
-  if (body?.payload && !scan) throw createError({ statusCode: 400, statusMessage: 'This is not a Farmers to Market order QR code.' })
+  if (body?.payload && !scan) throw createError({ statusCode: 400, statusMessage: 'This is not a NFWM Farmers to Market order QR code.' })
   if (!scan && typedCode.length !== 8) throw createError({ statusCode: 400, statusMessage: 'Enter the 8-character code.' })
   if (scan && scan.orderId !== orderId) throw createError({ statusCode: 400, statusMessage: 'This QR belongs to a different order.' })
 
@@ -122,20 +122,33 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Invalid delivery code for this order.' })
     }
 
-    const { data: done } = await supabase
+    // delivered_at feeds the rider's order history (migration 018).
+    let { data: done, error: doneError } = await supabase
       .from('orders')
-      .update({ status: 'delivered' })
+      .update({ status: 'delivered', delivered_at: new Date().toISOString() })
       .eq('id', orderId)
       .eq('status', 'out_for_delivery')
       .select('id')
       .maybeSingle()
+
+    // Database without migration 018: mark delivered without the time.
+    if (doneError && (doneError.code === 'PGRST204' || doneError.code === '42703' || /delivered_at/.test(doneError.message ?? ''))) {
+      ;({ data: done, error: doneError } = await supabase
+        .from('orders')
+        .update({ status: 'delivered' })
+        .eq('id', orderId)
+        .eq('status', 'out_for_delivery')
+        .select('id')
+        .maybeSingle())
+    }
+    if (doneError) throw createError({ statusCode: 500, statusMessage: 'Failed to mark the order delivered' })
 
     if (done && order.buyer_id) {
       await notify(event, [{
         user_id: order.buyer_id,
         order_id: orderId,
         title: 'Order Delivered! 🎉',
-        message: 'Enjoy your fresh farm items! Thank you for ordering from Farmers to Market.',
+        message: 'Enjoy your fresh farm items! Thank you for ordering from NFWM Farmers to Market.',
       }])
     }
 

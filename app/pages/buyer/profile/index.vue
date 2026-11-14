@@ -169,7 +169,7 @@ async function handleLogout() {
 
 onMounted(load)
 
-useHead({ title: 'My account — Farmers to Market' })
+useHead({ title: 'My account — NFWM Farmers to Market' })
 </script>
 
 <style scoped>

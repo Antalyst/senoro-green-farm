@@ -25,6 +25,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Invalid email or password' })
   }
 
+  // Blocked or deleted by the admin (migration 018): no sign-in.
+  if (user.role !== 'admin') {
+    const accountStatus = await loadAccountStatus(supabase, user.id, { fresh: true })
+    if (accountStatus) throw accountStatusError(accountStatus)
+  }
+
   // Pending and rejected accounts can sign in, but the token only opens the
   // verification status page (requireAuth blocks every other endpoint).
   const payload = {

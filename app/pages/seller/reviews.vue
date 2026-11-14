@@ -51,9 +51,10 @@
           </div>
         </div>
 
-        <p class="text-sm leading-relaxed text-gray-600">
+        <p v-if="review.comment || !review.image_urls?.length" class="text-sm leading-relaxed text-gray-600">
           {{ review.comment || 'No comment.' }}
         </p>
+        <ReviewPhotos :urls="review.image_urls" />
 
         <div v-if="review.seller_reply" class="rounded bg-gray-50 px-3 py-2.5">
           <p class="text-xs text-gray-400">Your reply</p>
@@ -97,6 +98,7 @@ interface SellerReview {
   rating: number
   comment?: string | null
   seller_reply?: string | null
+  image_urls?: string[] | null
   created_at: string
   users?: { full_name?: string | null } | null
   products?: { name?: string | null } | null
@@ -191,5 +193,5 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-useHead({ title: 'Reviews — Farmers to Market Seller' })
+useHead({ title: 'Reviews — NFWM Farmers to Market Seller' })
 </script>

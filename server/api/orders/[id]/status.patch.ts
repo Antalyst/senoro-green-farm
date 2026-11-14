@@ -169,7 +169,7 @@ export default defineEventHandler(async (event) => {
       },
       delivered: {
         title: 'Order Delivered! 🎉',
-        message: 'Enjoy your fresh farm items! Thank you for ordering from Farmers to Market.',
+        message: 'Enjoy your fresh farm items! Thank you for ordering from NFWM Farmers to Market.',
       },
       cancelled: {
         title: 'Order Cancelled ❌',

@@ -531,7 +531,7 @@ function formatDate(d: string) {
   })
 }
 
-useHead({ title: computed(() => (order.value ? `Order #${shortId.value} — Farmers to Market` : 'Order — Farmers to Market')) })
+useHead({ title: computed(() => (order.value ? `Order #${shortId.value} — NFWM Farmers to Market` : 'Order — NFWM Farmers to Market')) })
 </script>
 
 <style scoped>

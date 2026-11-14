@@ -55,7 +55,10 @@
       <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 class="text-base font-semibold text-farm-deep">Users</h2>
-          <p class="mt-0.5 text-xs text-gray-400">{{ filteredUsers.length }} of {{ users.length }} shown</p>
+          <p class="mt-0.5 text-xs text-gray-400">
+            {{ filteredUsers.length }} of {{ users.length }} shown ·
+            <NuxtLink to="/admin/users" class="font-medium text-farm-leaf hover:text-farm-deep">Block or delete accounts</NuxtLink>
+          </p>
         </div>
         <input
           v-model="search"
@@ -265,5 +268,5 @@ function statusClass(status?: string) {
   return 'ui-pill ui-pill-green'
 }
 
-useHead({ title: 'Dashboard — Farmers to Market Admin' })
+useHead({ title: 'Dashboard — NFWM Farmers to Market Admin' })
 </script>

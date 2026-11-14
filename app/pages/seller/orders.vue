@@ -343,5 +343,5 @@ async function updateStatus(orderId: string, status: string) {
   }
 }
 
-useHead({ title: 'Orders — Farmers to Market Seller' })
+useHead({ title: 'Orders — NFWM Farmers to Market Seller' })
 </script>

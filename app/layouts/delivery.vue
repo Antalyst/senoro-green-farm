@@ -3,9 +3,9 @@
     <ion-header class="delivery-header">
       <ion-toolbar>
         <div class="mx-auto flex h-14 w-full max-w-3xl items-center gap-3 px-4">
-          <img src="/logo2.png" alt="Farmers to Market" class="h-8 w-8 flex-shrink-0 object-contain">
+          <img src="/logo2.png" alt="NFWM Farmers to Market" class="h-8 w-8 flex-shrink-0 object-contain">
           <div class="min-w-0 flex-1 leading-tight">
-            <p class="text-sm font-semibold text-shop-ink">Farmers to Market Rider</p>
+            <p class="truncate text-sm font-semibold text-shop-ink">NFWM Farmers to Market Rider</p>
             <p class="truncate text-[11px] text-gray-500">{{ user?.full_name }}</p>
           </div>
 

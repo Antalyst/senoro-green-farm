@@ -4,7 +4,7 @@
       <div class="mx-auto flex h-16 max-w-xl items-center justify-between px-4">
         <span class="flex items-center gap-2">
           <img src="/logo2.png" alt="" class="h-9 w-9 object-contain">
-          <span class="text-base font-bold text-shop-ink">Farmers to Market</span>
+          <span class="text-base font-bold text-shop-ink">NFWM Farmers to Market</span>
         </span>
         <button
           type="button"
@@ -279,5 +279,5 @@ onMounted(async () => {
   loadingStatus.value = false
 })
 
-useHead({ title: 'Account verification — Farmers to Market' })
+useHead({ title: 'Account verification — NFWM Farmers to Market' })
 </script>

@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const { data: reviews, error } = await supabase
     .from('reviews')
     .select(`
-      id, rating, comment, seller_reply, created_at,
+      *,
       products!inner(id, name, seller_id),
       users!buyer_id(id, full_name)
     `)

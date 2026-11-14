@@ -4,8 +4,8 @@
       <!-- Desktop sidebar (md+). Phones use the bottom tab bar + "More" sheet instead. -->
       <aside class="hidden w-60 flex-shrink-0 flex-col bg-farm-deep text-white md:flex" aria-label="Seller navigation">
         <NuxtLink to="/seller/dashboard" class="flex h-16 items-center gap-2 border-b border-white/10 px-5">
-          <img src="/logo2.png" alt="Farmers to Market" class="h-8 w-8 object-contain">
-          <span class="text-base font-bold tracking-tight text-white">Farmers to Market</span>
+          <img src="/logo2.png" alt="NFWM Farmers to Market" class="h-8 w-8 object-contain">
+          <span class="min-w-0 text-sm font-bold leading-tight tracking-tight text-white">NFWM Farmers to Market</span>
           <span class="rounded bg-market-orange px-1.5 py-0.5 text-[11px] font-semibold text-white">Seller</span>
         </NuxtLink>
 

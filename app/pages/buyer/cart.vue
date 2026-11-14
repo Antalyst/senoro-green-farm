@@ -377,7 +377,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   setTimeout(() => { toast.value.show = false }, 4000)
 }
 
-useHead({ title: 'Cart — Farmers to Market' })
+useHead({ title: 'Cart — NFWM Farmers to Market' })
 </script>
 
 <style scoped>

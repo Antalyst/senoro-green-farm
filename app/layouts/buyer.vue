@@ -13,8 +13,8 @@
             <Icon name="heroicons:arrow-left" class="h-5 w-5" />
           </button>
           <NuxtLink v-else to="/" class="flex flex-shrink-0 items-center gap-2">
-            <img src="/logo2.png" class="h-9 w-9 object-contain" alt="Farmers to Market">
-            <span class="hidden text-lg font-bold tracking-tight text-shop-ink sm:block">Farmers to Market</span>
+            <img src="/logo2.png" class="h-9 w-9 object-contain" alt="NFWM Farmers to Market">
+            <span class="hidden text-lg font-bold tracking-tight text-shop-ink sm:block">NFWM Farmers to Market</span>
           </NuxtLink>
 
           <!-- Desktop navigation -->
@@ -222,7 +222,7 @@ const headerTitle = computed(() => {
     if (currentPath.value.startsWith('/buyer/orders/')) return subPageTitle.value || 'Order tracking'
     if (currentPath.value === '/buyer/profile/addresses') return 'Addresses'
     if (currentPath.value.startsWith('/buyer/shop/')) return subPageTitle.value || 'Shop'
-    return subPageTitle.value || 'Farmers to Market'
+    return subPageTitle.value || 'NFWM Farmers to Market'
   }
   if (currentPath.value === '/buyer/cart') return 'Cart'
   if (currentPath.value === '/buyer/profile') return 'Profile'

@@ -19,5 +19,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Product not found' })
   }
 
+  // Shops blocked or deleted by the admin are hidden.
+  await assertSellerVisible(supabase, product.seller_id, 'Product not found')
+
   return { product: normalizeProductCategory(product) }
 })

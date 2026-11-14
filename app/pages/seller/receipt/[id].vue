@@ -23,7 +23,7 @@
     <!-- Receipt (80 mm wide on thermal printers) -->
     <article v-else class="receipt mx-auto max-w-[360px] bg-white p-6 font-mono text-[13px] leading-snug text-black border border-gray-100 print:border-0">
       <header class="text-center">
-        <p class="text-base font-bold tracking-wide">Farmers to Market</p>
+        <p class="text-base font-bold tracking-wide">NFWM Farmers to Market</p>
         <p class="text-[11px]">by Senoro Green Farm</p>
         <p class="mt-2 text-sm font-bold">{{ receipt.shop_name }}</p>
       </header>
@@ -137,7 +137,7 @@ onMounted(async () => {
   }
 })
 
-useHead({ title: computed(() => receipt.value ? `Receipt #${receipt.value.short_id} — Farmers to Market` : 'Receipt — Farmers to Market') })
+useHead({ title: computed(() => receipt.value ? `Receipt #${receipt.value.short_id} — NFWM Farmers to Market` : 'Receipt — NFWM Farmers to Market') })
 </script>
 
 <style scoped>

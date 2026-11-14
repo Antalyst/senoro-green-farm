@@ -4,8 +4,8 @@
       <ion-toolbar>
         <div class="mx-auto flex h-16 w-full max-w-page items-center gap-3 px-4 md:gap-6 md:px-8">
           <NuxtLink to="/admin/dashboard" class="flex flex-shrink-0 items-center gap-2">
-            <img src="/logo2.png" alt="Farmers to Market" class="h-9 w-9 object-contain">
-            <span class="hidden text-lg font-bold tracking-tight text-white sm:block">Farmers to Market</span>
+            <img src="/logo2.png" alt="NFWM Farmers to Market" class="h-9 w-9 object-contain">
+            <span class="hidden text-lg font-bold tracking-tight text-white sm:block">NFWM Farmers to Market</span>
             <span class="rounded bg-market-orange px-1.5 py-0.5 text-[11px] font-semibold text-white">Admin</span>
           </NuxtLink>
 
@@ -93,6 +93,7 @@ const showProfileMenu = ref(false)
 const navLinks = [
   { to: '/admin/dashboard', label: 'Dashboard' },
   { to: '/admin/approvals', label: 'Approvals' },
+  { to: '/admin/users', label: 'Users' },
   { to: '/admin/delivery', label: 'Delivery Fee' },
 ]
 

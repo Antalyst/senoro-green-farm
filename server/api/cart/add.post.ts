@@ -19,13 +19,14 @@ export default defineEventHandler(async (event) => {
   // Fetch product stock to validate
   const { data: product, error: productError } = await supabase
     .from('products')
-    .select('stock')
+    .select('stock, seller_id')
     .eq('id', product_id)
     .single()
 
   if (productError || !product) {
     throw createError({ statusCode: 404, statusMessage: 'Product not found' })
   }
+  await assertSellerVisible(supabase, product.seller_id, 'This shop is not available right now.')
 
   // Check if item already exists in cart
   const { data: existing } = await supabase

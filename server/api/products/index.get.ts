@@ -30,5 +30,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Failed to fetch products' })
   }
 
-  return { products: await attachRatings(supabase, normalizeProductCategories(products)) }
+  // Shops blocked or deleted by the admin are hidden.
+  const visible = await withoutHiddenSellers(supabase, products ?? [])
+  return { products: await attachRatings(supabase, normalizeProductCategories(visible)) }
 })

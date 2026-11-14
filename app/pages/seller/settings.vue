@@ -515,5 +515,5 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   setTimeout(() => { toast.value.show = false }, 4000)
 }
 
-useHead({ title: 'Shop Settings — Farmers to Market Seller' })
+useHead({ title: 'Shop Settings — NFWM Farmers to Market Seller' })
 </script>

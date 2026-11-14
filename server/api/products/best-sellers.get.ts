@@ -42,6 +42,8 @@ export default defineEventHandler(async (event) => {
     products = [...products, ...(newest ?? []).filter((p: any) => !have.has(p.id))].slice(0, limit)
   }
 
+  // Shops blocked or deleted by the admin are hidden.
+  products = await withoutHiddenSellers(supabase, products)
   const withRatings = await attachRatings(supabase, normalizeProductCategories(products))
   return {
     products: withRatings.map(p => ({ ...p, units_sold: sold.get(p.id) ?? 0 })),
