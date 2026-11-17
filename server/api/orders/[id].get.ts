@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const { data: order, error } = await supabase
     .from('orders')
     .select(`
-      id, total_amount, status, created_at, delivery_rider_id, buyer_id,
+      *,
       addresses(id, full_name, phone_number, city, barangay, detailed_address),
       delivery_rider:users!delivery_rider_id(id, full_name, email),
       order_items(
@@ -60,6 +60,8 @@ export default defineEventHandler(async (event) => {
       can_cancel: !cancel_block_reason,
       cancel_block_reason: order.status === 'pending' ? cancel_block_reason : null,
       cancel_reason,
+      // Delivered: chats with the shops and rider stay open until then, for problems with the items.
+      problem_chat_until: problemChatUntil(order),
     },
   }
 })

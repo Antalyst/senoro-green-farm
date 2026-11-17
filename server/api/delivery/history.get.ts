@@ -41,6 +41,9 @@ export default defineEventHandler(async (event) => {
     return {
       id: order.id,
       status: order.status as 'delivered' | 'cancelled',
+      buyer_id: order.buyer_id ?? null,
+      // Delivered jobs: the buyer can still report a problem in chat until then.
+      problem_chat_until: problemChatUntil(order),
       created_at: order.created_at,
       // Orders delivered before migration 018 have no delivered time.
       finished_at: order.status === 'delivered' ? order.delivered_at ?? null : order.cancelled_at ?? null,

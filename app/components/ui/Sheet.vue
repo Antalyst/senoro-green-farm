@@ -39,7 +39,7 @@
 
           <footer
             v-if="$slots.footer"
-            class="border-t border-gray-100 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-5"
+            class="border-t border-gray-100 px-4 py-3 pb-[max(0.75rem,var(--safe-bottom))] md:px-5"
           >
             <slot name="footer" />
           </footer>

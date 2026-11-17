@@ -35,6 +35,7 @@
             {{ meta.range }} · <span class="font-medium text-farm-deep">{{ peso(report.total.revenue) }}</span>
             from <span class="font-medium text-farm-deep">{{ report.total.orders }}</span> {{ report.total.orders === 1 ? 'order' : 'orders' }}
           </p>
+          <p class="mt-0.5 text-xs text-farm-leaf">Tap a bar or a row to see the products sold.</p>
           <FarmChart :options="chartOptions" :height="260" class="mt-2" />
         </div>
 
@@ -46,14 +47,18 @@
             <span class="text-right">Revenue</span>
           </div>
           <ul class="max-h-72 divide-y divide-farm-leaf/10 overflow-y-auto">
-            <li
-              v-for="row in tableRows"
-              :key="row.label"
-              class="grid grid-cols-[1fr_64px_112px] gap-2 px-3 py-2.5 text-sm md:px-4"
-            >
-              <span class="min-w-0 truncate text-shop-ink">{{ row.label }}</span>
-              <span class="text-right tabular-nums text-gray-600">{{ row.orders }}</span>
-              <span class="text-right tabular-nums font-medium" :class="row.revenue > 0 ? 'text-farm-leaf' : 'text-gray-400'">{{ peso(row.revenue) }}</span>
+            <li v-for="row in tableRows" :key="row.label">
+              <NuxtLink
+                :to="detailsLink(row.index)"
+                class="grid grid-cols-[1fr_64px_112px] gap-2 px-3 py-2.5 text-sm hover:bg-shop-mint/60 md:px-4"
+              >
+                <span class="flex min-w-0 items-center gap-1 text-shop-ink">
+                  <span class="truncate">{{ row.label }}</span>
+                  <Icon name="heroicons:chevron-right" class="h-3.5 w-3.5 flex-shrink-0 text-gray-300" />
+                </span>
+                <span class="text-right tabular-nums text-gray-600">{{ row.orders }}</span>
+                <span class="text-right tabular-nums font-medium" :class="row.revenue > 0 ? 'text-farm-leaf' : 'text-gray-400'">{{ peso(row.revenue) }}</span>
+              </NuxtLink>
             </li>
           </ul>
         </div>
@@ -71,6 +76,8 @@ export type SalesPeriod = 'day' | 'week' | 'month' | 'year'
 export interface PeriodReport {
   categories: string[]
   full_labels: string[]
+  /** First and last day of each bar (YYYY-MM-DD). Missing from older servers. */
+  ranges?: { from: string; to: string }[]
   revenue: number[]
   orders: number[]
   current: { revenue: number; orders: number }
@@ -123,9 +130,22 @@ const tableRows = computed(() => {
   const r = report.value
   if (!r) return []
   return r.full_labels
-    .map((label, i) => ({ label, orders: r.orders[i] ?? 0, revenue: r.revenue[i] ?? 0 }))
+    .map((label, i) => ({ index: i, label, orders: r.orders[i] ?? 0, revenue: r.revenue[i] ?? 0 }))
     .reverse()
 })
+
+/** The sales details page for one bar: its dates, and which kind of bar it was. */
+function detailsLink(index: number) {
+  const r = report.value
+  const range = r?.ranges?.[index]
+  if (!r || !range) return '/seller/sales'
+  return { path: '/seller/sales', query: { from: range.from, to: range.to, scope: period.value, label: r.full_labels[index] } }
+}
+
+function openDetails(index: number) {
+  if (!report.value?.ranges?.[index]) return
+  navigateTo(detailsLink(index))
+}
 
 // Flat chart: revenue bars (green, left axis) and orders line (orange, right axis).
 const chartOptions = computed<Options>(() => {
@@ -133,7 +153,17 @@ const chartOptions = computed<Options>(() => {
   const fullLabels = r?.full_labels ?? []
   return {
     ...baseChart,
-    chart: { ...baseChart.chart, height: 260 },
+    chart: {
+      ...baseChart.chart,
+      height: 260,
+      // A tap anywhere in a bar's column opens that bar, even when it is ₱0.
+      events: {
+        click(e) {
+          const x = (e as unknown as { xAxis?: { value: number }[] }).xAxis?.[0]?.value
+          if (typeof x === 'number') openDetails(Math.round(x))
+        },
+      },
+    },
     legend: { ...baseChart.legend, enabled: true, symbolRadius: 0, itemStyle: { color: '#4B5563', fontSize: '11px', fontWeight: '500' } },
     xAxis: { ...baseChart.xAxis, categories: r?.categories ?? [] },
     yAxis: [
@@ -171,7 +201,11 @@ const chartOptions = computed<Options>(() => {
       },
     },
     plotOptions: {
-      series: { animation: false },
+      series: {
+        animation: false,
+        cursor: 'pointer',
+        point: { events: { click() { openDetails(Number(this.index)) } } },
+      },
       column: { borderWidth: 0, borderRadius: 2, pointPadding: 0.15, groupPadding: 0.1 },
       line: { lineWidth: 2, marker: { enabled: true, radius: 3 } },
     },

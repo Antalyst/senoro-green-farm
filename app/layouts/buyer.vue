@@ -316,6 +316,9 @@ watch(() => route.query.search, (newVal) => {
   const next = (newVal as string) || ''
   if (searchQuery.value !== next) searchQuery.value = next
 })
+
+// Phone status-bar icons in the app (white header).
+usePageStatusBar('dark')
 </script>
 
 <style scoped>
@@ -363,7 +366,7 @@ watch(() => route.query.search, (newVal) => {
   background: #ffffff;
   border-top: 1px solid #f3f4f6;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: var(--safe-bottom);
 }
 
 .buyer-tab-btn {

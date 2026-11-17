@@ -34,6 +34,43 @@
         </div>
       </section>
 
+      <!-- Delivered: report a defective, wrong or missing item to the shop or the rider -->
+      <section v-if="problemOpen" class="rounded-2xl border border-market-orange/30 bg-market-orange/5 p-4 md:p-5">
+        <div class="flex items-start gap-3">
+          <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-market-orange/15 text-market-orange">
+            <Icon name="heroicons:exclamation-triangle" class="h-5 w-5" />
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold text-shop-ink">Problem with your order?</h2>
+            <p class="mt-0.5 text-sm text-gray-600">
+              If an item is defective, wrong or missing, chat with the shop or your rider and send a photo.
+              You can do this until <b>{{ problemUntilLabel }}</b>.
+            </p>
+          </div>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button
+            v-for="shop in shopRows.filter(s => s.shopId)"
+            :key="shop.shopId"
+            type="button"
+            class="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-market-orange px-4 text-sm font-semibold text-white hover:bg-[#cf6d17]"
+            @click="openShopChat(shop.shopId, shop.shopName)"
+          >
+            <Icon name="heroicons:chat-bubble-left-right" class="h-4 w-4" />
+            Chat {{ shop.shopName }}
+          </button>
+          <button
+            v-if="order.delivery_rider_id"
+            type="button"
+            class="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-market-orange/50 bg-white px-4 text-sm font-semibold text-market-orange hover:bg-market-orange/10"
+            @click="openRiderChat"
+          >
+            <Icon name="heroicons:truck" class="h-4 w-4" />
+            Chat rider
+          </button>
+        </div>
+      </section>
+
       <!-- Each shop: what to pay, payment status, and the shop chat -->
       <section v-if="order.status !== 'cancelled'" class="card">
         <h2 class="card-title">Pay &amp; chat with shops</h2>
@@ -314,6 +351,8 @@ interface BuyerOrderDetail {
   delivery_fee?: number | string | null
   payments?: OrderPayment[]
   can_cancel?: boolean
+  /** Delivered: chats with the shops and rider stay open until then (ISO time). */
+  problem_chat_until?: string | null
   cancel_block_reason?: string | null
   cancel_reason?: string | null
 }
@@ -434,9 +473,19 @@ const showRiderCard = computed(() =>
 )
 
 const showChatLink = computed(() =>
-  ['pending', 'processing', 'ready_for_pickup', 'out_for_delivery'].includes(order.value?.status ?? '')
-  && !!order.value?.delivery_rider_id,
+  !!order.value?.delivery_rider_id
+  && (['pending', 'processing', 'ready_for_pickup', 'out_for_delivery'].includes(order.value?.status ?? '') || problemOpen.value),
 )
+
+/** Delivered and still within the days for reporting a problem (defective, wrong or missing item). */
+const problemOpen = computed(() => {
+  const until = order.value?.status === 'delivered' ? order.value.problem_chat_until : null
+  return !!until && Date.parse(until) > Date.now()
+})
+const problemUntilLabel = computed(() => {
+  const until = order.value?.problem_chat_until
+  return until ? new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(until)) : ''
+})
 
 const riderStatusText = computed(() => {
   const status = order.value?.status

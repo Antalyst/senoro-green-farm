@@ -34,7 +34,7 @@
     <Transition name="fade-down">
       <div
         v-if="showProfileMenu"
-        class="fixed right-4 top-14 z-[60] w-60 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+        class="fixed right-4 top-[calc(3.5rem+var(--safe-top))] z-[60] w-60 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
       >
         <div class="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
           <AccountAvatarUpload avatar-class="h-12 w-12 rounded-full bg-farm-leaf text-lg text-white" />
@@ -132,6 +132,9 @@ async function handleLogout() {
 onMounted(() => {
   fetchNotifications()
 })
+
+// Phone status-bar icons in the app (white header).
+usePageStatusBar('dark')
 </script>
 
 <style scoped>

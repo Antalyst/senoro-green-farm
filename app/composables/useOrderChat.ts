@@ -49,6 +49,8 @@ interface ChatResponse {
   side: 'buyer' | 'seller' | 'rider'
   partner: { id: string; name: string; role: string | null }
   locked_reason: string | null
+  /** Delivered order: chats stay open until then for problems (defective, wrong or missing item). */
+  problem_chat_until?: string | null
   payment: OrderPayment | null
   messages: OrderMessage[]
 }
@@ -77,6 +79,7 @@ export const useOrderChat = () => {
   const side = ref<'buyer' | 'seller' | 'rider' | null>(null)
   const partnerName = ref<string>('')
   const lockedReason = ref<string | null>(null)
+  const problemChatUntil = ref<string | null>(null)
   const payment = ref<OrderPayment | null>(null)
   const isPending = ref(false)
   const isSending = ref(false)
@@ -112,6 +115,7 @@ export const useOrderChat = () => {
       partnerId.value = data.partner.id
       partnerName.value = data.partner.name
       lockedReason.value = data.locked_reason
+      problemChatUntil.value = data.problem_chat_until ?? null
       messages.value = data.messages ?? []
       setPayment(data.payment ? { ...data.payment, amount: Number(data.payment.amount) } : null)
       errorMessage.value = null
@@ -154,6 +158,7 @@ export const useOrderChat = () => {
     orderContext.value = null
     payment.value = null
     lockedReason.value = null
+    problemChatUntil.value = null
     errorMessage.value = null
     await load()
     connect()
@@ -275,6 +280,7 @@ export const useOrderChat = () => {
     side,
     partnerName,
     lockedReason,
+    problemChatUntil,
     payment,
     paymentVersion,
     isPending,

@@ -36,6 +36,11 @@ export default defineEventHandler(async (event) => {
   if (photoParts.length > MAX_PHOTOS) {
     throw createError({ statusCode: 400, statusMessage: `You can add up to ${MAX_PHOTOS} photos.` })
   }
+  // The page says how many photos it sent. If fewer arrived, say so instead of posting without them.
+  const expectedPhotos = Number(body.photo_count ?? 0) || 0
+  if (photoParts.length < expectedPhotos) {
+    throw createError({ statusCode: 400, statusMessage: 'Your photos did not upload. Please try again.' })
+  }
   const photos = photoParts.map((part, i) => readImagePart([part], 'images', `Photo ${i + 1}`))
 
   if (!comment && !photos.length) {

@@ -133,7 +133,15 @@ export function hasCodPayment(payments: { method: string }[] | undefined) {
 
 /** Who may chat with whom on one order. */
 export interface OrderChatAccess {
-  order: { id: string; status: string; buyer_id: string | null; delivery_rider_id: string | null }
+  order: {
+    id: string
+    status: string
+    buyer_id: string | null
+    delivery_rider_id: string | null
+    created_at?: string | null
+    /** Set by the rider's delivery scan (migration 018). Older orders have none. */
+    delivered_at?: string | null
+  }
   sellerIds: string[]
   /** Role of the current user on this order. */
   side: 'buyer' | 'seller' | 'rider'
@@ -141,9 +149,10 @@ export interface OrderChatAccess {
 
 /** Loads the order and checks the user takes part in it (buyer, a seller with items, or the rider). */
 export async function loadOrderChatAccess(supabase: Db, orderId: string, userId: string): Promise<OrderChatAccess> {
+  // `*` includes delivered_at once migration 018 is run, without failing before it.
   const { data: order } = await supabase
     .from('orders')
-    .select('id, status, buyer_id, delivery_rider_id')
+    .select('*')
     .eq('id', orderId)
     .maybeSingle()
 
@@ -187,14 +196,35 @@ export function assertChatPartner(access: OrderChatAccess, partnerId: string): C
   throw createError({ statusCode: 403, statusMessage: 'Invalid chat partner for this order.' })
 }
 
+/** After delivery, chats stay open this long so the buyer can report a problem (defective, wrong or missing item). */
+export const PROBLEM_CHAT_DAYS = 7
+
+/**
+ * Until when a delivered order's chats stay open (ISO time), or null if the order is not delivered.
+ * Orders delivered before migration 018 have no delivered time, so the order time is used.
+ */
+export function problemChatUntil(order: { status: string; delivered_at?: string | null; created_at?: string | null }): string | null {
+  if (order.status !== 'delivered') return null
+  const from = Date.parse(order.delivered_at ?? order.created_at ?? '')
+  if (Number.isNaN(from)) return null
+  return new Date(from + PROBLEM_CHAT_DAYS * 24 * 60 * 60 * 1000).toISOString()
+}
+
 /**
  * When a chat can take new messages.
- * - Buyer <-> shop: from checkout until the order is delivered or cancelled.
- * - Chats with the rider: once a rider has accepted the job, until delivered or cancelled.
+ * - Buyer <-> shop: from checkout until 7 days after delivery.
+ * - Chats with the rider: once a rider has accepted the job, until 7 days after delivery.
+ * The days after delivery are for problems (defective, wrong or missing item).
+ * Cancelled orders close at once.
  */
 export function chatOpenReason(thread: ChatThread, order: OrderChatAccess['order']): string | null {
-  if (order.status === 'delivered') return 'This order is delivered. The chat is now read-only.'
   if (order.status === 'cancelled') return 'This order was cancelled. The chat is now read-only.'
+  if (order.status === 'delivered') {
+    const until = problemChatUntil(order)
+    if (!until || Date.now() >= Date.parse(until)) {
+      return `This order was delivered more than ${PROBLEM_CHAT_DAYS} days ago. The chat is now read-only.`
+    }
+  }
   if (thread !== 'seller' && !order.delivery_rider_id) return 'Chat is unavailable until a delivery rider is assigned.'
   return null
 }

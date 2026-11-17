@@ -94,6 +94,17 @@
           <span class="text-gray-500">Order total <b class="tabular-nums text-shop-ink">{{ peso(order.total_amount) }}</b></span>
           <span v-if="order.delivery_fee != null" class="text-gray-500">Fee <b class="tabular-nums text-market-orange">{{ peso(order.delivery_fee) }}</b></span>
         </div>
+
+        <!-- Delivered in the last days: the buyer may report a problem, so the chat is still open -->
+        <button
+          v-if="problemOpen(order)"
+          type="button"
+          class="mt-3 inline-flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-farm-leaf/40 text-sm font-semibold text-farm-leaf hover:bg-shop-mint"
+          @click="openBuyerChat(order)"
+        >
+          <Icon name="heroicons:chat-bubble-left-right" class="h-4 w-4" />
+          Chat with buyer
+        </button>
       </li>
     </ul>
 
@@ -105,6 +116,9 @@
 interface HistoryOrder {
   id: string
   status: 'delivered' | 'cancelled'
+  buyer_id?: string | null
+  /** Delivered: the chat stays open until then for problems with the items. */
+  problem_chat_until?: string | null
   created_at: string
   finished_at: string | null
   total_amount: number
@@ -140,6 +154,15 @@ import type { Options, SeriesOptionsType } from 'highcharts'
 import FarmChart from '~/components/ui/FarmChart.vue'
 
 const api = useApiFetch()
+const triggerChatModal = inject<(orderId: string, partnerId?: string | null, label?: string) => Promise<void>>('triggerChatModal')
+
+function problemOpen(order: HistoryOrder) {
+  return order.status === 'delivered' && !!order.buyer_id && !!order.problem_chat_until && Date.parse(order.problem_chat_until) > Date.now()
+}
+
+function openBuyerChat(order: HistoryOrder) {
+  triggerChatModal?.(order.id, order.buyer_id ?? null, `Chat with ${order.buyer_name || 'buyer'}`)
+}
 
 // No await: this list mounts later, when the rider opens the History tab.
 const { data, pending, error, refresh } = useAsyncData(

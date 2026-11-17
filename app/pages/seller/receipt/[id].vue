@@ -24,7 +24,7 @@
     <article v-else class="receipt mx-auto max-w-[360px] bg-white p-6 font-mono text-[13px] leading-snug text-black border border-gray-100 print:border-0">
       <header class="text-center">
         <p class="text-base font-bold tracking-wide">NFWM Farmers to Market</p>
-        <p class="text-[11px]">by Senoro Green Farm</p>
+        <p class="text-[11px]">by NFWM Farmers to Marketm</p>
         <p class="mt-2 text-sm font-bold">{{ receipt.shop_name }}</p>
       </header>
 

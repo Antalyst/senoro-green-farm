@@ -4,43 +4,58 @@
     class="fixed inset-0 z-[999] flex justify-end overflow-hidden bg-black/50"
     @click="chat.closeChatModal()"
   >
-    <div class="flex h-full w-full flex-col bg-[#f4f7f5] md:max-w-md" @click.stop>
+    <div class="flex h-full max-h-[100dvh] w-full flex-col bg-white md:max-w-md" @click.stop>
       <!-- Header -->
-      <header class="flex flex-shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-farm-dark px-4 py-3">
-        <div class="min-w-0">
-          <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-market-orange">
-            {{ threadTitle }}
-          </p>
-          <h2 class="truncate text-base font-bold text-white">{{ chat.partnerName || chat.label }}</h2>
-          <p v-if="chat.lockedReason" class="mt-0.5 text-xs text-white/60">🔒 {{ chat.lockedReason }}</p>
-        </div>
+      <header class="flex flex-shrink-0 items-center gap-1 border-b border-gray-100 bg-white pb-2 pl-1 pr-2 pt-[calc(0.5rem+var(--safe-top))]">
         <button
           type="button"
-          class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+          class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-farm-leaf hover:bg-gray-100"
           aria-label="Close chat"
           @click="chat.closeChatModal()"
         >
-          <Icon name="heroicons:x-mark" class="h-6 w-6" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-shop-mint text-base font-bold uppercase text-farm-deep">
+          {{ partnerInitial }}
+        </span>
+        <div class="ml-1.5 min-w-0 flex-1">
+          <h2 class="truncate text-[15px] font-semibold leading-tight text-shop-ink">{{ chat.partnerName || chat.label }}</h2>
+          <p class="truncate text-xs text-gray-500">{{ threadTitle }}</p>
+        </div>
+        <button
+          v-if="pay"
+          type="button"
+          class="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full hover:bg-gray-100"
+          :class="showPayment ? 'text-market-orange' : 'text-farm-leaf'"
+          :aria-label="showPayment ? 'Hide payment details' : 'Show payment details'"
+          :aria-expanded="showPayment"
+          @click="showPayment = !showPayment"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-6 w-6" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5" />
+            <circle cx="12" cy="7.6" r="0.6" fill="currentColor" />
+          </svg>
+          <!-- Someone has to act on the payment -->
+          <span v-if="needsAction && !showPayment" class="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-market-orange ring-2 ring-white" />
         </button>
       </header>
 
       <!-- Payment card: buyer <-> shop (online payment) and rider <-> shop (COD: the rider pays the shop) -->
-      <section v-if="pay" class="flex-shrink-0 border-b border-gray-200 bg-white">
-        <button type="button" class="flex w-full items-center gap-3 px-4 py-3 text-left" @click="showPayment = !showPayment">
-          <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-shop-mint text-farm-leaf">
-            <Icon :name="hasAccount ? 'heroicons:qr-code' : 'heroicons:banknotes'" class="h-5 w-5" />
-          </span>
+      <section v-if="pay && showPayment" class="mx-3 mt-3 flex-shrink-0 overflow-hidden rounded-2xl bg-gray-50">
+        <div class="flex items-center gap-3 px-4 py-3">
           <span class="min-w-0 flex-1">
-            <span class="block text-xs text-gray-500">{{ cardTitle }}</span>
+            <span class="block truncate text-xs text-gray-500">{{ cardTitle }}</span>
             <span class="block text-lg font-bold tabular-nums text-shop-ink">{{ formatPeso(pay.amount) }}</span>
           </span>
-          <span class="rounded-full px-2 py-1 text-[11px] font-semibold" :class="paymentBadgeClass(pay)">
+          <span class="flex-shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold" :class="paymentBadgeClass(pay)">
             {{ paymentStatusLabel(pay) }}
           </span>
-          <Icon :name="showPayment ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="h-4 w-4 flex-shrink-0 text-gray-400" />
-        </button>
+        </div>
 
-        <div v-if="showPayment" class="max-h-[45vh] space-y-3 overflow-y-auto px-4 pb-4 text-sm">
+        <div class="max-h-[40vh] space-y-3 overflow-y-auto px-4 pb-4 text-sm">
           <!-- Buyer looking at a COD shop: nothing to pay here -->
           <p v-if="chat.side === 'buyer' && pay.method === 'cod'" class="text-xs text-gray-600">
             Cash on delivery: pay this amount, plus the delivery fee, in cash to the rider when your order arrives.
@@ -180,13 +195,32 @@
       </section>
 
       <!-- Messages -->
-      <div ref="scrollBox" class="flex-1 space-y-3 overflow-y-auto p-4">
+      <div ref="scrollBox" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain px-3 py-4">
+        <!-- Delivered, still open: this chat is for problems with the items -->
+        <div v-if="problemOpen" class="mx-auto mb-2 max-w-sm rounded-2xl bg-amber-50 px-4 py-3 text-center text-xs leading-relaxed text-amber-900">
+          <p class="font-semibold">Order delivered</p>
+          <p v-if="chat.side === 'buyer'">
+            Is an item defective, wrong or missing? Tell {{ chat.partnerName || 'them' }} here and add a photo.
+            You can chat until {{ untilLabel }}.
+          </p>
+          <p v-else>
+            The buyer can report problems with the items here until {{ untilLabel }}.
+          </p>
+        </div>
+
         <div v-if="chat.isPending" class="flex justify-center py-12">
           <div class="h-7 w-7 animate-spin rounded-full border-4 border-farm-leaf border-t-transparent" />
         </div>
-        <p v-else-if="!chat.messages.length" class="py-12 text-center text-xs text-gray-500">
-          {{ chat.thread === 'rider' ? 'No messages yet. Coordinate pickup or drop-off here.' : 'No messages yet. Ask anything about this order here.' }}
-        </p>
+        <div v-else-if="!chat.messages.length" class="flex flex-col items-center px-6 py-14 text-center">
+          <span class="flex h-20 w-20 items-center justify-center rounded-full bg-shop-mint text-3xl font-bold uppercase text-farm-deep">
+            {{ partnerInitial }}
+          </span>
+          <p class="mt-3 text-base font-semibold text-shop-ink">{{ chat.partnerName || chat.label }}</p>
+          <p class="text-xs text-gray-500">{{ threadTitle }}</p>
+          <p class="mt-4 max-w-[16rem] text-sm text-gray-500">
+            {{ chat.thread === 'rider' ? 'No messages yet. Coordinate pickup or drop-off here.' : 'No messages yet. Ask anything about this order here.' }}
+          </p>
+        </div>
 
         <div
           v-for="message in chat.messages"
@@ -195,8 +229,8 @@
           :class="mine(message) ? 'justify-end' : 'justify-start'"
         >
           <div
-            class="max-w-[85%] overflow-hidden rounded-lg text-sm leading-relaxed"
-            :class="mine(message) ? 'bg-farm-dark text-white' : 'border border-gray-200 bg-white text-shop-ink'"
+            class="max-w-[78%] overflow-hidden rounded-[20px] text-[15px] leading-snug md:text-sm"
+            :class="mine(message) ? 'rounded-br-md bg-farm-leaf text-white' : 'rounded-bl-md bg-gray-100 text-shop-ink'"
           >
             <p v-if="message.kind === 'receipt'" class="px-3 pt-2 text-[11px] font-semibold uppercase tracking-wide text-market-orange">
               🧾 Payment receipt
@@ -205,9 +239,9 @@
               <img :src="message.image_url" alt="Photo in chat" class="max-h-64 w-full bg-black/5 object-contain">
             </a>
             <p v-else-if="message.kind === 'image' || message.kind === 'receipt'" class="px-3 pt-2 text-xs opacity-70">Photo unavailable</p>
-            <div class="px-3 py-2">
+            <div class="px-3.5 py-2">
               <p v-if="message.message_text" class="whitespace-pre-line break-words">{{ message.message_text }}</p>
-              <p class="mt-1 text-[10px] opacity-70">{{ formatTime(message.created_at) }}</p>
+              <p class="mt-0.5 text-right text-[10px] opacity-60">{{ formatTime(message.created_at) }}</p>
             </div>
           </div>
         </div>
@@ -215,31 +249,77 @@
 
       <!-- Composer -->
       <p v-if="chat.errorMessage" class="flex-shrink-0 bg-red-50 px-4 py-2 text-xs text-red-700">{{ chat.errorMessage }}</p>
-      <form class="flex flex-shrink-0 items-center gap-2 border-t border-gray-200 bg-white p-3" @submit.prevent="send">
+
+      <!-- Closed chat: one quiet bar instead of a disabled message box -->
+      <div
+        v-if="chat.lockedReason"
+        class="flex flex-shrink-0 items-center justify-center gap-2 border-t border-gray-100 bg-gray-50 px-4 pt-3 pb-[calc(0.75rem+var(--safe-bottom))] text-center text-xs text-gray-500"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 flex-shrink-0" aria-hidden="true">
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+        </svg>
+        <span>{{ chat.lockedReason }}</span>
+      </div>
+
+      <template v-else>
+      <div
+        v-if="problemOpen && chat.side === 'buyer'"
+        class="flex flex-shrink-0 gap-2 overflow-x-auto border-t border-gray-100 px-3 pt-2 scrollbar-none"
+        aria-label="Report a problem"
+      >
+        <button
+          v-for="p in PROBLEMS"
+          :key="p.label"
+          type="button"
+          class="min-h-[36px] flex-shrink-0 rounded-full border border-market-orange/40 px-3 text-xs font-semibold text-market-orange hover:bg-market-orange/10"
+          @click="startProblem(p.text)"
+        >
+          {{ p.label }}
+        </button>
+      </div>
+
+      <form
+        class="flex flex-shrink-0 items-center gap-1.5 bg-white px-2 pt-2 pb-[calc(0.5rem+var(--safe-bottom))]"
+        @submit.prevent="send"
+      >
         <label
-          class="flex h-11 w-11 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-farm-leaf"
+          class="flex h-11 w-11 flex-shrink-0 cursor-pointer items-center justify-center rounded-full text-farm-leaf hover:bg-gray-100"
           :class="{ 'pointer-events-none opacity-40': locked }"
           aria-label="Send a photo"
+          title="Send a photo"
         >
-          <Icon name="heroicons:photo" class="h-5 w-5" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="3" />
+            <circle cx="9" cy="10" r="1.8" />
+            <path d="M21 16l-5-5-9 9" />
+          </svg>
           <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" :disabled="locked" @change="sendPhoto">
         </label>
         <input
+          ref="messageInput"
           v-model="text"
           type="text"
           maxlength="1000"
           :disabled="locked"
-          :placeholder="locked ? 'Chat closed for this order' : 'Type a message…'"
-          class="h-11 min-w-0 flex-1 rounded-lg border border-gray-200 px-3 text-sm outline-none placeholder:text-gray-400 focus:border-farm-leaf disabled:cursor-not-allowed disabled:bg-gray-50"
+          placeholder="Message…"
+          aria-label="Message"
+          enterkeyhint="send"
+          class="h-11 min-w-0 flex-1 rounded-full bg-gray-100 px-4 text-base text-shop-ink outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-farm-leaf/30 disabled:cursor-not-allowed md:text-sm"
         >
         <button
           type="submit"
-          class="h-11 flex-shrink-0 rounded-lg bg-market-orange px-4 text-sm font-semibold text-white disabled:opacity-50"
+          class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-market-orange text-white transition-opacity disabled:opacity-40"
           :disabled="locked || !text.trim()"
+          aria-label="Send"
         >
-          {{ chat.isSending ? '…' : 'Send' }}
+          <span v-if="chat.isSending" class="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          <svg v-else viewBox="0 0 24 24" fill="currentColor" class="ml-0.5 h-5 w-5" aria-hidden="true">
+            <path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.99.99 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z" />
+          </svg>
         </button>
       </form>
+      </template>
     </div>
   </div>
 </template>
@@ -252,6 +332,31 @@ import type { OrderMessage, OrderPayment } from '~/composables/useOrderChat'
 const props = defineProps<{ chat: any }>()
 
 const scrollBox = ref<HTMLElement | null>(null)
+const messageInput = ref<HTMLInputElement | null>(null)
+
+// ---- Problems after delivery (defective, wrong or missing item) ----
+const PROBLEMS = [
+  { label: 'Item is defective', text: 'Hi, an item I received is defective: ' },
+  { label: 'Wrong item', text: 'Hi, I received the wrong item: ' },
+  { label: 'Something is missing', text: 'Hi, something is missing from my order: ' },
+]
+
+/** Delivered order whose chat is still open for problem reports. */
+const problemOpen = computed(() => props.chat.orderContext?.status === 'delivered' && !!props.chat.problemChatUntil && !props.chat.lockedReason)
+const untilLabel = computed(() => {
+  const until = props.chat.problemChatUntil
+  return until ? new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(until)) : ''
+})
+
+function startProblem(starter: string) {
+  text.value = starter
+  nextTick(() => {
+    const input = messageInput.value
+    if (!input) return
+    input.focus()
+    input.setSelectionRange(input.value.length, input.value.length)
+  })
+}
 const text = ref('')
 const showPayment = ref(true)
 const receiptFile = ref<File | null>(null)
@@ -288,6 +393,7 @@ const cardTitle = computed(() => {
   if (props.chat.side === 'buyer') return 'Cash on delivery'
   return hasAccount.value ? `COD · rider pays shop · ${payoutLabel(p.payout_method)}` : 'COD · rider pays shop in cash'
 })
+const partnerInitial = computed(() => String(props.chat.partnerName || props.chat.label || '?').trim().charAt(0) || '?')
 const locked = computed(() => !props.chat.isChatActive || props.chat.isSending)
 
 const { user } = useAuth()
@@ -351,8 +457,15 @@ watch(() => props.chat.isOpen, (isOpen) => {
     scrollToBottom()
   }
 })
-// Open the payment card when someone needs to act on it; keep it small otherwise.
-watch(pay, (p) => {
-  showPayment.value = !!p && (mustPay.value || p.status === 'submitted' || (props.chat.side === 'seller' && riderMustPay(p)))
-}, { immediate: true })
+/** Someone has to do something with the payment (pay, send a receipt, or check one). */
+const needsAction = computed(() => {
+  const p = pay.value
+  return !!p && (mustPay.value || p.status === 'submitted' || (props.chat.side === 'seller' && riderMustPay(p)))
+})
+
+// Show the payment card when someone needs to act on it; otherwise it stays behind the info button.
+watch(pay, () => { showPayment.value = needsAction.value }, { immediate: true })
+
+// White chat bar: dark status-bar icons while the chat is open.
+useOverlayStatusBar(() => !!props.chat.isOpen, 'dark')
 </script>

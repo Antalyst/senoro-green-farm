@@ -42,6 +42,9 @@ interface Bucket {
   label: string
   /** Full label for the table and tooltip, e.g. "Fri, Nov 14, 2026" or "Nov 10 – Nov 16, 2026". */
   full_label: string
+  /** First and last day of the bar (Philippine dates, YYYY-MM-DD), for the sales details page. */
+  from: string
+  to: string
 }
 
 /** The last N buckets for a period, oldest first; the last one is today / this week / this month / this year. */
@@ -57,6 +60,8 @@ export function periodBuckets(period: SalesPeriod, now = new Date()): Bucket[] {
         key: dayKey(d),
         label: `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`,
         full_label: d.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+        from: dayKey(d),
+        to: dayKey(d),
       })
     }
     else if (period === 'week') {
@@ -68,19 +73,24 @@ export function periodBuckets(period: SalesPeriod, now = new Date()): Bucket[] {
         key: dayKey(start),
         label: `${MONTHS[start.getUTCMonth()]} ${start.getUTCDate()}`,
         full_label: `${MONTHS[start.getUTCMonth()]} ${start.getUTCDate()} – ${MONTHS[end.getUTCMonth()]} ${end.getUTCDate()}, ${end.getUTCFullYear()}`,
+        from: dayKey(start),
+        to: dayKey(end),
       })
     }
     else if (period === 'month') {
       const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - i, 1))
+      const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0))
       buckets.push({
         key: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`,
         label: MONTHS[d.getUTCMonth()]!,
         full_label: `${MONTHS_LONG[d.getUTCMonth()]} ${d.getUTCFullYear()}`,
+        from: dayKey(d),
+        to: dayKey(last),
       })
     }
     else {
       const year = String(today.getUTCFullYear() - i)
-      buckets.push({ key: year, label: year, full_label: year })
+      buckets.push({ key: year, label: year, full_label: year, from: `${year}-01-01`, to: `${year}-12-31` })
     }
   }
   return buckets
@@ -95,6 +105,8 @@ export interface SaleLine {
 export interface PeriodReport {
   categories: string[]
   full_labels: string[]
+  /** First and last day of each bar (YYYY-MM-DD), for the sales details page. */
+  ranges: { from: string; to: string }[]
   revenue: number[]
   orders: number[]
   /** Today / this week / this month / this year. */
@@ -131,6 +143,7 @@ export function buildSalesReports(lines: SaleLine[], now = new Date()): Record<S
     reports[period] = {
       categories: buckets.map(b => b.label),
       full_labels: buckets.map(b => b.full_label),
+      ranges: buckets.map(b => ({ from: b.from, to: b.to })),
       revenue: revenue.map(roundMoney),
       orders,
       current: { revenue: roundMoney(revenue[last] ?? 0), orders: orders[last] ?? 0 },
@@ -142,4 +155,26 @@ export function buildSalesReports(lines: SaleLine[], now = new Date()): Record<S
     }
   }
   return reports
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+/** A real calendar date written as YYYY-MM-DD, or null. */
+export function parseDay(value: unknown): string | null {
+  const text = String(value ?? '')
+  if (!DATE_RE.test(text)) return null
+  const d = new Date(`${text}T00:00:00Z`)
+  return !Number.isNaN(d.getTime()) && dayKey(d) === text ? text : null
+}
+
+/** Philippine days from..to (inclusive) as UTC times: [start, end). */
+export function phDayRange(from: string, to: string) {
+  const start = new Date(Date.parse(`${from}T00:00:00Z`) - PH_OFFSET_MS)
+  const end = new Date(Date.parse(`${to}T00:00:00Z`) + 24 * 60 * 60 * 1000 - PH_OFFSET_MS)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
+/** The Philippine date (YYYY-MM-DD) of a moment. */
+export function phDayKey(iso: string) {
+  return dayKey(phClock(new Date(iso)))
 }

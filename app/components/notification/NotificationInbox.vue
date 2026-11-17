@@ -47,7 +47,7 @@
             </div>
           </header>
 
-          <div class="flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
+          <div class="flex-1 overflow-y-auto overscroll-contain pb-[var(--safe-bottom)]">
             <p v-if="pending && notifications.length === 0" class="px-4 py-16 text-center text-sm text-gray-400">
               Loading…
             </p>

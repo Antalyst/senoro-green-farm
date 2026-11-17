@@ -111,7 +111,7 @@
         </div>
       </div>
 
-      <p class="text-center text-xs text-gray-400">© {{ year }} NFWM Farmers to Market · Senoro Green Farm</p>
+      <p class="text-center text-xs text-gray-400">© {{ year }} NFWM Farmers to Market · NFWM Farmers to Marketm</p>
     </main>
   </div>
 </template>

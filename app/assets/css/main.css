@@ -20,6 +20,19 @@
 @tailwind utilities;
 
 /* ===================================================
+   Phone bars: status bar (top) and navigation bar (bottom)
+   The Android app (Capacitor 8) sends the real sizes as --safe-area-inset-*,
+   because its WebView can report env() as 0. iPhone and browsers use env().
+   =================================================== */
+:root {
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  /* Ionic's own top bars (ion-header / ion-toolbar) read these. */
+  --ion-safe-area-top: var(--safe-top);
+  --ion-safe-area-bottom: var(--safe-bottom);
+}
+
+/* ===================================================
    Ionic CSS Variable Overrides — Brand Theme
    =================================================== */
 :root {
@@ -104,7 +117,7 @@ ion-button {
 ion-tab-bar {
   border-top: 1px solid #e5e7eb;
   height: 60px;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--safe-bottom);
 }
 
 ion-tab-button {
@@ -116,11 +129,11 @@ ion-tab-button {
    Utility Classes
    =================================================== */
 .safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--safe-top);
 }
 
 .safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--safe-bottom);
 }
 
 .scrollbar-none {

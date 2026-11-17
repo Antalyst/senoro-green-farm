@@ -21,7 +21,7 @@
         aria-label="Review photo"
         @click="openIndex = null"
       >
-        <div class="flex items-center justify-between px-4 py-3 text-white">
+        <div class="flex items-center justify-between px-4 pb-3 pt-[max(0.75rem,var(--safe-top))] text-white">
           <span class="text-sm">{{ openIndex + 1 }} / {{ urls.length }}</span>
           <button type="button" class="flex h-10 w-10 items-center justify-center" aria-label="Close" @click="openIndex = null">
             <Icon name="heroicons:x-mark" class="h-7 w-7" />
@@ -30,7 +30,7 @@
         <div class="flex min-h-0 flex-1 items-center justify-center px-4 pb-6">
           <img :src="urls[openIndex]" alt="Review photo" class="max-h-full max-w-full object-contain" @click.stop>
         </div>
-        <div v-if="urls.length > 1" class="flex justify-center gap-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]" @click.stop>
+        <div v-if="urls.length > 1" class="flex justify-center gap-3 pb-[max(1.5rem,var(--safe-bottom))]" @click.stop>
           <button type="button" class="nav-btn" aria-label="Previous photo" @click="step(-1)">
             <Icon name="heroicons:chevron-left" class="h-6 w-6" />
           </button>
@@ -54,6 +54,9 @@ function step(delta: number) {
   if (!count || openIndex.value === null) return
   openIndex.value = (openIndex.value + delta + count) % count
 }
+
+// Black photo viewer: white status-bar icons while it is open.
+useOverlayStatusBar(() => openIndex.value !== null, 'light')
 </script>
 
 <style scoped>

@@ -8,4 +8,7 @@
 
 <script setup lang="ts">
 import { IonPage, IonContent } from '@ionic/vue'
+
+// Phone status-bar icons in the app (white page).
+usePageStatusBar('dark')
 </script>

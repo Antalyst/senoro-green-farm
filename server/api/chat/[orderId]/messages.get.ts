@@ -57,6 +57,8 @@ export default defineEventHandler(async (event) => {
       ? { id: partner.id, name: partner.shop_name || partner.full_name, role: partner.role }
       : { id: partnerId, name: 'Order chat', role: null },
     locked_reason: chatOpenReason(thread, order),
+    // Delivered order still open for problem reports: the screen shows until when.
+    problem_chat_until: problemChatUntil(order),
     payment,
     messages: await withImageUrls(event, rows),
   }

@@ -181,12 +181,17 @@
             class="mt-1 w-full resize-none rounded border border-gray-200 px-3 py-2.5 text-sm text-shop-ink outline-none placeholder:text-gray-400 focus:border-farm-leaf"
           />
         </div>
+
+        <div>
+          <p class="mb-1.5 text-sm font-medium text-shop-ink">Photos <span class="font-normal text-gray-400">(optional)</span></p>
+          <ReviewPhotoPicker v-model="reviewFiles" @error="triggerToast($event, 'error')" />
+        </div>
       </div>
       <template #footer>
         <button
           type="button"
           class="inline-flex min-h-[48px] w-full items-center justify-center rounded bg-farm-leaf text-sm font-semibold text-white hover:bg-farm-deep disabled:opacity-50"
-          :disabled="submitting || !comment.trim() || !selectedProductId"
+          :disabled="submitting || (!comment.trim() && !reviewFiles.length) || !selectedProductId"
           @click="submitReview"
         >
           {{ submitting ? 'Posting…' : 'Post review' }}
@@ -319,6 +324,7 @@ const reviewOrder = ref<OrderRow | null>(null)
 const selectedProductId = ref<string | null>(null)
 const rating = ref(5)
 const comment = ref('')
+const reviewFiles = ref<File[]>([])
 const submitting = ref(false)
 const reviewItems = computed(() => (reviewOrder.value ? reviewableItems(reviewOrder.value) : []))
 
@@ -327,6 +333,7 @@ function openReview(order: OrderRow) {
   selectedProductId.value = reviewableItems(order)[0]?.products?.id ?? null
   rating.value = 5
   comment.value = ''
+  reviewFiles.value = []
   showReview.value = true
 }
 
@@ -338,18 +345,19 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
 }
 
 async function submitReview() {
-  if (!selectedProductId.value || !comment.value.trim()) return
+  if (!selectedProductId.value || (!comment.value.trim() && !reviewFiles.value.length)) return
   submitting.value = true
   try {
-    await api('/api/products/review', {
-      method: 'POST',
-      body: {
-        product_id: selectedProductId.value,
-        rating: rating.value,
-        comment: comment.value.trim(),
-      },
-    })
+    const form = new FormData()
+    form.append('product_id', selectedProductId.value)
+    form.append('rating', String(rating.value))
+    form.append('comment', comment.value.trim())
+    form.append('photo_count', String(reviewFiles.value.length))
+    for (const file of reviewFiles.value) form.append('images', file, file.name || 'photo.jpg')
+
+    await api('/api/products/review', { method: 'POST', body: form })
     showReview.value = false
+    reviewFiles.value = []
     triggerToast('Thanks! Your review is posted.')
   }
   catch (err: unknown) {

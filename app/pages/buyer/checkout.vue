@@ -582,7 +582,7 @@ useHead({ title: 'Checkout — NFWM Farmers to Market' })
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(60px + var(--safe-bottom));
   z-index: 40;
   background: #ffffff;
   border-top: 1px solid #f3f4f6;

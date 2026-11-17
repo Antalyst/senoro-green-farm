@@ -7,7 +7,7 @@
         :class="manualOnly ? 'bg-white text-shop-ink' : 'bg-black text-white'"
       >
         <!-- Header -->
-        <div class="flex items-center gap-3 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div class="flex items-center gap-3 px-4 pb-3 pt-[max(1rem,var(--safe-top))]">
           <button
             type="button"
             class="flex h-10 w-10 items-center justify-center rounded-full"
@@ -26,7 +26,7 @@
         <!-- Code only (no camera): for damaged receipts or a broken camera -->
         <form
           v-if="manualOnly"
-          class="flex flex-1 flex-col items-center justify-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+          class="flex flex-1 flex-col items-center justify-center px-6 pb-[max(1.5rem,var(--safe-bottom))]"
           @submit.prevent="submitManual"
         >
           <span class="flex h-16 w-16 items-center justify-center rounded-full bg-shop-mint text-farm-leaf">
@@ -93,7 +93,7 @@
         </div>
 
         <!-- Result / manual entry -->
-        <div v-if="!manualOnly" class="space-y-3 bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 text-shop-ink">
+        <div v-if="!manualOnly" class="space-y-3 bg-white px-4 pb-[max(1rem,var(--safe-bottom))] pt-4 text-shop-ink">
           <p
             v-if="error"
             role="alert"
@@ -223,6 +223,9 @@ watch(() => props.open, async (isOpen) => {
 })
 
 onBeforeUnmount(stop)
+
+// Black camera screen: white status-bar icons while it is open.
+useOverlayStatusBar(() => props.open, 'light')
 </script>
 
 <style scoped>

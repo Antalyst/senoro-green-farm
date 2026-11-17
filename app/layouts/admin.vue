@@ -52,7 +52,7 @@
     <Transition name="fade-down">
       <div
         v-if="showProfileMenu"
-        class="fixed right-4 md:right-[max(1rem,calc((100vw-1200px)/2+2rem))] top-16 z-[60] w-60 rounded-md border border-farm-leaf/15 bg-white py-2"
+        class="fixed right-4 md:right-[max(1rem,calc((100vw-1200px)/2+2rem))] top-[calc(4rem+var(--safe-top))] z-[60] w-60 rounded-md border border-farm-leaf/15 bg-white py-2"
       >
         <div class="flex items-center gap-3 border-b border-farm-leaf/15 bg-shop-mint px-4 py-3">
           <AccountAvatarUpload avatar-class="w-12 h-12 rounded-full bg-farm-leaf text-lg text-white" />
@@ -102,6 +102,9 @@ async function handleLogout() {
   await logout()
   router.push('/')
 }
+
+// Phone status-bar icons in the app (green header).
+usePageStatusBar('light')
 </script>
 
 <style scoped>

@@ -161,7 +161,7 @@
     <!-- Desktop account menu -->
     <div
       v-if="showProfileMenu"
-      class="fixed right-8 top-16 z-[95] w-60 rounded-md border border-gray-100 bg-white py-1"
+      class="fixed right-8 top-[calc(4rem+var(--safe-top))] z-[95] w-60 rounded-md border border-gray-100 bg-white py-1"
     >
       <div class="border-b border-gray-100 px-4 py-3">
         <p class="truncate text-sm font-medium text-shop-ink">{{ user?.full_name }}</p>
@@ -350,6 +350,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
 })
+
+// Phone status-bar icons in the app (green header on phones).
+usePageStatusBar('light')
 </script>
 
 <style scoped>
@@ -388,7 +391,7 @@ onBeforeUnmount(() => {
   display: flex;
   background: #ffffff;
   border-top: 1px solid rgba(78, 139, 87, 0.15);
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: var(--safe-bottom);
 }
 
 .seller-tab {
